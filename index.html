@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🛒 MesCourses</title>
+<meta name="description" content="Votre assistant de courses intelligent">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MesCourses">
+<link rel="manifest" href="/manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0f0f0f;font-family:'DM Sans',sans-serif;color:#f5f0e8;overscroll-behavior:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+// ─── CONSTANTES ───────────────────────────────────────────────
+const CATEGORIES=["🍎 Fruits","🥦 Légumes","🥩 Viande","🐟 Poisson","🥛 Laitiers","🧀 Fromage","🥚 Oeufs","🍞 Boulangerie","🥫 Épicerie sèche","🫙 Conserves","🧊 Surgelés","🍷 Boissons","🧴 Hygiène","🧹 Entretien","🍬 Confiseries","❓ Autre"];
+const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte","bouteille","paquet","tranche","botte"];
+const UL={"":"pcs","g":"g","kg":"kg","ml":"ml","cl":"cl","L":"L","càs":"càs","càc":"càc","pincée":"pincée","sachet":"sachet","boîte":"boîte","bouteille":"bouteille","paquet":"paquet","tranche":"tranche","botte":"botte"};
+const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[]};
+const BG="#0f0f0f",SURF="#1a1a1a",SURF2="#242424",SURF3="#2e2e2e",ACC="#e8c547",TXT="#f5f0e8",TXT2="#a89f8c",TXT3="#6b6358",DNG="#e05c5c",SUC="#5cb88a",BDR="#2e2e2e";
+
+function loadDB(){try{return JSON.parse(localStorage.getItem("mc_r3")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
+function saveDB(db){try{localStorage.setItem("mc_r3",JSON.stringify(db));}catch{}}
+function roundQ(n){return n%1===0?n:+n.toFixed(2);}
+function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
+function guessCat(name){
+  const n=name.toLowerCase();
+  if(/tomate|salade|carotte|courgette|aubergine|oignon|poireau|brocoli|épinard|poivron|concombre|chou|radis|betterave|asperge|fenouil|échalotte|ail|gingembre|navet/.test(n))return"🥦 Légumes";
+  if(/pomme|poire|banane|fraise|framboise|cerise|abricot|pêche|melon|pastèque|mangue|ananas|kiwi|orange|citron|raisin|figue|prune|myrtille|avocat/.test(n))return"🍎 Fruits";
+  if(/viande|boeuf|porc|veau|agneau|poulet|dinde|canard|lapin|saucisse|jambon|lard|lardon|steak|côte|filet/.test(n))return"🥩 Viande";
+  if(/poisson|saumon|thon|cabillaud|sole|dorade|crevette|moule|huître|sardine|anchois/.test(n))return"🐟 Poisson";
+  if(/lait|yaourt|crème fraîche|crème|beurre/.test(n))return"🥛 Laitiers";
+  if(/fromage|gruyère|emmental|parmesan|comté|mozzarella|camembert|brie|roquefort|chèvre/.test(n))return"🧀 Fromage";
+  if(/oeuf|oeufs/.test(n))return"🥚 Oeufs";
+  if(/pain|baguette|brioche|croissant/.test(n))return"🍞 Boulangerie";
+  if(/shampo|savon|dentifrice|gel douche|déodorant/.test(n))return"🧴 Hygiène";
+  if(/eau|jus|soda|bière|vin|café|thé/.test(n))return"🍷 Boissons";
+  return"🥫 Épicerie sèche";
+}
+function normUnit(u){
+  if(!u)return"";
+  const m={gramme:"g",grammes:"g",kilogramme:"kg",kilogrammes:"kg",litre:"L",litres:"L",millilitre:"ml",millilitres:"ml",centilitre:"cl",centilitres:"cl","pièce":"","pièces":"","cuillère à soupe":"càs","cuillères à soupe":"càs","cuillère à café":"càc","cuillères à café":"càc",pincée:"pincée",pincées:"pincée",sachet:"sachet",sachets:"sachet","boîte":"boîte","boîtes":"boîte",bouteille:"bouteille",bouteilles:"bouteille",paquet:"paquet",paquets:"paquet",tranche:"tranche",tranches:"tranche",botte:"botte",bottes:"botte"};
+  const low=u.toLowerCase().trim();return m[low]!==undefined?m[low]:(UNITS.includes(low)?low:"");
+}
+function mergeItem(items,n,qv,uv,src,ct){
+  const arr=[...items],norm=n.toLowerCase();
+  const ex=arr.find(i=>i.name.toLowerCase()===norm&&!i.checked);
+  if(ex){const s=ex.quantities.find(q=>q.unit===uv);if(s)s.qty=roundQ(+s.qty+ +qv);else ex.quantities.push({qty:roundQ(+qv),unit:uv,source:src});}
+  else arr.push({id:Date.now()+Math.random(),name:n,category:ct||guessCat(n),quantities:[{qty:roundQ(+qv),unit:uv,source:src}],checked:false});
+  return arr;
+}
+
+// ─── STYLES PARTAGÉS ─────────────────────────────────────────
+const inp={width:"100%",background:SURF2,border:`1px solid ${BDR}`,borderRadius:10,padding:"11px 13px",color:TXT,fontFamily:"inherit",fontSize:14,outline:"none",boxSizing:"border-box"};
+const sel={...inp,fontSize:13,appearance:"none",cursor:"pointer"};
+const btn=(v="acc")=>({background:v==="acc"?ACC:v==="suc"?SUC:v==="dng"?DNG:v==="out"?"transparent":SURF3,color:v==="acc"?"#111":v==="gh"?TXT2:"white",border:v==="out"?`1.5px solid ${ACC}`:"none",borderRadius:10,padding:"10px 14px",fontFamily:"inherit",fontWeight:600,fontSize:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5,whiteSpace:"nowrap",flexShrink:0});
+const lbl={fontSize:11,color:TXT3,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:6};
+const card={background:SURF,border:`1px solid ${BDR}`,borderRadius:14,padding:13,marginBottom:10};
+const ovl={position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:200,display:"flex",alignItems:"flex-end",backdropFilter:"blur(4px)"};
+const mdl={background:SURF,borderRadius:"16px 16px 0 0",padding:"18px 15px",width:"100%",maxHeight:"94vh",overflowY:"auto"};
+
+// ─── COMPOSANTS DE BASE ───────────────────────────────────────
+function Toast({msg}){
+  return msg?<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:SURF3,color:TXT,padding:"10px 18px",borderRadius:40,fontSize:12,fontWeight:500,zIndex:500,border:"1px solid #3a3a3a",pointerEvents:"none",whiteSpace:"nowrap"}}>{msg}</div>:null;
+}
+
+function Stepper({value,onChange,min=1}){
+  const bs={background:"#3a3a3a",border:"none",color:TXT,width:28,height:28,borderRadius:7,fontSize:16,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"};
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:4,background:SURF3,borderRadius:8,padding:3,flexShrink:0}}>
+      <button style={bs} onClick={()=>onChange(Math.max(min,value-1))}>−</button>
+      <span style={{fontSize:13,fontWeight:700,minWidth:22,textAlign:"center"}}>{value}</span>
+      <button style={bs} onClick={()=>onChange(value+1)}>+</button>
+    </div>
+  );
+}
+
+function Modal({open,onClose,children}){
+  if(!open)return null;
+  return(
+    <div style={ovl} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={mdl}><div style={{width:34,height:4,background:SURF3,borderRadius:2,margin:"0 auto 16px"}}/>{children}</div>
+    </div>
+  );
+}
+
+function SecTitle({children}){
+  return(
+    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:TXT3,margin:"14px 0 7px",display:"flex",alignItems:"center",gap:6}}>
+      {children}<div style={{flex:1,height:1,background:BDR}}/>
+    </div>
+  );
+}
+
+// ─── CROP MODAL ───────────────────────────────────────────────
+function CropModal({open,src,onConfirm,onClose}){
+  const canvasRef=useRef(null),imgRef=useRef(null);
+  const [drag,setDrag]=useState(null);
+  const [crop,setCrop]=useState({x:0,y:0,w:1,h:1});
+  const [loaded,setLoaded]=useState(false);
+
+  useEffect(()=>{if(open&&src){setLoaded(false);setCrop({x:.1,y:.1,w:.8,h:.8});}},[open,src]);
+
+  useEffect(()=>{
+    if(!loaded||!canvasRef.current||!imgRef.current)return;
+    const cv=canvasRef.current,img=imgRef.current,ctx=cv.getContext("2d");
+    const W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);ctx.drawImage(img,0,0,W,H);
+    ctx.fillStyle="rgba(0,0,0,.55)";
+    const cx=crop.x*W,cy=crop.y*H,cw=crop.w*W,ch=crop.h*H;
+    ctx.fillRect(0,0,W,cy);ctx.fillRect(0,cy,cx,ch);ctx.fillRect(cx+cw,cy,W-(cx+cw),ch);ctx.fillRect(0,cy+ch,W,H-(cy+ch));
+    ctx.strokeStyle=ACC;ctx.lineWidth=2;ctx.strokeRect(cx,cy,cw,ch);
+    // grid lines
+    ctx.strokeStyle="rgba(232,197,71,.3)";ctx.lineWidth=1;
+    [1,2].forEach(k=>{ctx.beginPath();ctx.moveTo(cx+cw*k/3,cy);ctx.lineTo(cx+cw*k/3,cy+ch);ctx.stroke();ctx.beginPath();ctx.moveTo(cx,cy+ch*k/3);ctx.lineTo(cx+cw,cy+ch*k/3);ctx.stroke();});
+    // handles
+    [[cx,cy],[cx+cw,cy],[cx,cy+ch],[cx+cw,cy+ch]].forEach(([hx,hy])=>{ctx.fillStyle=ACC;ctx.beginPath();ctx.arc(hx,hy,7,0,Math.PI*2);ctx.fill();});
+  },[crop,loaded]);
+
+  function getPos(e,cv){const r=cv.getBoundingClientRect();const cl=e.touches?e.touches[0]:e;return{x:(cl.clientX-r.left)/r.width,y:(cl.clientY-r.top)/r.height};}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+  function startDrag(e){
+    if(!canvasRef.current)return;e.preventDefault();
+    const pos=getPos(e,canvasRef.current);const{x,y,w,h}=crop;
+    const hs=[{n:"tl",px:x,py:y},{n:"tr",px:x+w,py:y},{n:"bl",px:x,py:y+h},{n:"br",px:x+w,py:y+h}];
+    const hit=hs.find(hd=>Math.hypot(pos.x-hd.px,pos.y-hd.py)<0.07);
+    if(hit)setDrag({type:"h",name:hit.n,sc:{...crop}});
+    else if(pos.x>=x&&pos.x<=x+w&&pos.y>=y&&pos.y<=y+h)setDrag({type:"m",ox:pos.x-x,oy:pos.y-y,sc:{...crop}});
+    else setDrag({type:"n",sx:pos.x,sy:pos.y});
+  }
+  function onDrag(e){
+    if(!drag||!canvasRef.current)return;e.preventDefault();
+    const pos=getPos(e,canvasRef.current);
+    if(drag.type==="n"){const x=Math.min(pos.x,drag.sx),y=Math.min(pos.y,drag.sy),w=Math.abs(pos.x-drag.sx),h=Math.abs(pos.y-drag.sy);setCrop({x:clamp(x,0,1),y:clamp(y,0,1),w:clamp(w,0.05,1-x),h:clamp(h,0.05,1-y)});}
+    else if(drag.type==="m"){const sc=drag.sc;setCrop({...sc,x:clamp(pos.x-drag.ox,0,1-sc.w),y:clamp(pos.y-drag.oy,0,1-sc.h)});}
+    else if(drag.type==="h"){const sc=drag.sc;
+      if(drag.name==="tl"){const nx=clamp(pos.x,0,sc.x+sc.w-0.05),ny=clamp(pos.y,0,sc.y+sc.h-0.05);setCrop({x:nx,y:ny,w:sc.x+sc.w-nx,h:sc.y+sc.h-ny});}
+      else if(drag.name==="tr"){const ny=clamp(pos.y,0,sc.y+sc.h-0.05);setCrop({x:sc.x,y:ny,w:clamp(pos.x-sc.x,0.05,1-sc.x),h:sc.y+sc.h-ny});}
+      else if(drag.name==="bl"){const nx=clamp(pos.x,0,sc.x+sc.w-0.05);setCrop({x:nx,y:sc.y,w:sc.x+sc.w-nx,h:clamp(pos.y-sc.y,0.05,1-sc.y)});}
+      else{setCrop({x:sc.x,y:sc.y,w:clamp(pos.x-sc.x,0.05,1-sc.x),h:clamp(pos.y-sc.y,0.05,1-sc.y)});}
+    }
+  }
+  function endDrag(){setDrag(null);}
+
+  function confirm(){
+    if(!imgRef.current)return;
+    const img=imgRef.current,out=document.createElement("canvas");
+    out.width=Math.round(img.naturalWidth*crop.w);out.height=Math.round(img.naturalHeight*crop.h);
+    out.getContext("2d").drawImage(img,img.naturalWidth*crop.x,img.naturalHeight*crop.y,img.naturalWidth*crop.w,img.naturalHeight*crop.h,0,0,out.width,out.height);
+    onConfirm(out.toDataURL("image/jpeg",.92));
+  }
+
+  if(!open||!src)return null;
+  return(
+    <div style={{...ovl,zIndex:300}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{...mdl,paddingBottom:24}}>
+        <div style={{width:34,height:4,background:SURF3,borderRadius:2,margin:"0 auto 14px"}}/>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:4}}>📐 Recadrer la photo</div>
+        <div style={{fontSize:12,color:TXT3,marginBottom:10}}>Faites glisser pour déplacer, tirez les coins pour redimensionner</div>
+        <div style={{borderRadius:10,overflow:"hidden",touchAction:"none",userSelect:"none",background:"#000"}}>
+          <img ref={imgRef} src={src} alt="" style={{display:"none"}} onLoad={()=>setLoaded(true)}/>
+          {loaded
+            ?<canvas ref={canvasRef} width={400} height={300} style={{width:"100%",height:"auto",display:"block",cursor:"crosshair",touchAction:"none"}}
+              onMouseDown={startDrag} onMouseMove={onDrag} onMouseUp={endDrag}
+              onTouchStart={startDrag} onTouchMove={onDrag} onTouchEnd={endDrag}/>
+            :<div style={{height:220,display:"flex",alignItems:"center",justifyContent:"center",color:TXT3}}>Chargement…</div>
+          }
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:12}}>
+          <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
+          <button style={{...btn("acc"),flex:1}} onClick={confirm} disabled={!loaded}>✂️ Recadrer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── QUICK ADD MODAL (produits fréquents) ─────────────────────
+function QuickAddModal({open,product,onConfirm,onClose}){
+  const [qty,setQty]=useState(1);
+  const [unit,setUnit]=useState("");
+  useEffect(()=>{if(open&&product){setQty(1);setUnit(product.lastUnit||"");}},[open,product]);
+  if(!open||!product)return null;
+  return(
+    <Modal open onClose={onClose}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:6}}>Ajouter à la liste</div>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4,color:ACC}}>{product.name}</div>
+      <div style={{fontSize:11,color:TXT3,marginBottom:16}}>{product.category} · {product.count}× acheté</div>
+      <div style={{display:"flex",gap:10,alignItems:"flex-end",marginBottom:16}}>
+        <div style={{flex:1}}><span style={lbl}>Quantité</span><Stepper value={qty} onChange={setQty}/></div>
+        <div style={{flex:1}}><span style={lbl}>Unité</span>
+          <select style={{...sel,padding:"9px 12px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
+            {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
+        <button style={{...btn("acc"),flex:1}} onClick={()=>onConfirm(product.name,product.category,unit,qty)}>+ Ajouter</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── HISTORY SESSION ──────────────────────────────────────────
+function HistorySession({session,onReloadAll,onReloadSelected}){
+  const [open,setOpen]=useState(false);
+  const [sel,setSel]=useState(new Set());
+  function toggle(name){const s=new Set(sel);if(s.has(name))s.delete(name);else s.add(name);setSel(s);}
+  function selAll(){setSel(new Set(session.items.map(i=>i.name)));}
+  const items=session.items||[];
+  return(
+    <div style={{...card,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 13px",cursor:"pointer"}} onClick={()=>setOpen(o=>!o)}>
+        <div>
+          <div style={{fontWeight:600,fontSize:13}}>{session.date}</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{session.count} articles</div>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <button style={{...btn("out"),fontSize:11,padding:"5px 9px"}} onClick={e=>{e.stopPropagation();onReloadAll();}}>Tout ajouter</button>
+          <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+        </div>
+      </div>
+      {open&&(
+        <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 13px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:11,color:TXT3}}>{sel.size} sélectionné{sel.size>1?"s":""}</span>
+            <div style={{display:"flex",gap:5}}>
+              <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={selAll}>Tout</button>
+              <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={()=>setSel(new Set())}>Aucun</button>
+              <button style={{...btn("suc"),fontSize:11,padding:"4px 8px"}} onClick={()=>onReloadSelected(sel)} disabled={sel.size===0}>✅ Ajouter ({sel.size})</button>
+            </div>
+          </div>
+          <div style={{maxHeight:240,overflowY:"auto"}}>
+            {items.map((item,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 4px",borderBottom:i<items.length-1?`1px solid ${BDR}`:"none",cursor:"pointer",background:sel.has(item.name)?"rgba(232,197,71,.06)":"transparent"}} onClick={()=>toggle(item.name)}>
+                <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid #3a3a3a`,background:sel.has(item.name)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {sel.has(item.name)&&<span style={{color:"white",fontSize:10,fontWeight:700}}>✓</span>}
+                </div>
+                <span style={{flex:1,fontSize:13}}>{item.name}</span>
+                <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE LISTE
+// ═══════════════════════════════════════════════════════════════
+function PageListe({db,setDb,showToast}){
+  const [name,setName]=useState("");
+  const [qty,setQty]=useState(1);
+  const [unit,setUnit]=useState("");
+  const [cat,setCat]=useState("🥦 Légumes");
+  const [sugg,setSugg]=useState([]);
+  const [eqty,setEqty]=useState(null);
+
+  useEffect(()=>{
+    if(!name.trim()){setSugg([]);return;}
+    const q=name.toLowerCase();
+    setSugg(Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count).slice(0,6));
+  },[name,db.productHistory]);
+
+  function addItem(){
+    const n=name.trim();if(!n)return;
+    const ni=mergeItem(db.items,n,qty,unit,"manuel",cat);
+    const ph={...db.productHistory};
+    if(!ph[n])ph[n]={count:0,category:cat,lastUnit:unit};
+    ph[n].count++;ph[n].category=cat;ph[n].lastUnit=unit;
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    setName("");setQty(1);setSugg([]);showToast("✅ "+n+" ajouté");
+  }
+  function toggle(id){const ni=db.items.map(i=>i.id===id?{...i,checked:!i.checked}:i);const nd={...db,items:ni};setDb(nd);saveDB(nd);}
+  function del(id){const ni=db.items.filter(i=>i.id!==id);const nd={...db,items:ni};setDb(nd);saveDB(nd);}
+  function clrChk(){const ni=db.items.filter(i=>!i.checked);const nd={...db,items:ni};setDb(nd);saveDB(nd);showToast("🗑️ Articles cochés supprimés");}
+  function saveHist(){
+    if(!db.items.length){showToast("⚠️ Liste vide");return;}
+    const h=[{date:new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}),items:JSON.parse(JSON.stringify(db.items)),count:db.items.length},...db.shoppingHistory].slice(0,20);
+    const nd={...db,shoppingHistory:h};setDb(nd);saveDB(nd);showToast("💾 Course sauvegardée");
+  }
+  function confEqty(val,uv){
+    if(isNaN(val)||val<0){showToast("⚠️ Quantité invalide");return;}
+    const ni=db.items.map(item=>{
+      if(item.id!==eqty.itemId)return item;
+      const qs=[...item.quantities];
+      if(eqty.qi==null)qs.push({qty:roundQ(val),unit:uv,source:"manuel"});
+      else qs[eqty.qi]={...qs[eqty.qi],qty:roundQ(val),unit:uv};
+      return{...item,quantities:qs};
+    });
+    const nd={...db,items:ni};setDb(nd);saveDB(nd);setEqty(null);
+  }
+  function delQty(){
+    const ni=db.items.reduce((acc,item)=>{
+      if(item.id!==eqty.itemId)return[...acc,item];
+      const qs=item.quantities.filter((_,i)=>i!==eqty.qi);
+      return qs.length?[...acc,{...item,quantities:qs}]:acc;
+    },[]);
+    const nd={...db,items:ni};setDb(nd);saveDB(nd);setEqty(null);
+  }
+
+  const unc=db.items.filter(i=>!i.checked),chk=db.items.filter(i=>i.checked);
+  const total=db.items.length,cc=chk.length,pct=total?Math.round(cc/total*100):0;
+  const cats={};unc.forEach(item=>{const c=item.category||"❓ Autre";if(!cats[c])cats[c]=[];cats[c].push(item);});
+
+  return(
+    <div style={{padding:14,paddingBottom:90}}>
+      <div style={{...card,display:"flex",justifyContent:"space-around",padding:"11px 8px",marginBottom:4}}>
+        {[["Articles",total],["Cochés",cc],["Restants",total-cc]].map(([l,v])=>(
+          <div key={l} style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:ACC}}>{v}</div><div style={{fontSize:10,color:TXT3}}>{l}</div></div>
+        ))}
+      </div>
+      <div style={{height:3,background:SURF3,borderRadius:2,marginBottom:12,overflow:"hidden"}}>
+        <div style={{height:"100%",background:"linear-gradient(90deg,#e8c547,#f0a500)",width:pct+"%",transition:"width .4s"}}/>
+      </div>
+      <div style={card}>
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
+          <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
+          <button style={btn("acc")} onClick={addItem}>+</button>
+        </div>
+        {sugg.length>0&&(
+          <div style={{background:SURF2,border:`1px solid ${BDR}`,borderRadius:10,overflow:"hidden",marginBottom:8}}>
+            {sugg.map(([n,d])=>(
+              <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between"}}
+                onClick={()=>{setName(n);if(d.category)setCat(d.category);if(d.lastUnit!==undefined)setUnit(d.lastUnit);setSugg([]);}}>
+                <span>{n}</span><span style={{fontSize:10,color:TXT3,background:SURF3,padding:"1px 7px",borderRadius:20}}>{d.count}× · {UL[d.lastUnit]||"pcs"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <Stepper value={qty} onChange={setQty}/>
+          <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
+          <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+        </div>
+      </div>
+      {db.items.length===0?(
+        <div style={{textAlign:"center",padding:"48px 20px"}}>
+          <div style={{fontSize:44,marginBottom:12}}>🛍️</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,marginBottom:6}}>Liste vide</div>
+          <div style={{fontSize:13,color:TXT3}}>Ajoutez un article ou importez une recette</div>
+        </div>
+      ):(
+        <>
+          {Object.entries(cats).map(([c,items])=>(
+            <div key={c}><SecTitle>{c}</SecTitle>
+              {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
+            </div>
+          ))}
+          {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}</div>}
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <button style={{...btn("gh"),flex:1,fontSize:12}} onClick={clrChk}>🗑️ Supprimer cochés</button>
+            <button style={{...btn("out"),flex:1,fontSize:12}} onClick={saveHist}>💾 Sauvegarder</button>
+          </div>
+        </>
+      )}
+      <EqtyModal open={!!eqty} item={eqty?db.items.find(i=>i.id===eqty.itemId):null} qi={eqty?.qi} onClose={()=>setEqty(null)} onConf={confEqty} onDel={delQty}/>
+    </div>
+  );
+}
+
+function Item({item,onToggle,onDel,onEqty,onAqty}){
+  return(
+    <div style={{...card,display:"flex",alignItems:"flex-start",gap:10,padding:"10px 12px",marginBottom:6,opacity:item.checked?.38:1,background:item.checked?"#1d1d1d":SURF}}>
+      <div onClick={()=>onToggle(item.id)} style={{width:24,height:24,borderRadius:"50%",border:item.checked?"none":"2px solid #3a3a3a",background:item.checked?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,marginTop:1}}>
+        {item.checked&&<span style={{color:"white",fontSize:12,fontWeight:700}}>✓</span>}
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:14,fontWeight:500,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>
+          {(item.quantities||[]).map((q,qi)=>{
+            const isR=q.source&&q.source!=="manuel"&&q.source!=="historique";
+            return<span key={qi} style={{fontSize:11,background:isR?"rgba(232,197,71,.12)":SURF3,border:isR?"1px solid rgba(232,197,71,.25)":"1px solid transparent",borderRadius:20,padding:"2px 8px",color:isR?ACC:TXT2,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}{isR?" 🍽️":""}</span>;
+          })}
+          <span style={{fontSize:11,border:"1px dashed #3a3a3a",borderRadius:20,padding:"2px 8px",color:TXT3,cursor:"pointer"}} onClick={()=>onAqty(item.id)}>+ qté</span>
+        </div>
+      </div>
+      <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:2}} onClick={()=>onDel(item.id)}>🗑️</button>
+    </div>
+  );
+}
+
+function EqtyModal({open,item,qi,onClose,onConf,onDel}){
+  const [val,setVal]=useState("");const [unit,setUnit]=useState("");
+  useEffect(()=>{if(open&&item&&qi!=null){const q=item.quantities[qi];setVal(String(q.qty));setUnit(q.unit||"");}else{setVal("");setUnit("");}},[ open,item,qi]);
+  return(
+    <Modal open={open} onClose={onClose}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:6}}>{qi==null?"Ajouter une quantité":"Modifier la quantité"}</div>
+      {item&&<div style={{fontSize:13,color:TXT3,marginBottom:12}}>{item.name}</div>}
+      <div style={{display:"flex",gap:8,marginBottom:14}}>
+        <div style={{flex:1}}><span style={lbl}>Quantité</span><input style={inp} type="number" min="0" step="0.1" value={val} onChange={e=>setVal(e.target.value)}/></div>
+        <div style={{flex:1}}><span style={lbl}>Unité</span><select style={sel} value={unit} onChange={e=>setUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select></div>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        {qi!=null&&<button style={{...btn("dng"),fontSize:12}} onClick={onDel}>🗑️</button>}
+        <button style={{...btn("gh"),flex:1,fontSize:12}} onClick={onClose}>Annuler</button>
+        <button style={{...btn("acc"),flex:1,fontSize:12}} onClick={()=>onConf(parseFloat(val),unit)}>Confirmer</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE RECETTES
+// ═══════════════════════════════════════════════════════════════
+function PageRecettes({db,setDb,showToast}){
+  const [showEdit,setShowEdit]=useState(false);
+  const [editIdx,setEditIdx]=useState(-1);
+  const [viewIdx,setViewIdx]=useState(-1);
+
+  function saveRecipe(recipe){
+    const recipes=[...db.recipes];
+    if(editIdx>=0)recipes[editIdx]=recipe;else recipes.push(recipe);
+    const nd={...db,recipes};setDb(nd);saveDB(nd);setShowEdit(false);showToast("🍽️ Recette enregistrée !");
+  }
+  function delRecipe(idx){
+    if(!confirm("Supprimer cette recette ?"))return;
+    const recipes=db.recipes.filter((_,i)=>i!==idx);
+    const nd={...db,recipes};setDb(nd);saveDB(nd);setViewIdx(-1);showToast("🗑️ Recette supprimée");
+  }
+  function addToList(recipe,vp,haveIdxs){
+    const base=recipe.persons||1,scale=vp/base;
+    let ni=[...db.items],ph={...db.productHistory},added=0;
+    recipe.ingredients.forEach((ing,i)=>{
+      if(haveIdxs.has(i))return;
+      const qN=ing.qty?roundQ(parseFloat(ing.qty)*scale):1,uv=ing.unit||"",n=ing.name;
+      const ct=ph[n]?.category||guessCat(n);
+      ni=mergeItem(ni,n,qN,uv,recipe.name,ct);
+      if(!ph[n])ph[n]={count:0,category:ct,lastUnit:uv};ph[n].count++;added++;
+    });
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);setViewIdx(-1);
+    showToast(`✅ ${added} ingrédient${added>1?"s":""} ajouté${added>1?"s":""} à la liste`);
+  }
+
+  return(
+    <div style={{padding:14,paddingBottom:90}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:20}}>Mes recettes</div>
+        <button style={btn("acc")} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Recette</button>
+      </div>
+      {db.recipes.length===0?(
+        <div style={{textAlign:"center",padding:"48px 20px"}}>
+          <div style={{fontSize:44,marginBottom:12}}>🍴</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,marginBottom:6}}>Aucune recette</div>
+          <div style={{fontSize:13,color:TXT3}}>Créez votre première recette ou scannez une page de livre de cuisine</div>
+        </div>
+      ):(
+        db.recipes.map((r,i)=>(
+          <div key={r.id} style={{...card,padding:0,overflow:"hidden",cursor:"pointer",marginBottom:12}} onClick={()=>setViewIdx(i)}>
+            <div style={{height:145,background:SURF2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:42,overflow:"hidden"}}>
+              {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:"🍽️"}
+            </div>
+            <div style={{padding:"11px 14px"}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:6}}>{r.name}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                <span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>🥗 {r.ingredients.length} ingr.</span>
+                {r.persons&&<span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>👥 {r.persons} pers.</span>}
+                {r.duration&&<span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>⏱️ {r.duration}</span>}
+                <span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>📅 {r.date}</span>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+      {showEdit&&<RecipeEdit recipe={editIdx>=0?db.recipes[editIdx]:null} onSave={saveRecipe} onClose={()=>setShowEdit(false)} showToast={showToast}/>}
+      {viewIdx>=0&&<RecipeView recipe={db.recipes[viewIdx]} onClose={()=>setViewIdx(-1)}
+        onEdit={()=>{setViewIdx(-1);setTimeout(()=>{setEditIdx(viewIdx);setShowEdit(true);},200);}}
+        onDel={()=>delRecipe(viewIdx)} onAdd={addToList}/>}
+    </div>
+  );
+}
+
+// ─── API KEY MODAL ────────────────────────────────────────────
+function ApiKeyModal({open,onSave,onClose}){
+  const [k,setK]=useState(()=>localStorage.getItem("mc_apikey")||"");
+  return(
+    <Modal open={open} onClose={onClose}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:8}}>🔑 Clé API Anthropic</div>
+      <div style={{fontSize:12,color:TXT3,marginBottom:14,lineHeight:1.6}}>
+        Pour analyser des recettes par IA, entrez votre clé API Anthropic.<br/>
+        Obtenez-la sur <strong style={{color:ACC}}>console.anthropic.com</strong> → API Keys.<br/>
+        Elle sera sauvegardée localement sur cet appareil.
+      </div>
+      <span style={lbl}>Clé API (sk-ant-...)</span>
+      <input style={{...inp,marginBottom:14,fontFamily:"monospace",fontSize:12}} type="password" placeholder="sk-ant-api03-..." value={k} onChange={e=>setK(e.target.value)}/>
+      <div style={{display:"flex",gap:8}}>
+        <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
+        <button style={{...btn("acc"),flex:1}} onClick={()=>{localStorage.setItem("mc_apikey",k.trim());onSave(k.trim());}}>💾 Enregistrer</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── RECIPE EDIT ──────────────────────────────────────────────
+function RecipeEdit({recipe,onSave,onClose,showToast}){
+  const [name,setName]=useState(recipe?.name||"");
+  const [persons,setPersons]=useState(recipe?.persons||"");
+  const [duration,setDuration]=useState(recipe?.duration||"");
+  const [photo,setPhoto]=useState(recipe?.photo||null);
+  const [ings,setIngs]=useState(recipe?.ingredients?.length?recipe.ingredients.map(i=>({...i})):[{name:"",qty:"",unit:""}]);
+  const [steps,setSteps]=useState(recipe?.steps?.length?[...recipe.steps]:[""]);
+  const [scanning,setScanning]=useState(false);
+  const [scanMsg,setScanMsg]=useState("");
+  const [scanStatus,setScanStatus]=useState("idle"); // idle | ok | error
+  const [scannedRaw,setScannedRaw]=useState(null); // {dataUrl, mt} pour recadrage si erreur
+  const [cropSrc,setCropSrc]=useState(null);
+  const [cropFor,setCropFor]=useState(null); // "photo" | "scan-retry"
+  const [showApiKey,setShowApiKey]=useState(false);
+  const scanRef=useRef(),photoRef=useRef();
+
+  // Photo : chargement direct sans recadrage auto
+  function handlePhoto(e){
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();r.onload=ev=>setPhoto(ev.target.result);r.readAsDataURL(file);e.target.value="";
+  }
+
+  // Scan : chargement direct → analyse IA directe
+  function handleScanFile(e){
+    const file=e.target.files[0];if(!file)return;
+    const mt=file.type||"image/jpeg";
+    const r=new FileReader();r.onload=ev=>{
+      const dataUrl=ev.target.result;
+      setScannedRaw({dataUrl,mt});
+      doScan(dataUrl,mt);
+    };r.readAsDataURL(file);e.target.value="";
+  }
+
+  // Recadrage : uniquement via bouton explicite
+  function handleCropConfirm(dataUrl){
+    if(cropFor==="photo"){setPhoto(dataUrl);setCropSrc(null);}
+    else if(cropFor==="scan-retry"){setCropSrc(null);doScan(dataUrl,scannedRaw?.mt||"image/jpeg");}
+  }
+
+  async function doScan(dataUrl,mt="image/jpeg"){
+    const apiKey=localStorage.getItem("mc_apikey")||"";
+    if(!apiKey){setShowApiKey(true);return;}
+    setScanning(true);setScanMsg("");setScanStatus("idle");
+    const base64=dataUrl.split(",")[1];
+    const prompt=`Tu es un assistant qui analyse des images de recettes de cuisine. Analyse cette image et retourne UNIQUEMENT un objet JSON valide (sans markdown, sans backtick, sans texte autour). Format exact:
+{"title":null,"persons":null,"duration":null,"isPhotoOfDish":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
+Instructions:
+- title: le titre de la recette s'il est visible, sinon null
+- persons: le nombre de personnes indiqué (chiffre seul comme "4"), sinon null
+- duration: la durée de préparation si indiquée (ex "30 min"), sinon null
+- isPhotoOfDish: true UNIQUEMENT si l'image montre clairement une photo réelle d'un plat cuisiné (pas du texte, pas d'illustration)
+- ingredients: TOUS les ingrédients avec qty=chiffre seul (ex "200"), unit=unité seule (ex "g" ou "ml"), si pas de quantité qty=""
+- steps: les étapes de préparation extraites du texte, organisées en liste ordonnée, sans modifier le contenu`;
+    const body={apiKey,model:"claude-sonnet-4-20250514",max_tokens:2500,messages:[{role:"user",content:[
+      {type:"image",source:{type:"base64",media_type:mt,data:base64}},
+      {type:"text",text:prompt}
+    ]}]};
+    try{
+      let resp,usedProxy=false;
+      // 1. Essai via la Netlify Function (si le ZIP complet est déployé)
+      try{
+        const r=await fetch("/.netlify/functions/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        if(r.status!==404){resp=r;usedProxy=true;}
+      }catch{}
+      // 2. Fallback : appel direct avec le header Anthropic (fonctionne sur netlify.app et claude.ai)
+      if(!resp){
+        const b={...body};delete b.apiKey;
+        resp=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify(b)
+        });
+      }
+      if(!resp.ok){
+        if(resp.status===401){localStorage.removeItem("mc_apikey");throw new Error("Clé API invalide — vérifiez votre clé sur console.anthropic.com");}
+        throw new Error("HTTP "+resp.status);
+      }
+      const data=await resp.json();
+      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      const p=JSON.parse(text);
+      if(p.title)setName(p.title);
+      if(p.persons)setPersons(String(p.persons));
+      if(p.duration)setDuration(p.duration);
+      if(p.isPhotoOfDish)setPhoto(dataUrl);
+      if(p.ingredients?.length)setIngs(p.ingredients.map(i=>({name:i.name||"",qty:i.qty||"",unit:normUnit(i.unit||"")})));
+      if(p.steps?.length)setSteps(p.steps.map(s=>s.trim()).filter(Boolean));
+      setScanMsg("✨ Analyse réussie !");setScanStatus("ok");
+    }catch(err){
+      console.error(err);
+      setScanMsg("❌ "+err.message);setScanStatus("error");
+      if(err.message.includes("Clé API"))setShowApiKey(true);
+    }
+    setScanning(false);
+  }
+
+  function uIng(i,f,v){const n=[...ings];n[i]={...n[i],[f]:v};setIngs(n);}
+  function uStep(i,v){const n=[...steps];n[i]=v;setSteps(n);}
+  function doSave(){
+    if(!name.trim()){showToast("⚠️ Donnez un nom à la recette");return;}
+    onSave({id:recipe?.id||Date.now(),name:name.trim(),photo,persons:parseInt(persons)||null,duration:duration.trim()||null,
+      ingredients:ings.filter(i=>i.name.trim()),steps:steps.filter(Boolean),
+      date:recipe?.date||new Date().toLocaleDateString("fr-FR")});
+  }
+
+  return(
+    <>
+      <Modal open onClose={onClose}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:14}}>{recipe?"Modifier":"Nouvelle recette"}</div>
+
+        {/* ── Photo du plat ── */}
+        <span style={lbl}>Photo du plat</span>
+        <div style={{border:`2px dashed ${BDR}`,borderRadius:12,padding:photo?0:16,textAlign:"center",cursor:photo?"default":"pointer",background:SURF2,overflow:"hidden",marginBottom:6}} onClick={()=>!photo&&photoRef.current.click()}>
+          {photo
+            ?<img src={photo} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block"}} alt=""/>
+            :<><div style={{fontSize:24,marginBottom:4}}>📷</div><div style={{fontSize:11,color:TXT3}}>Galerie / appareil photo</div></>
+          }
+        </div>
+        <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhoto} capture="environment"/>
+        {photo&&(
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            <button style={{...btn("gh"),flex:1,fontSize:11,padding:"6px 10px"}} onClick={()=>photoRef.current.click()}>🔄 Changer</button>
+            <button style={{...btn("gh"),flex:1,fontSize:11,padding:"6px 10px"}} onClick={()=>{setCropSrc(photo);setCropFor("photo");}}>✂️ Recadrer</button>
+            <button style={{...btn("dng"),fontSize:11,padding:"6px 10px"}} onClick={()=>setPhoto(null)}>✕</button>
+          </div>
+        )}
+
+        {/* ── Scanner recette IA ── */}
+        <span style={lbl}>Scanner une recette par IA</span>
+        <div style={{border:"2px dashed rgba(232,197,71,.4)",borderRadius:12,padding:16,textAlign:"center",cursor:scanning?"not-allowed":"pointer",background:SURF2,opacity:scanning?.7:1,marginBottom:6}} onClick={()=>!scanning&&scanRef.current.click()}>
+          <div style={{fontSize:24,marginBottom:4}}>{scanning?"⏳":"🔍"}</div>
+          <div style={{fontSize:11,color:ACC,fontWeight:600}}>{scanning?"Analyse en cours…":"Photographier une recette"}</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>Page de livre, recette imprimée…</div>
+        </div>
+        <input ref={scanRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScanFile} capture="environment"/>
+        {scanMsg&&(
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:11,textAlign:"center",padding:"6px 10px",borderRadius:8,background:scanStatus==="ok"?"rgba(92,184,138,.12)":"rgba(224,92,92,.12)",color:scanStatus==="ok"?SUC:DNG}}>{scanMsg}</div>
+            {scanStatus==="error"&&scannedRaw&&(
+              <button style={{...btn("gh"),width:"100%",fontSize:11,marginTop:5,justifyContent:"center"}} onClick={()=>{setCropSrc(scannedRaw.dataUrl);setCropFor("scan-retry");}}>
+                ✂️ Recadrer l'image et réessayer
+              </button>
+            )}
+            {scanStatus==="error"&&(
+              <button style={{...btn("gh"),width:"100%",fontSize:11,marginTop:4,justifyContent:"center"}} onClick={()=>setShowApiKey(true)}>
+                🔑 Configurer la clé API
+              </button>
+            )}
+          </div>
+        )}
+        {!localStorage.getItem("mc_apikey")&&(
+          <div style={{fontSize:11,color:TXT3,textAlign:"center",marginBottom:8,padding:"6px 10px",background:SURF2,borderRadius:8,borderLeft:`2px solid ${ACC}`}}>
+            ⚠️ Clé API requise — <span style={{color:ACC,cursor:"pointer",fontWeight:600}} onClick={()=>setShowApiKey(true)}>Configurer</span>
+          </div>
+        )}
+
+        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
+        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
+        <span style={lbl}>Nom de la recette</span>
+        <input style={{...inp,marginBottom:10}} placeholder="Ex: Poulet rôti" value={name} onChange={e=>setName(e.target.value)}/>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <div style={{flex:1}}><span style={lbl}>Personnes</span><input style={inp} type="number" min="1" placeholder="4" value={persons} onChange={e=>setPersons(e.target.value)}/></div>
+          <div style={{flex:1}}><span style={lbl}>Durée</span><input style={inp} placeholder="45 min" value={duration} onChange={e=>setDuration(e.target.value)}/></div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{...lbl,marginBottom:0}}>Ingrédients</span>
+          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setIngs([...ings,{name:"",qty:"",unit:""}])}>+ Ajouter</button>
+        </div>
+        {ings.map((ing,i)=>(
+          <div key={i} style={{display:"flex",gap:5,alignItems:"center",marginBottom:5,background:SURF2,borderRadius:10,padding:"6px 8px",border:`1px solid ${BDR}`}}>
+            <input style={{flex:1,background:"transparent",border:"none",color:TXT,fontFamily:"inherit",fontSize:13,outline:"none",minWidth:0}} placeholder="Ingrédient…" value={ing.name} onChange={e=>uIng(i,"name",e.target.value)}/>
+            <input style={{width:44,background:"transparent",border:"none",color:TXT2,fontFamily:"inherit",fontSize:13,textAlign:"right",outline:"none"}} placeholder="Qté" value={ing.qty} onChange={e=>uIng(i,"qty",e.target.value)}/>
+            <select style={{width:58,background:"transparent",border:"none",color:TXT3,fontFamily:"inherit",fontSize:12,outline:"none",appearance:"none",cursor:"pointer"}} value={ing.unit} onChange={e=>uIng(i,"unit",e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
+            <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:13,padding:"0 2px"}} onClick={()=>setIngs(ings.filter((_,j)=>j!==i))}>✕</button>
+          </div>
+        ))}
+        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{...lbl,marginBottom:0}}>Étapes de préparation</span>
+          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setSteps([...steps,""])}>+ Étape</button>
+        </div>
+        {steps.map((step,i)=>(
+          <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:6}}>
+            <div style={{width:22,height:22,background:ACC,color:"#111",borderRadius:"50%",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:8}}>{i+1}</div>
+            <textarea style={{...inp,flex:1,padding:"8px 10px",fontSize:13,resize:"none",minHeight:56}} value={step} onChange={e=>uStep(i,e.target.value)}/>
+            <button style={{...btn("gh"),padding:"6px 8px",marginTop:4,fontSize:13}} onClick={()=>setSteps(steps.filter((_,j)=>j!==i))}>✕</button>
+          </div>
+        ))}
+        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
+        <div style={{display:"flex",gap:8}}>
+          <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
+          <button style={{...btn("suc"),flex:1}} onClick={doSave}>✅ Enregistrer</button>
+        </div>
+      </Modal>
+      <CropModal open={!!cropSrc} src={cropSrc} onConfirm={handleCropConfirm} onClose={()=>setCropSrc(null)}/>
+      <ApiKeyModal open={showApiKey} onSave={k=>{setShowApiKey(false);if(scannedRaw)doScan(scannedRaw.dataUrl,scannedRaw.mt);}} onClose={()=>setShowApiKey(false)}/>
+    </>
+  );
+}
+
+// ─── RECIPE VIEW ──────────────────────────────────────────────
+function RecipeView({recipe,onClose,onEdit,onDel,onAdd}){
+  const [vp,setVp]=useState(recipe.persons||1);
+  const [have,setHave]=useState(new Set());
+  const base=recipe.persons||1,scale=vp/base;
+  function togHave(i){const s=new Set(have);if(s.has(i))s.delete(i);else s.add(i);setHave(s);}
+  function scaleQ(qty){const n=parseFloat(qty);if(isNaN(n))return qty;const r=n*scale;return r%1===0?String(r):r.toFixed(2).replace(/\.?0+$/,"");}
+  return(
+    <Modal open onClose={onClose}>
+      {recipe.photo&&<img src={recipe.photo} alt={recipe.name} style={{width:"100%",borderRadius:14,marginBottom:12,maxHeight:170,objectFit:"cover"}}/>}
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:10}}>{recipe.name}</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+        {recipe.duration&&<span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>⏱️ {recipe.duration}</span>}
+        {recipe.persons&&<span style={{fontSize:11,background:SURF3,padding:"3px 8px",borderRadius:20,color:TXT2}}>📖 Base: {recipe.persons} pers.</span>}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:10,background:SURF2,border:`1px solid ${BDR}`,borderRadius:10,padding:"10px 14px",marginBottom:10}}>
+        <label style={{fontSize:13,flex:1,color:TXT2}}>🍽️ Nombre de personnes</label>
+        <Stepper value={vp} onChange={setVp}/>
+      </div>
+      {scale!==1&&<div style={{fontSize:11,color:ACC,textAlign:"center",marginBottom:8}}>Quantités ajustées ×{scale.toFixed(2).replace(/\.?0+$/,"")}</div>}
+      <span style={lbl}>Ingrédients</span>
+      <div style={{background:SURF2,border:`1px solid ${BDR}`,borderRadius:10,padding:"6px 12px",marginBottom:10}}>
+        {recipe.ingredients.map((ing,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<recipe.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:13}}>
+            <div onClick={()=>togHave(i)} style={{width:20,height:20,borderRadius:5,border:have.has(i)?"none":`1.5px solid #3a3a3a`,background:have.has(i)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+              {have.has(i)&&<span style={{color:"white",fontSize:11,fontWeight:700}}>✓</span>}
+            </div>
+            <span style={{flex:1,textDecoration:have.has(i)?"line-through":"none",opacity:have.has(i)?.5:1}}>{ing.name}</span>
+            <span style={{color:TXT3,fontSize:12}}>{scaleQ(ing.qty)}{ing.unit?" "+ing.unit:""}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:11,color:TXT3,marginBottom:12,padding:"8px 10px",background:SURF2,borderRadius:8,borderLeft:`2px solid ${ACC}`}}>
+        ✅ Cochez les ingrédients que vous <strong style={{color:TXT}}>possédez déjà</strong>. Seuls les non cochés seront ajoutés.
+      </div>
+      {recipe.steps?.length>0&&(
+        <>
+          <span style={lbl}>Étapes de préparation</span>
+          <div style={{background:SURF2,border:`1px solid ${BDR}`,borderRadius:10,padding:"6px 12px",marginBottom:12}}>
+            {recipe.steps.map((step,i)=>(
+              <div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<recipe.steps.length-1?`1px solid ${BDR}`:"none",alignItems:"flex-start",fontSize:13,lineHeight:1.5,color:TXT2}}>
+                <div style={{width:22,height:22,background:ACC,color:"#111",borderRadius:"50%",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>{i+1}</div>
+                <div>{step}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        <button style={{...btn("gh"),flex:1,fontSize:11,padding:8}} onClick={onEdit}>✏️ Modifier</button>
+        <button style={{...btn("dng"),flex:1,fontSize:11,padding:8}} onClick={onDel}>🗑️ Supprimer</button>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <button style={{...btn("gh"),flex:1}} onClick={onClose}>Fermer</button>
+        <button style={{...btn("suc"),flex:1}} onClick={()=>onAdd(recipe,vp,have)}>🛒 Ajouter à la liste</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE HISTORIQUE
+// ═══════════════════════════════════════════════════════════════
+function PageHistorique({db,setDb,showToast,goToListe}){
+  const [qprod,setQprod]=useState(null);
+  const [catF,setCatF]=useState("Toutes");
+
+  function confQuick(name,cat,unit,qty){
+    const ni=mergeItem(db.items,name,qty,unit,"manuel",cat);
+    const ph={...db.productHistory};
+    if(!ph[name])ph[name]={count:0,category:cat,lastUnit:unit};
+    ph[name].count++;ph[name].lastUnit=unit;
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    setQprod(null);goToListe();showToast("✅ "+name+" ajouté");
+  }
+
+  function reloadAll(idx){
+    const s=db.shoppingHistory[idx];let ni=[...db.items];
+    s.items.forEach(old=>{
+      ni=mergeItem(ni,old.name,(old.quantities||[{qty:1,unit:""}])[0].qty,(old.quantities||[{qty:1,unit:""}])[0].unit,"historique",old.category);
+    });
+    const nd={...db,items:ni};setDb(nd);saveDB(nd);goToListe();showToast("🔄 Course rechargée");
+  }
+
+  function reloadSel(idx,selNames){
+    const s=db.shoppingHistory[idx];let ni=[...db.items];
+    s.items.filter(item=>selNames.has(item.name)).forEach(old=>{
+      (old.quantities||[{qty:1,unit:"",source:"historique"}]).forEach(q=>{
+        ni=mergeItem(ni,old.name,q.qty,q.unit,"historique",old.category);
+      });
+    });
+    const nd={...db,items:ni};setDb(nd);saveDB(nd);goToListe();
+    showToast(`✅ ${selNames.size} article${selNames.size>1?"s":""} ajouté${selNames.size>1?"s":""}`);
+  }
+
+  const allTop=Object.entries(db.productHistory).sort((a,b)=>b[1].count-a[1].count);
+  const allCats=["Toutes",...[...new Set(allTop.map(([,d])=>d.category||"❓ Autre").filter(Boolean))]];
+  const filtered=(catF==="Toutes"?allTop:allTop.filter(([,d])=>(d.category||"❓ Autre")===catF)).slice(0,24);
+
+  return(
+    <div style={{padding:14,paddingBottom:90}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:14}}>Historique</div>
+
+      {allTop.length>0&&(
+        <>
+          <span style={lbl}>Produits fréquents</span>
+          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:10,paddingBottom:4,scrollbarWidth:"none"}}>
+            {allCats.map(c=>(
+              <div key={c} style={{background:catF===c?ACC:SURF3,color:catF===c?"#111":TXT2,borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,border:catF===c?"none":`1px solid ${BDR}`}}
+                onClick={()=>setCatF(c)}>{c}</div>
+            ))}
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:18}}>
+            {filtered.map(([name,d])=>(
+              <div key={name} style={{background:SURF3,borderRadius:20,padding:"4px 10px",fontSize:11,color:TXT2,cursor:"pointer",border:`1px solid ${BDR}`,display:"flex",alignItems:"center",gap:4}}
+                onClick={()=>setQprod({name,category:d.category||guessCat(name),lastUnit:d.lastUnit||"",count:d.count})}>
+                {name}<span style={{opacity:.5,fontSize:10}}>{d.count}×</span><span style={{color:ACC,fontSize:14,fontWeight:700}}>+</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {db.shoppingHistory.length>0?(
+        <>
+          <span style={lbl}>Courses passées</span>
+          {db.shoppingHistory.map((s,i)=>(
+            <HistorySession key={i} session={s} onReloadAll={()=>reloadAll(i)} onReloadSelected={sel=>reloadSel(i,sel)}/>
+          ))}
+        </>
+      ):allTop.length===0?(
+        <div style={{textAlign:"center",padding:"48px 20px"}}>
+          <div style={{fontSize:44,marginBottom:12}}>📦</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,marginBottom:6}}>Aucun historique</div>
+          <div style={{fontSize:13,color:TXT3}}>Vos courses passées apparaîtront ici</div>
+        </div>
+      ):null}
+
+      <QuickAddModal open={!!qprod} product={qprod} onConfirm={confQuick} onClose={()=>setQprod(null)}/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP ROOT
+// ═══════════════════════════════════════════════════════════════
+function App(){
+  const [page,setPage]=useState("liste");
+  const [db,setDb]=useState(loadDB);
+  const [toast,setToast]=useState("");
+  const ttRef=useRef(null);
+  function showToast(msg){setToast(msg);clearTimeout(ttRef.current);ttRef.current=setTimeout(()=>setToast(""),2800);}
+  return(
+    <div style={{background:BG,minHeight:"100vh",maxWidth:480,margin:"0 auto",fontFamily:"'DM Sans',sans-serif",color:TXT,position:"relative",overflowX:"hidden"}}>
+      <div style={{background:SURF,padding:"16px 16px 0",borderBottom:`1px solid ${BDR}`,position:"sticky",top:0,zIndex:100}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:23,color:ACC,letterSpacing:-.5}}>🛒 MesCourses</div>
+        <div style={{fontSize:11,color:TXT3,marginTop:1}}>Votre assistant de courses intelligent</div>
+        <div style={{display:"flex",marginTop:12,gap:2}}>
+          {[{id:"liste",icon:"📋",label:"Liste"},{id:"recettes",icon:"🍽️",label:"Recettes"},{id:"historique",icon:"🕐",label:"Historique"}].map(t=>(
+            <div key={t.id} style={{flex:1,padding:"9px 3px",textAlign:"center",fontSize:10,fontWeight:600,letterSpacing:.4,textTransform:"uppercase",color:page===t.id?ACC:TXT3,cursor:"pointer",borderBottom:page===t.id?`2px solid ${ACC}`:"2px solid transparent",transition:"all .2s",userSelect:"none"}} onClick={()=>setPage(t.id)}>
+              <span style={{fontSize:14,display:"block",marginBottom:2}}>{t.icon}</span>{t.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      {page==="liste"&&<PageListe db={db} setDb={setDb} showToast={showToast}/>}
+      {page==="recettes"&&<PageRecettes db={db} setDb={setDb} showToast={showToast}/>}
+      {page==="historique"&&<PageHistorique db={db} setDb={setDb} showToast={showToast} goToListe={()=>setPage("liste")}/>}
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
