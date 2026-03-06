@@ -562,29 +562,30 @@ Instructions:
 - isPhotoOfDish: true UNIQUEMENT si l'image montre clairement une photo réelle d'un plat cuisiné (pas du texte, pas d'illustration)
 - ingredients: TOUS les ingrédients avec qty=chiffre seul (ex "200"), unit=unité seule (ex "g" ou "ml"), si pas de quantité qty=""
 - steps: les étapes de préparation extraites du texte, organisées en liste ordonnée, sans modifier le contenu`;
-    const body={apiKey,model:"claude-sonnet-4-20250514",max_tokens:2500,messages:[{role:"user",content:[
-      {type:"image",source:{type:"base64",media_type:mt,data:base64}},
-      {type:"text",text:prompt}
-    ]}]};
     try{
-      let resp,usedProxy=false;
-      // 1. Essai via la Netlify Function (si le ZIP complet est déployé)
-      try{
-        const r=await fetch("/.netlify/functions/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-        if(r.status!==404){resp=r;usedProxy=true;}
-      }catch{}
-      // 2. Fallback : appel direct avec le header Anthropic (fonctionne sur netlify.app et claude.ai)
-      if(!resp){
-        const b={...body};delete b.apiKey;
-        resp=await fetch("https://api.anthropic.com/v1/messages",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-          body:JSON.stringify(b)
-        });
-      }
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":apiKey,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:2500,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:mt,data:base64}},
+            {type:"text",text:prompt}
+          ]}]
+        })
+      });
       if(!resp.ok){
-        if(resp.status===401){localStorage.removeItem("mc_apikey");throw new Error("Clé API invalide — vérifiez votre clé sur console.anthropic.com");}
-        throw new Error("HTTP "+resp.status);
+        const errData=await resp.json().catch(()=>({}));
+        if(resp.status===401){
+          throw new Error("Clé API invalide (401) — vérifiez sur console.anthropic.com");
+        }
+        throw new Error("Erreur "+resp.status+(errData.error?.message?" : "+errData.error.message:""));
       }
       const data=await resp.json();
       let text=(data.content||[]).map(c=>c.text||"").join("").trim();
@@ -599,8 +600,12 @@ Instructions:
       setScanMsg("✨ Analyse réussie !");setScanStatus("ok");
     }catch(err){
       console.error(err);
+      // Ne pas effacer la clé sauf si vraiment invalide
+      if(err.message.includes("401")){
+        localStorage.removeItem("mc_apikey");
+        setShowApiKey(true);
+      }
       setScanMsg("❌ "+err.message);setScanStatus("error");
-      if(err.message.includes("Clé API"))setShowApiKey(true);
     }
     setScanning(false);
   }
