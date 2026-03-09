@@ -63,13 +63,28 @@ function priceFreshness(ts){
   const days=(Date.now()-ts)/(1000*60*60*24);
   if(days<14)return"🟢";if(days<60)return"🟡";return"🔴";
 }
-// Prix au kilo normalisé
+// Calcule le prix de référence normalisé selon l'unité
+// Poids/volume → prix au kg ou au litre
+// Pièce/paquet/boîte/etc. → prix à l'unité
 function pricePerKg(price,qty,unit){
   if(!price||!qty||!unit)return null;
   const q=parseFloat(qty);if(isNaN(q)||q<=0)return null;
-  const factors={g:1000,kg:1,ml:1000,cl:100,L:1};
-  const f=factors[unit];if(!f)return null;
-  return(price/q)*f;
+  // Unités de poids → ramène au kg
+  const toKg={g:1000,kg:1};
+  // Unités de volume → ramène au litre
+  const toL={ml:1000,cl:100,L:1,l:1};
+  // Unités discrètes → prix à l'unité
+  const discrete=["pièce","pièces","","pcs","tranche","tranches","sachet","sachets","boîte","boîtes","bouteille","bouteilles","paquet","paquets","botte","bottes","pot","pots","barquette","barquettes","rouleau","rouleaux"];
+  if(toKg[unit]!==undefined)return{value:(price/q)*toKg[unit],label:"€/kg"};
+  if(toL[unit]!==undefined)return{value:(price/q)*toL[unit],label:"€/L"};
+  if(discrete.includes(unit.toLowerCase()))return{value:price/q,label:"€/pièce"};
+  return null;
+}
+// Libellé court du prix de référence
+function fmtPriceRef(price,qty,unit){
+  const r=pricePerKg(price,qty,unit);
+  if(!r)return null;
+  return`${r.value.toFixed(2)}${r.label}`;
 }
 // Cherche le meilleur prix connu pour un produit
 function getBestPrice(priceDB,name){
@@ -79,7 +94,11 @@ function getBestPrice(priceDB,name){
   if(!match)return null;
   const shops=Object.entries(match[1].shops||{});
   if(!shops.length)return null;
-  const best=shops.sort((a,b)=>(a[1].pricePerKg||a[1].price)-(b[1].pricePerKg||b[1].price))[0];
+  const best=shops.sort((a,b)=>{
+    const ra=a[1].priceRef?.value??a[1].price;
+    const rb=b[1].priceRef?.value??b[1].price;
+    return ra-rb;
+  })[0];
   return{shop:best[0],...best[1]};
 }
 
@@ -1327,16 +1346,24 @@ RÈGLES :
 - Si un article apparaît plusieurs fois (zones qui se recoupent), ne le garde qu'UNE fois
 - Ignore les lignes de total, sous-total, TVA, remise globale, numéros de caisse, dates
 - Pour chaque article : normalise le nom en nom générique français sans marque commerciale
-- Exemples : "PRESIDENT BEURRE 250G" → genericName "beurre", qty "250", unit "g" / "COCA COLA 1.5L" → genericName "soda cola", qty "1.5", unit "L"
-- prix = prix unitaire payé (nombre décimal)
-- Si le grammage/volume est dans le nom, extrais-le dans qty+unit
+- Exemples de normalisation :
+  "PRESIDENT BEURRE 250G" → genericName:"beurre", qty:"250", unit:"g"
+  "COCA COLA 1.5L" → genericName:"soda cola", qty:"1.5", unit:"L"
+  "OEUFS PLEIN AIR X6" → genericName:"oeufs", qty:"6", unit:"pièce"
+  "JAMBON BLANC 4 TRANCHES" → genericName:"jambon blanc", qty:"4", unit:"tranche"
+  "YAOURT NATURE X4 125G" → genericName:"yaourt nature", qty:"4", unit:"pièce"
+  "LESSIVE 30 DOSES" → genericName:"lessive", qty:"30", unit:"sachet"
+  "CAMEMBERT 250G" → genericName:"camembert", qty:"250", unit:"g"
+  "HUILE OLIVE 75CL" → genericName:"huile d'olive", qty:"75", unit:"cl"
+- prix = prix unitaire total payé pour cet article (nombre décimal)
+- Priorité pour qty+unit : poids (g,kg) ou volume (ml,cl,L) si indiqué, sinon quantité en pièces/tranches/sachets/boîtes si indiqué, sinon laisser vide
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
 {"items":[{"genericName":"","originalName":"","price":0,"qty":"","unit":""}]}
 - genericName : nom générique normalisé en français minuscules
 - originalName : nom exact sur le ticket
 - price : prix en euros (nombre)
-- qty : grammage/volume si visible, sinon ""
-- unit : unité si visible (g, kg, ml, cl, L), sinon ""`;
+- qty : quantité/grammage/volume si visible, sinon ""
+- unit : unité parmi (g, kg, ml, cl, L, pièce, tranche, sachet, boîte, bouteille, paquet, botte) si applicable, sinon ""`;
     try{
       const content=[
         ...scanPhotos.map((p,i)=>[
@@ -1375,8 +1402,8 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
     selected.forEach(item=>{
       const key=item.genericName.toLowerCase().trim();
       if(!newPriceDB[key])newPriceDB[key]={shops:{}};
-      const ppkg=pricePerKg(item.price,item.qty,item.unit);
-      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",pricePerKg:ppkg,updatedAt:now,originalName:item.originalName};
+      const ref=pricePerKg(item.price,item.qty,item.unit);
+      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",priceRef:ref,updatedAt:now,originalName:item.originalName};
     });
     const total=selected.reduce((s,i)=>s+i.price,0);
     const sessions=[{date:new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long"}),shop,total:Math.round(total*100)/100,count:selected.length,ts:now},...(db.budget?.sessions||[])].slice(0,50);
@@ -1457,7 +1484,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.genericName}</div>
                       {item.originalName&&item.originalName!==item.genericName&&<div style={{fontSize:9,color:TXT3}}>{item.originalName}</div>}
-                      {item.qty&&<div style={{fontSize:10,color:TXT2}}>{item.qty}{item.unit}{item.unit&&pricePerKg(item.price,item.qty,item.unit)?` · ${pricePerKg(item.price,item.qty,item.unit).toFixed(2)}€/kg`:""}</div>}
+                      {item.qty&&<div style={{fontSize:10,color:TXT2}}>{item.qty}{item.unit}{item.unit&&fmtPriceRef(item.price,item.qty,item.unit)?` · ${fmtPriceRef(item.price,item.qty,item.unit)}`:""}</div>}
                     </div>
                     <div style={{fontSize:14,fontWeight:800,color:CARAMEL,flexShrink:0}}>{item.price.toFixed(2)}€</div>
                   </div>
@@ -1494,7 +1521,11 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
               {priceEntries.map(([name,data])=>{
                 const shops=Object.entries(data.shops||{});
                 if(!shops.length)return null;
-                const best=shops.sort((a,b)=>(a[1].pricePerKg||a[1].price)-(b[1].pricePerKg||b[1].price))[0];
+                const best=shops.sort((a,b)=>{
+                  const ra=a[1].priceRef?.value??a[1].price;
+                  const rb=b[1].priceRef?.value??b[1].price;
+                  return ra-rb;
+                })[0];
                 return(
                   <div key={name} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
@@ -1505,11 +1536,11 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                       <div key={shop} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3}}>
                         <div>
                           <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
-                          {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty}{info.unit}</span>}
+                          {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty} {info.unit}</span>}
                         </div>
                         <div style={{textAlign:"right"}}>
                           <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
-                          {info.pricePerKg&&<div style={{fontSize:9,color:TXT3}}>{info.pricePerKg.toFixed(2)}€/kg</div>}
+                          {info.priceRef&&<div style={{fontSize:9,color:TXT3}}>{info.priceRef.value.toFixed(2)}{info.priceRef.label}</div>}
                         </div>
                       </div>
                     ))}
