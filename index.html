@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>🛒 MesCourses</title>
+<title>🛒 Wisely Shop</title>
 <meta name="description" content="Votre assistant de courses intelligent">
 <meta name="theme-color" content="#b86a3a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="MesCourses">
+<meta name="apple-mobile-web-app-title" content="Wisely Shop">
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -56,8 +56,8 @@ const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[]};
 const BG="transparent",SURF="#ffffff",SURF2="#fdf8f0",SURF3="#f5ece0",ACC="#c8845a",TXT="#2a1f0e",TXT2="#9a7050",TXT3="#c8a880",DNG="#d4604a",SUC="#5a8a3a",BDR="#e8d4b8";
 const CARAMEL="#b8703a",CARAMEL2="#c8845a",CREAM="#fdf8f0",CREAM2="#f5ece0";
 
-function loadDB(){try{return JSON.parse(localStorage.getItem("mc_r3")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
-function saveDB(db){try{localStorage.setItem("mc_r3",JSON.stringify(db));}catch{}}
+function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
+function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
 function roundQ(n){return n%1===0?n:+n.toFixed(2);}
 function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
 function guessCat(name){
@@ -531,7 +531,7 @@ function PageRecettes({db,setDb,showToast}){
 
 // ─── API KEY MODAL ────────────────────────────────────────────
 function ApiKeyModal({open,onSave,onClose}){
-  const [k,setK]=useState(()=>localStorage.getItem("mc_apikey")||"");
+  const [k,setK]=useState(()=>localStorage.getItem("ws_apikey")||"");
   return(
     <Modal open={open} onClose={onClose}>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:20,marginBottom:8}}>🔑 Clé API Anthropic</div>
@@ -544,7 +544,7 @@ function ApiKeyModal({open,onSave,onClose}){
       <input style={{...inp,marginBottom:14,fontFamily:"monospace",fontSize:12}} type="password" placeholder="sk-ant-api03-..." value={k} onChange={e=>setK(e.target.value)}/>
       <div style={{display:"flex",gap:8}}>
         <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
-        <button style={{...btn("acc"),flex:1}} onClick={()=>{localStorage.setItem("mc_apikey",k.trim());onSave(k.trim());}}>💾 Enregistrer</button>
+        <button style={{...btn("acc"),flex:1}} onClick={()=>{localStorage.setItem("ws_apikey",k.trim());onSave(k.trim());}}>💾 Enregistrer</button>
       </div>
     </Modal>
   );
@@ -591,7 +591,7 @@ function RecipeEdit({recipe,onSave,onClose,showToast}){
   }
 
   async function doScan(dataUrl,mt="image/jpeg"){
-    const apiKey=localStorage.getItem("mc_apikey")||"";
+    const apiKey=localStorage.getItem("ws_apikey")||"";
     if(!apiKey){setShowApiKey(true);return;}
     setScanning(true);setScanMsg("");setScanStatus("idle");
     const base64=dataUrl.split(",")[1];
@@ -644,7 +644,7 @@ Instructions:
       console.error(err);
       // Ne pas effacer la clé sauf si vraiment invalide
       if(err.message.includes("401")){
-        localStorage.removeItem("mc_apikey");
+        localStorage.removeItem("ws_apikey");
         setShowApiKey(true);
       }
       setScanMsg("❌ "+err.message);setScanStatus("error");
@@ -706,7 +706,7 @@ Instructions:
             )}
           </div>
         )}
-        {!localStorage.getItem("mc_apikey")&&(
+        {!localStorage.getItem("ws_apikey")&&(
           <div style={{fontSize:11,color:TXT3,textAlign:"center",marginBottom:8,padding:"6px 10px",background:CREAM,borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`}}>
             ⚠️ Clé API requise — <span style={{color:CARAMEL2,cursor:"pointer",fontWeight:600}} onClick={()=>setShowApiKey(true)}>Configurer</span>
           </div>
@@ -907,50 +907,180 @@ function hashPassword(pwd){
   return Math.abs(h).toString(36);
 }
 
+// Génère un ID unique aléatoire pour un nouveau foyer
+function genFoyerId(){
+  const chars="abcdefghijklmnopqrstuvwxyz0123456789";
+  let id="";for(let i=0;i<10;i++)id+=chars[Math.floor(Math.random()*chars.length)];
+  return id;
+}
+
+// Récupère le code d'invitation depuis l'URL (?invite=xxx)
+function getInviteFromUrl(){
+  const p=new URLSearchParams(window.location.search);
+  return p.get("invite")||null;
+}
+
 function LoginScreen({onLogin}){
-  const [pwd,setPwd]=useState("");
+  const inviteCode=getInviteFromUrl();
+  const [mode,setMode]=useState(inviteCode?"rejoindre":"choix"); // choix | creer | rejoindre
+  const [pseudo,setPseudo]=useState(()=>localStorage.getItem("ws_pseudo")||"");
+  const [pwd,setPwd]=useState(()=>localStorage.getItem("ws_pwd_saved")||"");
+  const [remember,setRemember]=useState(!!localStorage.getItem("ws_pwd_saved"));
   const [err,setErr]=useState("");
   const [loading,setLoading]=useState(false);
+  const [inviteLink,setInviteLink]=useState("");
+  const [showInvite,setShowInvite]=useState(false);
+  const [copied,setCopied]=useState(false);
 
-  async function tryLogin(){
-    if(!pwd.trim()){setErr("Entrez un mot de passe");return;}
+  async function creerFoyer(){
+    if(!pseudo.trim()){setErr("Entrez votre prénom");return;}
+    if(!pwd.trim()||pwd.length<4){setErr("Mot de passe trop court (min. 4 caractères)");return;}
     setLoading(true);setErr("");
-    const docId="foyer_"+hashPassword(pwd.trim());
+    const foyerId=genFoyerId();
+    const docId="foyer_"+foyerId+"_"+hashPassword(pwd.trim());
     try{
-      const{fsdb,doc,getDoc}=window._firebase;
+      const{fsdb,doc,setDoc}=window._firebase;
+      const ref=doc(fsdb,"households",docId);
+      await setDoc(ref,{items:[],productHistory:{},recipes:[],shoppingHistory:[],foyerId,createdAt:Date.now(),members:[pseudo.trim()]});
+      localStorage.setItem("ws_pseudo",pseudo.trim());
+      localStorage.setItem("ws_docid",docId);
+      localStorage.setItem("ws_foyerid",foyerId);
+      if(remember){localStorage.setItem("ws_pwd_saved",pwd.trim());}else{localStorage.removeItem("ws_pwd_saved");}
+      // Afficher le lien d'invitation
+      const link=`${window.location.origin}${window.location.pathname}?invite=${foyerId}`;
+      setInviteLink(link);
+      setShowInvite(true);
+      onLogin(docId,pseudo.trim());
+    }catch(e){setErr("Erreur : "+e.message);}
+    setLoading(false);
+  }
+
+  async function rejoindre(){
+    if(!pseudo.trim()){setErr("Entrez votre prénom");return;}
+    if(!pwd.trim()||pwd.length<4){setErr("Mot de passe trop court (min. 4 caractères)");return;}
+    const fid=inviteCode||"";
+    if(!fid){setErr("Code d'invitation manquant");return;}
+    setLoading(true);setErr("");
+    const docId="foyer_"+fid+"_"+hashPassword(pwd.trim());
+    try{
+      const{fsdb,doc,getDoc,setDoc}=window._firebase;
       const ref=doc(fsdb,"households",docId);
       const snap=await getDoc(ref);
-      if(!snap.exists()){
-        await window._firebase.setDoc(ref,{items:[],productHistory:{},recipes:[],shoppingHistory:[],createdAt:Date.now()});
-      }
-      localStorage.setItem("mc_pwd",pwd.trim());
-      onLogin(docId);
-    }catch(e){setErr("Erreur de connexion : "+e.message);}
+      if(!snap.exists()){setErr("Mot de passe incorrect ou lien invalide");setLoading(false);return;}
+      // Ajouter le membre si pas déjà présent
+      const data=snap.data();
+      const members=[...(data.members||[])];
+      if(!members.includes(pseudo.trim()))members.push(pseudo.trim());
+      await setDoc(ref,{...data,members},{merge:true});
+      localStorage.setItem("ws_pseudo",pseudo.trim());
+      localStorage.setItem("ws_docid",docId);
+      localStorage.setItem("ws_foyerid",fid);
+      if(remember){localStorage.setItem("ws_pwd_saved",pwd.trim());}else{localStorage.removeItem("ws_pwd_saved");}
+      onLogin(docId,pseudo.trim());
+    }catch(e){setErr("Erreur : "+e.message);}
     setLoading(false);
+  }
+
+  function copyLink(){
+    navigator.clipboard.writeText(inviteLink).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+  }
+
+  // Écran lien partagé (après création)
+  if(showInvite){
+    return(
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:"rgba(255,255,255,.95)",borderRadius:24,padding:32,width:"100%",maxWidth:380,border:`1px solid ${BDR}`,boxShadow:"0 20px 60px rgba(160,90,40,.15)"}}>
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:44,marginBottom:8}}>🎉</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,color:CARAMEL,fontWeight:900}}>Foyer créé !</div>
+            <div style={{fontSize:12,color:TXT3,marginTop:6}}>Partagez ce lien avec votre foyer pour qu'ils rejoignent votre liste</div>
+          </div>
+          <div style={{background:CREAM2,border:`1.5px solid ${BDR}`,borderRadius:14,padding:"12px 14px",marginBottom:12,wordBreak:"break-all",fontSize:11,color:TXT2,lineHeight:1.6}}>{inviteLink}</div>
+          <button style={{...btn("acc"),width:"100%",justifyContent:"center",marginBottom:10,fontSize:13}} onClick={copyLink}>
+            {copied?"✅ Lien copié !":"📋 Copier le lien d'invitation"}
+          </button>
+          <div style={{fontSize:10,color:TXT3,textAlign:"center",lineHeight:1.6}}>⚠️ Ce lien + votre mot de passe permettent d'accéder au foyer. Partagez-les uniquement avec les personnes de confiance.</div>
+        </div>
+      </div>
+    );
   }
 
   return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:"rgba(255,255,255,.92)",borderRadius:24,padding:32,width:"100%",maxWidth:380,border:`1px solid ${BDR}`,boxShadow:"0 20px 60px rgba(160,90,40,.15)"}}>
-        <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:52,marginBottom:10}}>🛒</div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:30,color:CARAMEL,fontWeight:900,letterSpacing:-.5}}>MesCourses</div>
-          <div style={{fontSize:12,color:TXT3,marginTop:6,fontWeight:500}}>Votre assistant du quotidien pour le foyer</div>
+      <div style={{background:"rgba(255,255,255,.92)",borderRadius:24,padding:28,width:"100%",maxWidth:380,border:`1px solid ${BDR}`,boxShadow:"0 20px 60px rgba(160,90,40,.15)"}}>
+
+        {/* Logo */}
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:48,marginBottom:8}}>🛒</div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:28,color:CARAMEL,fontWeight:900,letterSpacing:-.5}}>Wisely Shop</div>
+          <div style={{fontSize:12,color:TXT3,marginTop:4,fontWeight:500}}>Votre assistant du quotidien pour le foyer</div>
         </div>
-        <span style={lbl}>Mot de passe du foyer</span>
-        <input style={{...inp,marginBottom:8,textAlign:"center",fontSize:16,letterSpacing:3}}
-          type="password" placeholder="••••••••" value={pwd}
-          onChange={e=>setPwd(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&tryLogin()}/>
-        {err&&<div style={{fontSize:12,color:DNG,textAlign:"center",marginBottom:8,fontWeight:600}}>{err}</div>}
-        <button style={{...btn("acc"),width:"100%",justifyContent:"center",marginTop:6,fontSize:14,padding:"13px"}}
-          onClick={tryLogin} disabled={loading}>
-          {loading?"Connexion…":"🔓 Accéder à mes courses"}
-        </button>
-        <div style={{fontSize:11,color:TXT3,textAlign:"center",marginTop:16,lineHeight:1.7}}>
-          Partagez le même mot de passe avec votre foyer.<br/>
-          Vos données se synchronisent en temps réel. ☁️
-        </div>
+
+        {/* Choix initial */}
+        {mode==="choix"&&(
+          <>
+            <button style={{...btn("acc"),width:"100%",justifyContent:"center",marginBottom:10,fontSize:13,padding:"13px"}} onClick={()=>setMode("creer")}>
+              🏠 Créer un nouveau foyer
+            </button>
+            <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:13,padding:"13px"}} onClick={()=>setMode("rejoindre")}>
+              🔗 Rejoindre via un lien
+            </button>
+            <div style={{fontSize:11,color:TXT3,textAlign:"center",marginTop:14,lineHeight:1.7}}>
+              Pour rejoindre le foyer de quelqu'un,<br/>utilisez le lien d'invitation qu'il vous a partagé.
+            </div>
+          </>
+        )}
+
+        {/* Créer un foyer */}
+        {mode==="creer"&&(
+          <>
+            <div style={{fontSize:13,fontWeight:700,color:TXT,marginBottom:14}}>🏠 Créer votre foyer</div>
+            <span style={lbl}>Votre prénom</span>
+            <input style={{...inp,marginBottom:10}} placeholder="Ex: Thomas" value={pseudo} onChange={e=>setPseudo(e.target.value)}/>
+            <span style={lbl}>Mot de passe du foyer</span>
+            <input style={{...inp,marginBottom:4,letterSpacing:2}} type="password" placeholder="Min. 4 caractères" value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&creerFoyer()}/>
+            <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>Ce mot de passe sera demandé à chaque membre qui rejoint votre foyer.</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}} onClick={()=>setRemember(!remember)}>
+              <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${remember?CARAMEL:BDR}`,background:remember?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {remember&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+              </div>
+              <span style={{fontSize:12,color:TXT2,fontWeight:500}}>Se souvenir de moi sur cet appareil</span>
+            </div>
+            {err&&<div style={{fontSize:12,color:DNG,marginBottom:8,fontWeight:600}}>{err}</div>}
+            <button style={{...btn("acc"),width:"100%",justifyContent:"center",marginBottom:8,fontSize:13,padding:"13px"}} onClick={creerFoyer} disabled={loading}>
+              {loading?"Création…":"✨ Créer mon foyer"}
+            </button>
+            <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setMode("choix")}>← Retour</button>
+          </>
+        )}
+
+        {/* Rejoindre via lien */}
+        {mode==="rejoindre"&&(
+          <>
+            <div style={{fontSize:13,fontWeight:700,color:TXT,marginBottom:14}}>🔗 Rejoindre un foyer</div>
+            {inviteCode
+              ?<div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:12,fontSize:11,color:TXT2}}>🔗 Code d'invitation détecté : <strong style={{color:CARAMEL}}>{inviteCode}</strong></div>
+              :<div style={{background:"rgba(212,96,74,.08)",border:`1px solid rgba(212,96,74,.2)`,borderRadius:10,padding:"8px 12px",marginBottom:12,fontSize:11,color:DNG}}>⚠️ Aucun lien d'invitation détecté. Utilisez le lien complet partagé par votre foyer.</div>
+            }
+            <span style={lbl}>Votre prénom</span>
+            <input style={{...inp,marginBottom:10}} placeholder="Ex: Sophie" value={pseudo} onChange={e=>setPseudo(e.target.value)}/>
+            <span style={lbl}>Mot de passe du foyer</span>
+            <input style={{...inp,marginBottom:4,letterSpacing:2}} type="password" placeholder="••••••••" value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&rejoindre()}/>
+            <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>Le mot de passe vous a été communiqué par la personne qui a créé le foyer.</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}} onClick={()=>setRemember(!remember)}>
+              <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${remember?CARAMEL:BDR}`,background:remember?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                {remember&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+              </div>
+              <span style={{fontSize:12,color:TXT2,fontWeight:500}}>Se souvenir de moi sur cet appareil</span>
+            </div>
+            {err&&<div style={{fontSize:12,color:DNG,marginBottom:8,fontWeight:600}}>{err}</div>}
+            <button style={{...btn("acc"),width:"100%",justifyContent:"center",marginBottom:8,fontSize:13,padding:"13px"}} onClick={rejoindre} disabled={loading||!inviteCode}>
+              {loading?"Connexion…":"🔓 Rejoindre le foyer"}
+            </button>
+            <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setMode("choix")}>← Retour</button>
+          </>
+        )}
+
       </div>
     </div>
   );
@@ -963,13 +1093,10 @@ function App(){
   const [page,setPage]=useState("liste");
   const [db,setDb]=useState(EMPTY_DB);
   const [toast,setToast]=useState("");
-  const [docId,setDocId]=useState(()=>{
-    const pwd=localStorage.getItem("mc_pwd");
-    return pwd?"foyer_"+hashPassword(pwd):null;
-  });
+  const [pseudo,setPseudo]=useState(()=>localStorage.getItem("ws_pseudo")||"");
+  const [docId,setDocId]=useState(()=>localStorage.getItem("ws_docid")||null);
   const [fbReady,setFbReady]=useState(!!window._firebaseReady);
   const ttRef=useRef(null);
-  const syncRef=useRef(null);
   const localRef=useRef(false);
 
   // Attendre que Firebase soit prêt
@@ -1005,7 +1132,7 @@ function App(){
   function setDbSync(newDb){
     setDb(newDb);
     // localStorage fallback
-    try{localStorage.setItem("mc_r3",JSON.stringify(newDb));}catch{}
+    try{localStorage.setItem("ws_r1",JSON.stringify(newDb));}catch{}
     // Firestore sync
     if(docId&&fbReady){
       localRef.current=true;
@@ -1020,12 +1147,15 @@ function App(){
     }
   }
 
-  function handleLogin(id){
+  function handleLogin(id,name){
     setDocId(id);
+    setPseudo(name||localStorage.getItem("ws_pseudo")||"");
   }
 
   function handleLogout(){
-    localStorage.removeItem("mc_pwd");
+    localStorage.removeItem("ws_docid");
+    localStorage.removeItem("ws_foyerid");
+    // Ne pas supprimer ws_pseudo et ws_pwd_saved si "se souvenir" était coché
     setDocId(null);
     setDb(EMPTY_DB);
   }
@@ -1052,10 +1182,18 @@ function App(){
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 60%)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🛒 MesCourses</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🛒 Wisely Shop</div>
+            {pseudo?<div style={{fontSize:11,color:"rgba(255,255,255,.75)",marginTop:2,fontWeight:600}}>Bonjour {pseudo} 👋</div>
+            :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
-          <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 12px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer"}} onClick={handleLogout}>🔒 Déco.</button>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 10px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:10,cursor:"pointer"}}
+              onClick={()=>{
+                const fid=localStorage.getItem("ws_foyerid");
+                if(fid){const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));}
+              }}>🔗</button>
+            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 12px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer"}} onClick={handleLogout}>🔒 Déco.</button>
+          </div>
         </div>
         {/* NAV TABS */}
         <div style={{display:"flex",marginTop:14,gap:2,paddingBottom:0}}>
