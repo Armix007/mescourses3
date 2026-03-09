@@ -52,9 +52,36 @@ const {useState,useEffect,useRef}=React;
 const CATEGORIES=["🍎 Fruits","🥦 Légumes","🥩 Viande","🐟 Poisson","🥛 Laitiers","🧀 Fromage","🥚 Oeufs","🍞 Boulangerie","🥫 Épicerie sèche","🫙 Conserves","🧊 Surgelés","🍷 Boissons","🧴 Hygiène","🧹 Entretien","🍬 Confiseries","❓ Autre"];
 const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte","bouteille","paquet","tranche","botte"];
 const UL={"":"pcs","g":"g","kg":"kg","ml":"ml","cl":"cl","L":"L","càs":"càs","càc":"càc","pincée":"pincée","sachet":"sachet","boîte":"boîte","bouteille":"bouteille","paquet":"paquet","tranche":"tranche","botte":"botte"};
-const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[]};
+const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[],priceDB:{},budget:{monthly:0,sessions:[]}};
 const BG="transparent",SURF="#ffffff",SURF2="#fdf8f0",SURF3="#f5ece0",ACC="#c8845a",TXT="#2a1f0e",TXT2="#9a7050",TXT3="#c8a880",DNG="#d4604a",SUC="#5a8a3a",BDR="#e8d4b8";
 const CARAMEL="#b8703a",CARAMEL2="#c8845a",CREAM="#fdf8f0",CREAM2="#f5ece0";
+
+// ─── UTILITAIRES PRIX ────────────────────────────────────────
+// Fraîcheur : 🟢 < 14j, 🟡 14-60j, 🔴 > 60j
+function priceFreshness(ts){
+  if(!ts)return"🔴";
+  const days=(Date.now()-ts)/(1000*60*60*24);
+  if(days<14)return"🟢";if(days<60)return"🟡";return"🔴";
+}
+// Prix au kilo normalisé
+function pricePerKg(price,qty,unit){
+  if(!price||!qty||!unit)return null;
+  const q=parseFloat(qty);if(isNaN(q)||q<=0)return null;
+  const factors={g:1000,kg:1,ml:1000,cl:100,L:1};
+  const f=factors[unit];if(!f)return null;
+  return(price/q)*f;
+}
+// Cherche le meilleur prix connu pour un produit
+function getBestPrice(priceDB,name){
+  const norm=name.toLowerCase().trim();
+  const entries=Object.entries(priceDB||{});
+  const match=entries.find(([k])=>k===norm);
+  if(!match)return null;
+  const shops=Object.entries(match[1].shops||{});
+  if(!shops.length)return null;
+  const best=shops.sort((a,b)=>(a[1].pricePerKg||a[1].price)-(b[1].pricePerKg||b[1].price))[0];
+  return{shop:best[0],...best[1]};
+}
 
 function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
 function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
@@ -453,14 +480,18 @@ function PageListe({db,setDb,showToast}){
   );
 }
 
-function Item({item,onToggle,onDel,onEqty,onAqty}){
+function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice}){
+  const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   return(
     <div style={{...card,display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",marginBottom:6,opacity:item.checked?.5:1,background:item.checked?CREAM2:SURF}}>
       <div onClick={()=>onToggle(item.id)} style={{width:24,height:24,borderRadius:8,border:item.checked?"none":`2.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,marginTop:1,boxShadow:item.checked?`0 2px 8px rgba(184,112,58,.35)`:"none"}}>
         {item.checked&&<span style={{color:"white",fontSize:11,fontWeight:800}}>✓</span>}
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+        <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"wrap"}}>
+          <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+          {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
+        </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>
           {(item.quantities||[]).map((q,qi)=>{
             const isR=q.source&&q.source!=="manuel"&&q.source!=="historique";
@@ -1254,6 +1285,300 @@ function LoginScreen({onLogin}){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PAGE PRIX — Scan ticket + Base de prix
+// ═══════════════════════════════════════════════════════════════
+function PagePrix({db,setDb,showToast}){
+  const [tab,setTab]=useState("scanner");
+  const [scanPhotos,setScanPhotos]=useState([]);
+  const [scanning,setScanning]=useState(false);
+  const [scanResult,setScanResult]=useState(null);
+  const [scanMsg,setScanMsg]=useState("");
+  const [scanStatus,setScanStatus]=useState("idle");
+  const [shopName,setShopName]=useState("");
+  const [showBudgetEdit,setShowBudgetEdit]=useState(false);
+  const [budgetInput,setBudgetInput]=useState("");
+  const [searchPrice,setSearchPrice]=useState("");
+  const [showPriceVisible,setShowPriceVisible]=useState(()=>localStorage.getItem("ws_prices_visible")!=="false");
+  const scanRef=useRef();
+
+  function togglePriceVisible(){
+    const v=!showPriceVisible;setShowPriceVisible(v);
+    localStorage.setItem("ws_prices_visible",String(v));
+  }
+
+  function handleScanFile(e){
+    const file=e.target.files[0];if(!file)return;
+    const mt=file.type||"image/jpeg";
+    const r=new FileReader();r.onload=ev=>{
+      setScanPhotos(prev=>[...prev,{dataUrl:ev.target.result,mt,id:Date.now()}]);
+    };r.readAsDataURL(file);e.target.value="";
+  }
+
+  async function doTicketScan(){
+    if(!scanPhotos.length){showToast("⚠️ Ajoutez au moins une photo du ticket");return;}
+    const apiKey=localStorage.getItem("ws_apikey")||"";
+    if(!apiKey){showToast("⚠️ Clé API requise — configurez-la dans l'onglet Recettes");return;}
+    if(!shopName.trim()){showToast("⚠️ Indiquez le nom du magasin");return;}
+    setScanning(true);setScanMsg("");setScanStatus("idle");setScanResult(null);
+    const n=scanPhotos.length;
+    const prompt=`Tu es un expert en lecture de tickets de caisse. ${n>1?`On t'envoie ${n} photos d'un même ticket (zones successives ou qui se chevauchent).`:"Analyse ce ticket de caisse."}
+TÂCHE : Extrais TOUS les articles achetés avec leurs prix.
+RÈGLES :
+- Si un article apparaît plusieurs fois (zones qui se recoupent), ne le garde qu'UNE fois
+- Ignore les lignes de total, sous-total, TVA, remise globale, numéros de caisse, dates
+- Pour chaque article : normalise le nom en nom générique français sans marque commerciale
+- Exemples : "PRESIDENT BEURRE 250G" → genericName "beurre", qty "250", unit "g" / "COCA COLA 1.5L" → genericName "soda cola", qty "1.5", unit "L"
+- prix = prix unitaire payé (nombre décimal)
+- Si le grammage/volume est dans le nom, extrais-le dans qty+unit
+RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
+{"items":[{"genericName":"","originalName":"","price":0,"qty":"","unit":""}]}
+- genericName : nom générique normalisé en français minuscules
+- originalName : nom exact sur le ticket
+- price : prix en euros (nombre)
+- qty : grammage/volume si visible, sinon ""
+- unit : unité si visible (g, kg, ml, cl, L), sinon ""`;
+    try{
+      const content=[
+        ...scanPhotos.map((p,i)=>[
+          ...(n>1?[{type:"text",text:`— Photo ${i+1}/${n} du ticket :`}]:[]),
+          {type:"image",source:{type:"base64",media_type:p.mt,data:p.dataUrl.split(",")[1]}}
+        ]).flat(),
+        {type:"text",text:prompt}
+      ];
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content}]})
+      });
+      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error("Erreur "+resp.status+(e.error?.message?" : "+e.error.message:""));}
+      const data=await resp.json();
+      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      const p=JSON.parse(text);
+      const items=(p.items||[]).filter(i=>i.genericName&&i.price>0);
+      setScanResult(items.map(i=>({...i,selected:true})));
+      setScanMsg(`✅ ${items.length} article${items.length>1?"s":""} détecté${items.length>1?"s":""}`);
+      setScanStatus("ok");
+    }catch(err){console.error(err);setScanMsg("❌ "+err.message);setScanStatus("error");}
+    setScanning(false);
+  }
+
+  function toggleItem(i){setScanResult(prev=>prev.map((it,j)=>j===i?{...it,selected:!it.selected}:it));}
+
+  function savePrices(){
+    if(!scanResult?.length)return;
+    const selected=scanResult.filter(i=>i.selected);
+    if(!selected.length){showToast("⚠️ Aucun article sélectionné");return;}
+    const shop=shopName.trim()||"Inconnu";
+    const now=Date.now();
+    const newPriceDB={...(db.priceDB||{})};
+    selected.forEach(item=>{
+      const key=item.genericName.toLowerCase().trim();
+      if(!newPriceDB[key])newPriceDB[key]={shops:{}};
+      const ppkg=pricePerKg(item.price,item.qty,item.unit);
+      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",pricePerKg:ppkg,updatedAt:now,originalName:item.originalName};
+    });
+    const total=selected.reduce((s,i)=>s+i.price,0);
+    const sessions=[{date:new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long"}),shop,total:Math.round(total*100)/100,count:selected.length,ts:now},...(db.budget?.sessions||[])].slice(0,50);
+    setDb({...db,priceDB:newPriceDB,budget:{...(db.budget||{}),sessions}});
+    showToast(`💾 ${selected.length} prix sauvegardés !`);
+    setScanResult(null);setScanPhotos([]);setScanMsg("");setScanStatus("idle");setShopName("");
+    setTab("base");
+  }
+
+  const priceEntries=Object.entries(db.priceDB||{}).filter(([k])=>!searchPrice||k.includes(searchPrice.toLowerCase()));
+  const sessions=db.budget?.sessions||[];
+  const monthlyBudget=db.budget?.monthly||0;
+  const now2=new Date();
+  const thisMonthTotal=sessions.filter(s=>{const d=new Date(s.ts);return d.getMonth()===now2.getMonth()&&d.getFullYear()===now2.getFullYear();}).reduce((s,i)=>s+i.total,0);
+  const budgetPct=monthlyBudget>0?Math.min(100,Math.round(thisMonthTotal/monthlyBudget*100)):0;
+  const budgetColor=budgetPct>90?DNG:budgetPct>70?"#c8843a":SUC;
+  const currentMonth=now2.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+
+  return(
+    <div style={{padding:14,paddingBottom:90}}>
+      {/* Sous-onglets */}
+      <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.6)",borderRadius:14,padding:4}}>
+        {[{id:"scanner",label:"📷 Scanner"},{id:"base",label:"💰 Base prix"},{id:"budget",label:"📊 Budget"}].map(t=>(
+          <div key={t.id} style={{flex:1,padding:"8px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:10,background:tab===t.id?SURF:"transparent",color:tab===t.id?CARAMEL:TXT3,cursor:"pointer",transition:"all .2s",boxShadow:tab===t.id?"0 2px 8px rgba(160,90,40,.1)":"none"}} onClick={()=>setTab(t.id)}>
+            {t.label}
+          </div>
+        ))}
+      </div>
+
+      {tab==="scanner"&&(
+        <>
+          <div style={{...card,background:"rgba(255,255,255,.9)"}}>
+            <span style={lbl}>Magasin</span>
+            <input style={inp} placeholder="Ex: Carrefour, Lidl, Monoprix…" value={shopName} onChange={e=>setShopName(e.target.value)}/>
+          </div>
+          <div style={{...card,background:"rgba(255,255,255,.9)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <span style={{...lbl,marginBottom:0}}>Photos du ticket</span>
+              <span style={{fontSize:10,color:TXT3}}>Plusieurs si ticket long</span>
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+              {scanPhotos.map((p,i)=>(
+                <div key={p.id} style={{position:"relative",width:64,height:64}}>
+                  <img src={p.dataUrl} style={{width:64,height:64,objectFit:"cover",borderRadius:10,border:`2px solid ${CARAMEL2}`}} alt={`Ticket ${i+1}`}/>
+                  <div style={{position:"absolute",top:-4,right:-4,width:18,height:18,borderRadius:"50%",background:DNG,color:"white",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={()=>setScanPhotos(prev=>prev.filter(x=>x.id!==p.id))}>✕</div>
+                  <div style={{position:"absolute",bottom:2,left:2,background:"rgba(0,0,0,.5)",color:"white",fontSize:8,borderRadius:4,padding:"1px 4px",fontWeight:700}}>{i+1}</div>
+                </div>
+              ))}
+              <div style={{width:64,height:64,border:`2px dashed ${CARAMEL2}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column",gap:2}} onClick={()=>scanRef.current.click()}>
+                <div style={{fontSize:22}}>📷</div>
+                <div style={{fontSize:8,color:TXT3,fontWeight:600}}>Ajouter</div>
+              </div>
+            </div>
+            <input ref={scanRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScanFile} capture="environment"/>
+            {scanPhotos.length>0&&(
+              <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:13}} onClick={doTicketScan} disabled={scanning||!shopName.trim()}>
+                {scanning?"⏳ Analyse en cours…":`🔍 Analyser ${scanPhotos.length} photo${scanPhotos.length>1?"s":""}`}
+              </button>
+            )}
+            {!shopName.trim()&&scanPhotos.length>0&&<div style={{fontSize:10,color:DNG,textAlign:"center",marginTop:6,fontWeight:600}}>⚠️ Indiquez d'abord le magasin</div>}
+          </div>
+          {scanMsg&&<div style={{fontSize:12,textAlign:"center",padding:"8px 12px",borderRadius:10,background:scanStatus==="ok"?"rgba(90,138,58,.1)":"rgba(212,96,74,.1)",color:scanStatus==="ok"?SUC:DNG,marginBottom:10,fontWeight:600}}>{scanMsg}</div>}
+          {scanResult&&(
+            <div style={{...card,background:"rgba(255,255,255,.95)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT}}>Valider les articles</div>
+                <div style={{display:"flex",gap:6}}>
+                  <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>setScanResult(prev=>prev.map(i=>({...i,selected:true})))}>Tout</button>
+                  <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>setScanResult(prev=>prev.map(i=>({...i,selected:false})))}>Aucun</button>
+                </div>
+              </div>
+              <div style={{maxHeight:320,overflowY:"auto"}}>
+                {scanResult.map((item,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 4px",borderBottom:i<scanResult.length-1?`1px solid ${BDR}`:"none",cursor:"pointer",background:item.selected?"rgba(200,132,90,.06)":"transparent",borderRadius:6}} onClick={()=>toggleItem(i)}>
+                    <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${item.selected?CARAMEL:BDR}`,background:item.selected?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {item.selected&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.genericName}</div>
+                      {item.originalName&&item.originalName!==item.genericName&&<div style={{fontSize:9,color:TXT3}}>{item.originalName}</div>}
+                      {item.qty&&<div style={{fontSize:10,color:TXT2}}>{item.qty}{item.unit}{item.unit&&pricePerKg(item.price,item.qty,item.unit)?` · ${pricePerKg(item.price,item.qty,item.unit).toFixed(2)}€/kg`:""}</div>}
+                    </div>
+                    <div style={{fontSize:14,fontWeight:800,color:CARAMEL,flexShrink:0}}>{item.price.toFixed(2)}€</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderTop:`1px solid ${BDR}`,marginTop:8,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:12,color:TXT2,fontWeight:600}}>
+                  {scanResult.filter(i=>i.selected).length} art. · <strong style={{color:CARAMEL}}>{scanResult.filter(i=>i.selected).reduce((s,i)=>s+i.price,0).toFixed(2)}€</strong>
+                </div>
+                <button style={{...btn("acc"),fontSize:12}} onClick={savePrices}>💾 Sauvegarder</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {tab==="base"&&(
+        <>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT}}>Ma base de prix</div>
+            <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={togglePriceVisible}>
+              {showPriceVisible?"🙈 Masquer":"👁️ Afficher"} liste
+            </button>
+          </div>
+          {priceEntries.length===0?(
+            <div style={{textAlign:"center",padding:"40px 20px"}}>
+              <div style={{fontSize:40,marginBottom:10}}>💰</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,marginBottom:6}}>Aucun prix enregistré</div>
+              <div style={{fontSize:12,color:TXT3}}>Scannez un ticket pour commencer</div>
+            </div>
+          ):(
+            <>
+              <input style={{...inp,marginBottom:10}} placeholder="🔍 Rechercher un produit…" value={searchPrice} onChange={e=>setSearchPrice(e.target.value)}/>
+              {priceEntries.map(([name,data])=>{
+                const shops=Object.entries(data.shops||{});
+                if(!shops.length)return null;
+                const best=shops.sort((a,b)=>(a[1].pricePerKg||a[1].price)-(b[1].pricePerKg||b[1].price))[0];
+                return(
+                  <div key={name} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                      <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize"}}>{name}</div>
+                      <span style={{fontSize:14}}>{priceFreshness(best[1]?.updatedAt)}</span>
+                    </div>
+                    {shops.map(([shop,info])=>(
+                      <div key={shop} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3}}>
+                        <div>
+                          <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
+                          {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty}{info.unit}</span>}
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
+                          {info.pricePerKg&&<div style={{fontSize:9,color:TXT3}}>{info.pricePerKg.toFixed(2)}€/kg</div>}
+                        </div>
+                      </div>
+                    ))}
+                    {shops.length>1&&<div style={{fontSize:10,color:SUC,marginTop:4,fontWeight:600}}>✓ Meilleur prix : {best[0]}</div>}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </>
+      )}
+
+      {tab==="budget"&&(
+        <>
+          <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT}}>Budget {currentMonth}</div>
+              <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setBudgetInput(String(monthlyBudget||""));setShowBudgetEdit(true);}}>✏️ Modifier</button>
+            </div>
+            {monthlyBudget>0?(
+              <>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <span style={{fontSize:13,color:TXT2}}>Dépensé ce mois</span>
+                  <span style={{fontSize:14,fontWeight:800,color:budgetColor}}>{thisMonthTotal.toFixed(2)}€ / {monthlyBudget}€</span>
+                </div>
+                <div style={{height:8,background:CREAM2,borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:budgetPct+"%",background:`linear-gradient(90deg,${SUC},${budgetColor})`,borderRadius:4,transition:"width .4s"}}/>
+                </div>
+                <div style={{fontSize:10,color:TXT3,marginTop:4,textAlign:"right"}}>{budgetPct}% · {Math.max(0,monthlyBudget-thisMonthTotal).toFixed(2)}€ restant</div>
+              </>
+            ):(
+              <div style={{fontSize:12,color:TXT3,textAlign:"center",padding:"8px 0"}}>Définissez une enveloppe mensuelle pour suivre votre budget</div>
+            )}
+          </div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,marginBottom:10}}>Historique des courses</div>
+          {sessions.length===0?(
+            <div style={{textAlign:"center",padding:"30px 20px",color:TXT3,fontSize:12}}>Aucune course enregistrée</div>
+          ):(
+            sessions.map((s,i)=>(
+              <div key={i} style={{...card,background:"rgba(255,255,255,.85)",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",marginBottom:6}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:TXT}}>{s.shop}</div>
+                  <div style={{fontSize:10,color:TXT3,marginTop:2}}>{s.date} · {s.count} articles</div>
+                </div>
+                <div style={{fontSize:15,fontWeight:900,color:CARAMEL}}>{s.total?.toFixed(2)}€</div>
+              </div>
+            ))
+          )}
+        </>
+      )}
+
+      <Modal open={showBudgetEdit} onClose={()=>setShowBudgetEdit(false)}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:10,color:TXT}}>💰 Budget mensuel</div>
+        <span style={lbl}>Enveloppe en euros</span>
+        <input style={{...inp,marginBottom:14,fontSize:16,textAlign:"center"}} type="number" min="0" placeholder="Ex: 400" value={budgetInput} onChange={e=>setBudgetInput(e.target.value)}/>
+        <div style={{display:"flex",gap:8}}>
+          <button style={{...btn("gh"),flex:1}} onClick={()=>setShowBudgetEdit(false)}>Annuler</button>
+          <button style={{...btn("acc"),flex:1}} onClick={()=>{
+            const v=parseFloat(budgetInput)||0;
+            setDb({...db,budget:{...(db.budget||{}),monthly:v}});
+            setShowBudgetEdit(false);showToast("💰 Budget mis à jour");
+          }}>Enregistrer</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // APP ROOT
 // ═══════════════════════════════════════════════════════════════
 function App(){
@@ -1287,7 +1612,9 @@ function App(){
         items:data.items||[],
         productHistory:data.productHistory||{},
         recipes:data.recipes||[],
-        shoppingHistory:data.shoppingHistory||[]
+        shoppingHistory:data.shoppingHistory||[],
+        priceDB:data.priceDB||{},
+        budget:data.budget||{monthly:0,sessions:[]}
       });
     });
     return()=>unsub();
@@ -1309,7 +1636,9 @@ function App(){
         items:newDb.items||[],
         productHistory:newDb.productHistory||{},
         recipes:newDb.recipes||[],
-        shoppingHistory:newDb.shoppingHistory||[]
+        shoppingHistory:newDb.shoppingHistory||[],
+        priceDB:newDb.priceDB||{},
+        budget:newDb.budget||{monthly:0,sessions:[]}
       }).catch(e=>console.error("Sync error:",e));
     }
   }
@@ -1364,7 +1693,7 @@ function App(){
         </div>
         {/* NAV TABS */}
         <div style={{display:"flex",marginTop:14,gap:2,paddingBottom:0}}>
-          {[{id:"liste",icon:"📋",label:"Liste"},{id:"recettes",icon:"🍽️",label:"Recettes"},{id:"historique",icon:"🕐",label:"Historique"}].map(t=>(
+          {[{id:"liste",icon:"📋",label:"Liste"},{id:"recettes",icon:"🍽️",label:"Recettes"},{id:"prix",icon:"🧾",label:"Prix"},{id:"historique",icon:"🕐",label:"Historique"}].map(t=>(
             <div key={t.id} style={{flex:1,padding:"9px 3px",textAlign:"center",fontSize:9,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",color:page===t.id?"white":"rgba(255,255,255,.55)",cursor:"pointer",borderBottom:page===t.id?"2.5px solid white":"2.5px solid transparent",transition:"all .2s",userSelect:"none"}} onClick={()=>setPage(t.id)}>
               <span style={{fontSize:15,display:"block",marginBottom:2}}>{t.icon}</span>{t.label}
             </div>
@@ -1375,6 +1704,7 @@ function App(){
       <div style={{background:"rgba(255,255,255,.04)",minHeight:"calc(100vh - 120px)"}}>
         {page==="liste"&&<PageListe db={db} setDb={setDbSync} showToast={showToast}/>}
         {page==="recettes"&&<PageRecettes db={db} setDb={setDbSync} showToast={showToast}/>}
+        {page==="prix"&&<PagePrix db={db} setDb={setDbSync} showToast={showToast}/>}
         {page==="historique"&&<PageHistorique db={db} setDb={setDbSync} showToast={showToast} goToListe={()=>setPage("liste")}/>}
       </div>
       <Toast msg={toast}/>
