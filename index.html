@@ -143,32 +143,54 @@ function SecTitle({children}){
 
 // ─── CROP MODAL ───────────────────────────────────────────────
 function CropModal({open,src,onConfirm,onClose}){
-  const canvasRef=useRef(null),imgRef=useRef(null);
+  const canvasRef=useRef(null),imgRef=useRef(null),containerRef=useRef(null);
   const [drag,setDrag]=useState(null);
-  const [crop,setCrop]=useState({x:0,y:0,w:1,h:1});
+  const [crop,setCrop]=useState({x:.05,y:.05,w:.9,h:.9});
   const [loaded,setLoaded]=useState(false);
-  // Dimensions d'affichage du canvas (preview uniquement)
-  const PREVIEW_W=400,PREVIEW_H=300;
+  const [canvasSize,setCanvasSize]=useState({w:400,h:300});
 
   useEffect(()=>{if(open&&src){setLoaded(false);setCrop({x:.05,y:.05,w:.9,h:.9});}},[open,src]);
+
+  // Quand l'image est chargée : calcule les dimensions du canvas selon ratio réel + DPR
+  function onImgLoad(){
+    const img=imgRef.current;
+    if(!img)return;
+    const dpr=window.devicePixelRatio||1;
+    // Largeur CSS disponible (modal ~350px max)
+    const cssW=Math.min(containerRef.current?.offsetWidth||340,340);
+    const ratio=img.naturalHeight/img.naturalWidth;
+    const cssH=Math.round(cssW*ratio);
+    // Dimensions physiques du canvas (nettes sur Retina)
+    setCanvasSize({w:Math.round(cssW*dpr),h:Math.round(cssH*dpr),cssW,cssH});
+    setLoaded(true);
+  }
 
   useEffect(()=>{
     if(!loaded||!canvasRef.current||!imgRef.current)return;
     const cv=canvasRef.current,img=imgRef.current,ctx=cv.getContext("2d");
     const W=cv.width,H=cv.height;
-    ctx.clearRect(0,0,W,H);ctx.drawImage(img,0,0,W,H);
+    const dpr=window.devicePixelRatio||1;
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(img,0,0,W,H);
     ctx.fillStyle="rgba(0,0,0,.5)";
     const cx=crop.x*W,cy=crop.y*H,cw=crop.w*W,ch=crop.h*H;
     ctx.fillRect(0,0,W,cy);ctx.fillRect(0,cy,cx,ch);ctx.fillRect(cx+cw,cy,W-(cx+cw),ch);ctx.fillRect(0,cy+ch,W,H-(cy+ch));
-    ctx.strokeStyle=CARAMEL2;ctx.lineWidth=2;ctx.strokeRect(cx,cy,cw,ch);
+    ctx.strokeStyle=CARAMEL2;ctx.lineWidth=2*dpr;ctx.strokeRect(cx,cy,cw,ch);
     // grille des tiers
-    ctx.strokeStyle="rgba(200,132,90,.35)";ctx.lineWidth=1;
+    ctx.strokeStyle="rgba(200,132,90,.4)";ctx.lineWidth=dpr;
     [1,2].forEach(k=>{ctx.beginPath();ctx.moveTo(cx+cw*k/3,cy);ctx.lineTo(cx+cw*k/3,cy+ch);ctx.stroke();ctx.beginPath();ctx.moveTo(cx,cy+ch*k/3);ctx.lineTo(cx+cw,cy+ch*k/3);ctx.stroke();});
-    // poignées de coin
-    [[cx,cy],[cx+cw,cy],[cx,cy+ch],[cx+cw,cy+ch]].forEach(([hx,hy])=>{ctx.fillStyle=CARAMEL2;ctx.beginPath();ctx.arc(hx,hy,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle="white";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(hx,hy,8,0,Math.PI*2);ctx.stroke();});
-  },[crop,loaded]);
+    // poignées de coin nettes
+    const r=10*dpr;
+    [[cx,cy],[cx+cw,cy],[cx,cy+ch],[cx+cw,cy+ch]].forEach(([hx,hy])=>{
+      ctx.fillStyle=CARAMEL2;ctx.beginPath();ctx.arc(hx,hy,r,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle="white";ctx.lineWidth=1.5*dpr;ctx.beginPath();ctx.arc(hx,hy,r,0,Math.PI*2);ctx.stroke();
+    });
+  },[crop,loaded,canvasSize]);
 
-  function getPos(e,cv){const r=cv.getBoundingClientRect();const cl=e.touches?e.touches[0]:e;return{x:(cl.clientX-r.left)/r.width,y:(cl.clientY-r.top)/r.height};}
+  function getPos(e,cv){
+    const r=cv.getBoundingClientRect();const cl=e.touches?e.touches[0]:e;
+    return{x:(cl.clientX-r.left)/r.width,y:(cl.clientY-r.top)/r.height};
+  }
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 
   function startDrag(e){
@@ -197,16 +219,13 @@ function CropModal({open,src,onConfirm,onClose}){
   function confirm(){
     if(!imgRef.current)return;
     const img=imgRef.current;
-    // ✅ CORRECTION : utilise la PLEINE résolution de l'image originale
     const out=document.createElement("canvas");
     const srcX=Math.round(img.naturalWidth*crop.x);
     const srcY=Math.round(img.naturalHeight*crop.y);
     const srcW=Math.round(img.naturalWidth*crop.w);
     const srcH=Math.round(img.naturalHeight*crop.h);
-    out.width=srcW;
-    out.height=srcH;
+    out.width=srcW;out.height=srcH;
     out.getContext("2d").drawImage(img,srcX,srcY,srcW,srcH,0,0,srcW,srcH);
-    // Qualité 0.95 pour préserver les détails de texte
     onConfirm(out.toDataURL("image/jpeg",.95));
   }
 
@@ -216,14 +235,19 @@ function CropModal({open,src,onConfirm,onClose}){
       <div style={{...mdl,paddingBottom:24}}>
         <div style={{width:36,height:4,background:BDR,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>📐 Recadrer la photo</div>
-        <div style={{fontSize:12,color:TXT3,marginBottom:10}}>Faites glisser pour déplacer, tirez les coins pour redimensionner</div>
-        <div style={{borderRadius:12,overflow:"hidden",touchAction:"none",userSelect:"none",background:CREAM2,border:`1px solid ${BDR}`}}>
-          <img ref={imgRef} src={src} alt="" style={{display:"none"}} onLoad={()=>setLoaded(true)}/>
+        <div style={{fontSize:12,color:TXT3,marginBottom:10}}>Tirez les coins pour délimiter la zone à garder</div>
+        <div ref={containerRef} style={{borderRadius:12,overflow:"hidden",touchAction:"none",userSelect:"none",background:CREAM2,border:`1px solid ${BDR}`}}>
+          {/* Image cachée — source pour le canvas et pour le recadrage final */}
+          <img ref={imgRef} src={src} alt="" style={{display:"none"}} onLoad={onImgLoad}/>
           {loaded
-            ?<canvas ref={canvasRef} width={PREVIEW_W} height={PREVIEW_H} style={{width:"100%",height:"auto",display:"block",cursor:"crosshair",touchAction:"none"}}
-              onMouseDown={startDrag} onMouseMove={onDrag} onMouseUp={endDrag}
-              onTouchStart={startDrag} onTouchMove={onDrag} onTouchEnd={endDrag}/>
-            :<div style={{height:220,display:"flex",alignItems:"center",justifyContent:"center",color:TXT3}}>Chargement…</div>
+            ?<canvas
+                ref={canvasRef}
+                width={canvasSize.w}
+                height={canvasSize.h}
+                style={{width:`${canvasSize.cssW}px`,height:`${canvasSize.cssH}px`,display:"block",cursor:"crosshair",touchAction:"none",maxWidth:"100%"}}
+                onMouseDown={startDrag} onMouseMove={onDrag} onMouseUp={endDrag} onMouseLeave={endDrag}
+                onTouchStart={startDrag} onTouchMove={onDrag} onTouchEnd={endDrag}/>
+            :<div style={{height:220,display:"flex",alignItems:"center",justifyContent:"center",color:TXT3,fontSize:13}}>Chargement…</div>
           }
         </div>
         <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:6}}>Pleine résolution préservée ✓</div>
@@ -618,7 +642,7 @@ RÈGLES DE FUSION :
 - Si un ingrédient apparaît plusieurs fois (zones qui se recoupent), ne le garde qu'UNE seule fois
 - Pour les étapes, reconstitue l'ordre logique même si elles sont sur des photos différentes
 - Prends le titre de la photo qui le montre le mieux
-- Si une photo montre clairement un plat cuisiné (pas du texte), "dishPhotoDataPresent":true
+- Si une photo montre une VRAIE PHOTOGRAPHIE d'un plat cuisiné où la nourriture occupe la majorité de l'image (sans texte dominant), "dishPhotoDataPresent":true. Une page de livre avec une petite illustration = false.
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
 {"title":null,"persons":null,"duration":null,"dishPhotoDataPresent":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
 INSTRUCTIONS : qty=chiffre seul, unit=unité normalisée (g,kg,ml,cl,L,càs,càc,pincée,sachet,boîte,bouteille,paquet,tranche,botte), noms génériques sans marques, steps dans l'ordre logique`;
@@ -677,9 +701,8 @@ FORMAT EXACT :
 INSTRUCTIONS PRÉCISES :
 
 1. IDENTIFICATION DU CONTENU :
-   - Si l'image contient du TEXTE de recette (livre, magazine, fiche, écran) → extrais les données
-   - Si l'image montre UNIQUEMENT une photo d'un plat sans texte → "dishPhotoDataPresent":true, pas d'ingrédients
-   - Si l'image contient à la fois une photo du plat ET le texte de la recette → extrais le texte ET "dishPhotoDataPresent":true
+   - Si l'image contient du TEXTE de recette (livre, magazine, fiche, écran) → extrais les données, "dishPhotoDataPresent":false
+   - "dishPhotoDataPresent":true UNIQUEMENT si l'image est une VRAIE PHOTOGRAPHIE d'un plat cuisiné où la nourriture occupe la MAJORITÉ de l'image, sans texte dominant. Une page de livre avec une petite photo en haut = false. Une page avec des ingrédients illustrés = false. Seule une photo réelle d'un plat servi = true.
 
 2. EXTRACTION DES INGRÉDIENTS (priorité absolue) :
    - Cherche la liste d'ingrédients même si elle est dans un encadré, une colonne latérale, ou en petit texte
