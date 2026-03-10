@@ -709,134 +709,218 @@ function PageRecettes({db,setDb,showToast}){
 }
 
 // ─── MEALDB SEARCH ───────────────────────────────────────────
+// Traductions catégories et origines TheMealDB
+const CAT_FR={"Beef":"🥩 Bœuf","Chicken":"🍗 Poulet","Dessert":"🍰 Desserts","Lamb":"🥩 Agneau","Miscellaneous":"🍽️ Divers","Pasta":"🍝 Pâtes","Pork":"🥩 Porc","Seafood":"🐟 Fruits de mer","Side":"🥗 Accompagnements","Starter":"🥙 Entrées","Vegan":"🌿 Vegan","Vegetarian":"🌱 Végétarien","Breakfast":"🍳 Petit-déjeuner","Goat":"🥩 Chèvre"};
+const AREA_FR={"American":"🇺🇸 Américain","British":"🇬🇧 Britannique","Canadian":"🇨🇦 Canadien","Chinese":"🇨🇳 Chinois","Croatian":"🇭🇷 Croate","Dutch":"🇳🇱 Néerlandais","Egyptian":"🇪🇬 Égyptien","Filipino":"🇵🇭 Philippin","French":"🇫🇷 Français","Greek":"🇬🇷 Grec","Indian":"🇮🇳 Indien","Irish":"🇮🇪 Irlandais","Italian":"🇮🇹 Italien","Jamaican":"🇯🇲 Jamaïcain","Japanese":"🇯🇵 Japonais","Kenyan":"🇰🇪 Kenyan","Malaysian":"🇲🇾 Malaisien","Mexican":"🇲🇽 Mexicain","Moroccan":"🇲🇦 Marocain","Polish":"🇵🇱 Polonais","Portuguese":"🇵🇹 Portugais","Russian":"🇷🇺 Russe","Spanish":"🇪🇸 Espagnol","Thai":"🇹🇭 Thaïlandais","Tunisian":"🇹🇳 Tunisien","Turkish":"🇹🇷 Turc","Ukrainian":"🇺🇦 Ukrainien","Vietnamese":"🇻🇳 Vietnamien"};
+
+function parseMealDBMeasure(measure){
+  if(!measure)return{qty:"",unit:""};
+  const fracs={"1/2":"0.5","1/3":"0.33","1/4":"0.25","2/3":"0.67","3/4":"0.75"};
+  let s=measure.trim().toLowerCase();
+  Object.entries(fracs).forEach(([f,v])=>{s=s.replace(f,v);});
+  const match=s.match(/^([\d.]+)\s*([a-zéàèêâ ]*)/);
+  if(!match)return{qty:"",unit:""};
+  const qty=match[1];
+  const rawUnit=(match[2]||"").trim();
+  const unitMap={g:"g",kg:"kg",ml:"ml",cl:"cl",l:"L",cup:"",cups:"",tbsp:"càs",tbs:"càs",tsp:"càc",oz:"g",lb:"kg",pinch:"pincée",bunch:"botte",clove:"pièce",cloves:"pièce",slice:"tranche",slices:"tranche",can:"boîte",jar:"boîte",bag:"paquet",packet:"paquet",bottle:"bouteille"};
+  return{qty,unit:(unitMap[rawUnit]!==undefined?unitMap[rawUnit]:"").trim()};
+}
+
 function MealDBSearch({onImport,onClose,showToast}){
+  const [view,setView]=useState("categories"); // categories | list | detail
+  const [categories,setCategories]=useState([]);
   const [query,setQuery]=useState("");
   const [results,setResults]=useState([]);
   const [loading,setLoading]=useState(false);
   const [detail,setDetail]=useState(null);
-  const [loadingDetail,setLoadingDetail]=useState(false);
+  const [translating,setTranslating]=useState(false);
+  const [selectedCat,setSelectedCat]=useState("");
+
+  useEffect(()=>{
+    fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
+      .then(r=>r.json()).then(d=>setCategories(d.categories||[])).catch(()=>{});
+  },[]);
+
+  async function browseCategory(cat){
+    setSelectedCat(cat);setLoading(true);setResults([]);setView("list");
+    try{
+      const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${encodeURIComponent(cat)}`);
+      const d=await r.json();setResults(d.meals||[]);
+    }catch{showToast("❌ Erreur de connexion");}
+    setLoading(false);
+  }
 
   async function search(){
     if(!query.trim())return;
-    setLoading(true);setResults([]);setDetail(null);
+    setLoading(true);setResults([]);setView("list");setSelectedCat("");
     try{
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
-      const d=await r.json();
-      setResults(d.meals||[]);
+      const d=await r.json();setResults(d.meals||[]);
       if(!d.meals?.length)showToast("Aucune recette trouvée");
     }catch{showToast("❌ Erreur de connexion");}
     setLoading(false);
   }
 
   async function loadDetail(id){
-    setLoadingDetail(true);setDetail(null);
+    setLoading(true);setDetail(null);setView("detail");
     try{
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
       const d=await r.json();
-      const m=d.meals?.[0];if(!m){showToast("❌ Recette introuvable");return;}
-      // Extraire les ingrédients (jusqu'à 20 slots dans TheMealDB)
+      const m=d.meals?.[0];if(!m){showToast("❌ Introuvable");setView("list");setLoading(false);return;}
       const ings=[];
       for(let i=1;i<=20;i++){
         const name=(m[`strIngredient${i}`]||"").trim();
         const measure=(m[`strMeasure${i}`]||"").trim();
         if(!name)continue;
-        // Parser la mesure → qty + unit
-        const mParsed=parseMealDBMeasure(measure);
-        ings.push({name:name.toLowerCase(),...mParsed});
+        ings.push({name:name.toLowerCase(),...parseMealDBMeasure(measure)});
       }
-      // Étapes : split sur \r\n et filtrer les vides
       const steps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
-      setDetail({
-        id:Date.now(),
-        name:m.strMeal,
-        persons:null,
-        duration:null,
-        photo:null, // On n'utilise PAS la photo TheMealDB (droits non garantis)
-        source:"mealdb",
-        mealdbId:m.idMeal,
-        category:m.strCategory||"",
-        area:m.strArea||"",
-        ingredients:ings,
-        steps,
+      const raw={
+        id:Date.now(),name:m.strMeal,persons:null,duration:null,photo:null,
+        source:"mealdb",mealdbId:m.idMeal,
+        category:CAT_FR[m.strCategory]||m.strCategory||"",
+        area:AREA_FR[m.strArea]||m.strArea||"",
+        ingredients:ings,steps,
         date:new Date().toLocaleDateString("fr-FR")
-      });
-    }catch(e){showToast("❌ "+e.message);}
-    setLoadingDetail(false);
-  }
+      };
+      setLoading(false);
+      // Traduire avec Anthropic si clé dispo
+      const apiKey=localStorage.getItem("ws_apikey")||"";
+      if(apiKey){
+        setTranslating(true);
+        try{
+          const prompt=`Tu es un traducteur culinaire français expert. Traduis cette recette de l'anglais vers le français.
+RÈGLES :
+- Traduis le nom du plat en français naturel (si traduction connue, sinon garde l'original)
+- Traduis chaque ingrédient en nom générique français courant (sans marque)
+- Traduis chaque étape de préparation en français naturel et fluide
+- Garde les quantités et unités telles quelles
+- Réponds UNIQUEMENT en JSON valide (sans markdown, sans backtick)
 
-  function parseMealDBMeasure(measure){
-    if(!measure)return{qty:"",unit:""};
-    const m=measure.trim().toLowerCase();
-    // Patterns : "200g", "2 cups", "1/2 tsp", "3 tbsp", "1 clove", etc.
-    const fractions={"1/2":"0.5","1/3":"0.33","1/4":"0.25","2/3":"0.67","3/4":"0.75"};
-    let s=m;
-    Object.entries(fractions).forEach(([f,v])=>{s=s.replace(f,v);});
-    const match=s.match(/^([\d.]+)\s*([a-zéàèêâ ]*)/);
-    if(!match)return{qty:"",unit:""};
-    const qty=match[1];
-    const rawUnit=(match[2]||"").trim();
-    const unitMap={"g":"g","kg":"kg","ml":"ml","cl":"cl","l":"L","cup":"",cups:"",tbsp:"càs","tbs":"càs","tsp":"càc","oz":"g","lb":"kg",
-      "pinch":"pincée","bunch":"botte","clove":"pièce","cloves":"pièce","slice":"tranche","slices":"tranche",
-      "can":"boîte","jar":"boîte","bag":"paquet","packet":"paquet","bottle":"bouteille"};
-    const unit=unitMap[rawUnit]!==undefined?unitMap[rawUnit]:rawUnit?"":" ";
-    return{qty,unit:unit.trim()};
+FORMAT :
+{"name":"","ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
+
+DONNÉES :
+Nom: ${raw.name}
+Ingrédients: ${JSON.stringify(raw.ingredients)}
+Étapes: ${JSON.stringify(raw.steps)}`;
+          const resp=await fetch("https://api.anthropic.com/v1/messages",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+            body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content:prompt}]})
+          });
+          if(resp.ok){
+            const data=await resp.json();
+            let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+            text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+            const translated=JSON.parse(text);
+            raw.name=translated.name||raw.name;
+            raw.ingredients=translated.ingredients||raw.ingredients;
+            raw.steps=translated.steps||raw.steps;
+          }
+        }catch(e){console.warn("Traduction échouée:",e);}
+        setTranslating(false);
+      }
+      setDetail(raw);
+    }catch(e){showToast("❌ "+e.message);setView("list");}
+    setLoading(false);setTranslating(false);
   }
 
   return(
     <Modal open onClose={onClose}>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:4,color:TXT}}>🌐 Importer une recette</div>
-      <div style={{fontSize:11,color:TXT3,marginBottom:12,lineHeight:1.5}}>Recherchez parmi des milliers de recettes. Seules les données textuelles sont importées.</div>
-      {!detail?(
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:2,color:TXT}}>🌐 Parcourir TheMealDB</div>
+      {/* Attribution claire avec lien */}
+      <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>
+        Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA · Données textuelles uniquement
+      </div>
+
+      {/* VUE CATÉGORIES */}
+      {view==="categories"&&(
         <>
           <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input style={{...inp,flex:1}} placeholder="Ex: pasta, chicken, risotto…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
+            <input style={{...inp,flex:1}} placeholder="Rechercher (en anglais)…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
             <button style={{...btn("acc"),padding:"10px 14px"}} onClick={search} disabled={loading}>{loading?"⏳":"🔍"}</button>
           </div>
-          {results.length>0&&(
-            <div style={{maxHeight:340,overflowY:"auto"}}>
-              {results.map(m=>(
-                <div key={m.idMeal} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>loadDetail(m.idMeal)}>
-                  <div style={{width:48,height:48,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>
-                    {guessRecipeEmoji(m.strMeal)}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,color:TXT}}>{m.strMeal}</div>
-                    <div style={{fontSize:10,color:TXT3,marginTop:2}}>{m.strCategory} · {m.strArea}</div>
-                  </div>
-                  <div style={{fontSize:18,color:TXT3}}>›</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {loadingDetail&&<div style={{textAlign:"center",padding:20,color:TXT3,fontSize:13}}>⏳ Chargement…</div>}
-        </>
-      ):(
-        <>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={()=>setDetail(null)}>← Retour</button>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:TXT,flex:1}}>{detail.name}</div>
-          </div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
-            {detail.category&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{detail.category}</span>}
-            {detail.area&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🌍 {detail.area}</span>}
-            <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🥗 {detail.ingredients.length} ingr.</span>
-            <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>📋 {detail.steps.length} étapes</span>
-          </div>
-          <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:160,overflowY:"auto"}}>
-            {detail.ingredients.map((ing,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:i<detail.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12}}>
-                <span style={{color:TXT}}>{ing.name}</span>
-                <span style={{color:TXT3}}>{ing.qty} {ing.unit}</span>
+          <div style={{fontSize:12,fontWeight:700,color:TXT2,marginBottom:8}}>Parcourir par catégorie</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:320,overflowY:"auto"}}>
+            {categories.map(cat=>(
+              <div key={cat.idCategory} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",fontSize:12,fontWeight:600,color:TXT,width:"calc(50% - 4px)",boxSizing:"border-box"}} onClick={()=>browseCategory(cat.strCategory)}>
+                <span style={{fontSize:18}}>{(CAT_FR[cat.strCategory]||cat.strCategory).split(" ")[0]}</span>
+                <span style={{flex:1,fontSize:11}}>{(CAT_FR[cat.strCategory]||cat.strCategory).replace(/^[^ ]+ /,"")}</span>
+                <span style={{color:TXT3}}>›</span>
               </div>
             ))}
           </div>
-          <div style={{fontSize:10,color:TXT3,marginBottom:12,padding:"6px 10px",background:"rgba(200,132,90,.06)",borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`}}>
-            💡 Pas de photo importée (droits). Vous pourrez en ajouter une après avoir cuisiné.
+        </>
+      )}
+
+      {/* VUE LISTE */}
+      {view==="list"&&(
+        <>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setView("categories");setResults([]);}}>← Retour</button>
+            <div style={{fontSize:13,fontWeight:700,color:TXT,flex:1}}>{selectedCat?CAT_FR[selectedCat]||selectedCat:"Résultats"}</div>
+            <span style={{fontSize:11,color:TXT3}}>{results.length} recettes</span>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button style={{...btn("gh"),flex:1}} onClick={()=>setDetail(null)}>Annuler</button>
-            <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(detail)}>✅ Importer</button>
+          {loading&&<div style={{textAlign:"center",padding:20,color:TXT3}}>⏳ Chargement…</div>}
+          <div style={{maxHeight:380,overflowY:"auto"}}>
+            {results.map(m=>(
+              <div key={m.idMeal} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>loadDetail(m.idMeal)}>
+                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
+                  {guessRecipeEmoji(m.strMeal)}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.strMeal}</div>
+                  {m.strCategory&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{CAT_FR[m.strCategory]||m.strCategory}</div>}
+                </div>
+                <div style={{fontSize:18,color:TXT3,flexShrink:0}}>›</div>
+              </div>
+            ))}
           </div>
+        </>
+      )}
+
+      {/* VUE DÉTAIL */}
+      {view==="detail"&&(
+        <>
+          {(loading||translating)&&(
+            <div style={{textAlign:"center",padding:"30px 20px"}}>
+              <div style={{fontSize:32,marginBottom:8}}>⏳</div>
+              <div style={{fontSize:13,color:TXT2,fontWeight:600}}>{translating?"✨ Traduction en cours…":"Chargement…"}</div>
+              {translating&&<div style={{fontSize:11,color:TXT3,marginTop:4}}>L'IA traduit le nom, les ingrédients et les étapes</div>}
+            </div>
+          )}
+          {detail&&!loading&&!translating&&(
+            <>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setDetail(null);setView("list");}}>← Retour</button>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:TXT,flex:1,lineHeight:1.3}}>{detail.name}</div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+                {detail.category&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{detail.category}</span>}
+                {detail.area&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{detail.area}</span>}
+                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🥗 {detail.ingredients.length} ingr.</span>
+                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>📋 {detail.steps.length} étapes</span>
+              </div>
+              <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:150,overflowY:"auto"}}>
+                {detail.ingredients.map((ing,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:i<detail.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12}}>
+                    <span style={{color:TXT}}>{ing.name}</span>
+                    <span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Attribution + lien source */}
+              <div style={{fontSize:10,color:TXT3,marginBottom:12,padding:"7px 10px",background:"rgba(200,132,90,.06)",borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`,lineHeight:1.6}}>
+                📖 Source : <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open(`https://www.themealdb.com/meal/${detail.mealdbId}`,`_blank`)}>TheMealDB — voir la recette originale</span><br/>
+                Licence Creative Commons CC BY-SA · Traduction automatique par IA
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button style={{...btn("gh"),flex:1}} onClick={()=>{setDetail(null);setView("list");}}>Annuler</button>
+                <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(detail)}>✅ Importer</button>
+              </div>
+            </>
+          )}
         </>
       )}
     </Modal>
