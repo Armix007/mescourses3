@@ -56,6 +56,7 @@ const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[],priceDB
 // Signaux anti-gaspi
 const SIGNALS=[{id:"red",label:"🔴 À utiliser vite",color:"#d4604a",bg:"rgba(212,96,74,.1)"},{id:"yellow",label:"🟡 Cette semaine",color:"#c8843a",bg:"rgba(200,132,58,.1)"},{id:"green",label:"🟢 Bien stocké",color:"#5a8a3a",bg:"rgba(90,138,58,.1)"}];
 function getSignal(id){return SIGNALS.find(s=>s.id===id)||SIGNALS[2];}
+function dateKey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 const BG="transparent",SURF="#ffffff",SURF2="#fdf8f0",SURF3="#f5ece0",ACC="#c8845a",TXT="#2a1f0e",TXT2="#9a7050",TXT3="#c8a880",DNG="#d4604a",SUC="#5a8a3a",BDR="#e8d4b8";
 const CARAMEL="#b8703a",CARAMEL2="#c8845a",CREAM="#fdf8f0",CREAM2="#f5ece0";
 
@@ -371,7 +372,7 @@ function HistorySession({session,onReloadAll,onReloadSelected}){
                 <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid ${BDR}`,background:sel.has(item.name)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {sel.has(item.name)&&<span style={{color:"white",fontSize:10,fontWeight:700}}>✓</span>}
                 </div>
-                <span style={{flex:1,fontSize:13,color:TXT}}>{item.name}</span>
+                <span style={{flex:1,fontSize:13}}>{item.name}</span>
                 <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</span>
               </div>
             ))}
@@ -405,6 +406,7 @@ function PageListe({db,setDb,showToast}){
     const ni=db.items.map(i=>i.id===id?{...i,category:newCat}:i);
     const nd={...db,items:ni};setDb(nd);saveDB(nd);
   }
+  function addItem(){
     const n=name.trim();if(!n)return;
     const ni=mergeItem(db.items,n,qty,unit,"manuel",cat);
     const ph={...db.productHistory};
@@ -542,15 +544,15 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange})
         {item.checked&&<span style={{color:"white",fontSize:11,fontWeight:800}}>✓</span>}
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"wrap"}}>
-          <span style={{fontSize:16,cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPick(!showCatPick)} title="Changer la catégorie">{catEmoji}</span>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+          <span style={{fontSize:16,cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPick(!showCatPick)}>{catEmoji}</span>
           <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
           {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
         </div>
         {showCatPick&&(
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6,marginBottom:4}}>
             {CATEGORIES.map(c=>(
-              <span key={c} style={{fontSize:11,padding:"2px 7px",borderRadius:14,background:CREAM2,border:`1px solid ${BDR}`,cursor:"pointer",color:TXT2,fontWeight:600}} onClick={()=>{onCatChange(item.id,c);setShowCatPick(false);}}>{c}</span>
+              <span key={c} style={{fontSize:11,padding:"2px 7px",borderRadius:14,background:CREAM2,border:`1px solid ${BDR}`,cursor:"pointer",color:TXT2,fontWeight:600}} onClick={()=>{onCatChange&&onCatChange(item.id,c);setShowCatPick(false);}}>{c}</span>
             ))}
           </div>
         )}
@@ -650,17 +652,11 @@ function PageRecettes({db,setDb,showToast}){
   // Recette du jour — liée au planning si repas prévu, sinon aléatoire
   useEffect(()=>{
     if(db.recipes.length>0){
-      // Vérifier si un repas est planifié aujourd'hui
-      const todayKey=dateKey(new Date());
-      const todayCal=db.calendar?.[todayKey];
+      const todayCal=(db.calendar||{})[dateKey(new Date())];
       if(todayCal){
         const mealId=todayCal.midi||todayCal.soir;
-        if(mealId){
-          const planned=db.recipes.find(r=>String(r.id)===String(mealId));
-          if(planned){setTodayRec(planned);return;}
-        }
+        if(mealId){const planned=db.recipes.find(r=>String(r.id)===String(mealId));if(planned){setTodayRec(planned);return;}}
       }
-      // Sinon aléatoire cohérent
       const seed=new Date().toDateString();
       let h=0;for(let i=0;i<seed.length;i++)h=(h*31+seed.charCodeAt(i))%db.recipes.length;
       setTodayRec(db.recipes[h]);
@@ -1117,7 +1113,6 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
                 <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {detail.persons||"❓"} pers.</span>
                 <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {detail.duration||"❓"}</span>
               </div>
-              {/* Ingrédients */}
               <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>Ingrédients</div>
               <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:130,overflowY:"auto"}}>
                 {detail.ingredients.map((ing,i)=>(
@@ -1127,7 +1122,6 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
                   </div>
                 ))}
               </div>
-              {/* Étapes */}
               {detail.steps?.length>0&&(
                 <>
                   <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>Étapes de préparation</div>
@@ -2274,120 +2268,6 @@ function LoginScreen({onLogin}){
   );
 }
 
-
-function PriceItemCard({name,data,best,catEmoji,onDelete,onDeleteShop,onUpdateShop,onUpdateCat}){
-  const [editShop,setEditShop]=useState(null); // shop name being edited
-  const [editVals,setEditVals]=useState({});
-  const [showCatPicker,setShowCatPicker]=useState(false);
-  const shops=Object.entries(data.shops||{});
-
-  function startEdit(shop,info){
-    setEditShop(shop);
-    setEditVals({price:info.price||0,qty:info.qty||"",unit:info.unit||""});
-  }
-  function saveEdit(){
-    onUpdateShop(editShop,{price:parseFloat(editVals.price)||0,qty:editVals.qty,unit:editVals.unit});
-    setEditShop(null);
-  }
-
-  return(
-    <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:6}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-          <span style={{fontSize:20,cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPicker(!showCatPicker)} title="Changer la catégorie">{catEmoji}</span>
-          <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
-        </div>
-        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          <span style={{fontSize:14}}>{priceFreshness(best[1]?.updatedAt)}</span>
-          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:13,padding:"0 2px"}} onClick={onDelete}>🗑️</button>
-        </div>
-      </div>
-      {showCatPicker&&(
-        <div style={{marginBottom:8,display:"flex",flexWrap:"wrap",gap:5}}>
-          {CATEGORIES.map(c=>(
-            <span key={c} style={{fontSize:12,padding:"3px 8px",borderRadius:16,background:CREAM2,border:`1px solid ${BDR}`,cursor:"pointer",color:TXT2}} onClick={()=>{onUpdateCat(c);setShowCatPicker(false);}}>{c}</span>
-          ))}
-        </div>
-      )}
-      {shops.map(([shop,info])=>(
-        <div key={shop}>
-          {editShop===shop?(
-            <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 10px",marginBottom:4}}>
-              <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>{shop}</div>
-              <div style={{display:"flex",gap:6,marginBottom:6}}>
-                <div style={{flex:1}}>
-                  <span style={{...lbl,marginBottom:3}}>Prix (€)</span>
-                  <input style={{...inp,fontSize:13,padding:"6px 8px",textAlign:"center"}} type="number" step="0.01" min="0" value={editVals.price} onChange={e=>setEditVals(v=>({...v,price:e.target.value}))}/>
-                </div>
-                <div style={{flex:1}}>
-                  <span style={{...lbl,marginBottom:3}}>Qté</span>
-                  <input style={{...inp,fontSize:13,padding:"6px 8px",textAlign:"center"}} placeholder="Ex: 500" value={editVals.qty} onChange={e=>setEditVals(v=>({...v,qty:e.target.value}))}/>
-                </div>
-                <div style={{flex:1}}>
-                  <span style={{...lbl,marginBottom:3}}>Unité</span>
-                  <select style={{...sel,fontSize:12,padding:"6px 6px"}} value={editVals.unit} onChange={e=>setEditVals(v=>({...v,unit:e.target.value}))}>
-                    {UNITS.map(u=><option key={u} value={u}>{UL[u]||u||"pcs"}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={()=>setEditShop(null)}>Annuler</button>
-                <button style={{...btn("acc"),flex:1,fontSize:11}} onClick={saveEdit}>💾 Sauvegarder</button>
-              </div>
-            </div>
-          ):(
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3,cursor:"pointer"}} onClick={()=>startEdit(shop,info)}>
-              <div style={{flex:1}}>
-                <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
-                {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty} {info.unit}</span>}
-              </div>
-              <div style={{textAlign:"right",marginRight:6}}>
-                <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
-                {info.priceRef&&<div style={{fontSize:9,color:TXT3}}>{info.priceRef.value.toFixed(2)}{info.priceRef.label}</div>}
-              </div>
-              <span style={{fontSize:11,color:TXT3,marginRight:4}}>✏️</span>
-              <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:11,padding:"0 2px",flexShrink:0}} onClick={e=>{e.stopPropagation();onDeleteShop(shop);}}>✕</button>
-            </div>
-          )}
-        </div>
-      ))}
-      {shops.length>1&&<div style={{fontSize:10,color:SUC,marginTop:4,fontWeight:600}}>✓ Meilleur prix : {best[0]}</div>}
-    </div>
-  );
-}
-
-function BudgetSessionCard({session,onDelete}){
-  const [open,setOpen]=useState(false);
-  const hasItems=session.items&&session.items.length>0;
-  return(
-    <div style={{...card,background:"rgba(255,255,255,.88)",marginBottom:6}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:hasItems?"pointer":"default"}} onClick={()=>hasItems&&setOpen(!open)}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:13,fontWeight:700,color:TXT}}>{session.shop||"Magasin inconnu"}</div>
-          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{session.date} · {session.count} article{session.count>1?"s":""}</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{fontSize:15,fontWeight:900,color:CARAMEL}}>{session.total?.toFixed(2)}€</div>
-          {hasItems&&<span style={{fontSize:12,color:TXT3,fontWeight:700,transition:"transform .2s",display:"inline-block",transform:open?"rotate(90deg)":"rotate(0deg)"}}>›</span>}
-          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:16,padding:"0 4px"}} onClick={e=>{e.stopPropagation();onDelete();}}>🗑️</button>
-        </div>
-      </div>
-      {open&&hasItems&&(
-        <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${BDR}`}}>
-          <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Articles achetés :</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            {session.items.map((name,i)=>(
-              <span key={i} style={{fontSize:11,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:16,padding:"3px 9px",color:TXT2,fontWeight:600}}>
-                {guessCat(name).split(" ")[0]} {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════
 // PAGE PRIX — Scan ticket + Base de prix
 // ═══════════════════════════════════════════════════════════════
@@ -2737,7 +2617,6 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
           ):(
             <>
               <input style={{...inp,marginBottom:8}} placeholder="🔍 Rechercher un produit…" value={searchPrice} onChange={e=>setSearchPrice(e.target.value)}/>
-              {/* Filtre par magasin */}
               {allShops.length>1&&(
                 <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:10,paddingBottom:4,scrollbarWidth:"none"}}>
                   {["Tous",...allShops].map(s=>(
@@ -2748,7 +2627,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
               {catsSorted.length===0&&searchPrice?(
                 <div style={{textAlign:"center",padding:"24px",color:TXT3,fontSize:12}}>
                   <div style={{fontSize:28,marginBottom:8}}>🔍</div>
-                  Aucun produit trouvé pour "<strong>{searchPrice}</strong>"
+                  Aucun produit trouvé pour «&nbsp;<strong style={{color:TXT2}}>{searchPrice}</strong>&nbsp;»
                 </div>
               ):catsSorted.map(cat=>(
                 <div key={cat} style={{marginBottom:12}}>
@@ -2756,15 +2635,21 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                   {(byCat[cat]||[]).map(([name,data])=>{
                     const shops=Object.entries(data.shops||{});if(!shops.length)return null;
                     const best=shops.sort((a,b)=>(a[1].priceRef?.value??a[1].price)-(b[1].priceRef?.value??b[1].price))[0];
-                    const catEmoji=(shops[0]?.[1]?.category||guessCat(name)).split(" ")[0];
+                    const catEmoji=(Object.values(data.shops||{})[0]?.category||guessCat(name)).split(" ")[0];
                     return(
-                      <PriceItemCard key={name} name={name} data={data} best={best} catEmoji={catEmoji} onDelete={()=>deletePriceItem(name)} onDeleteShop={(shop)=>deleteShopPrice(name,shop)} onUpdateShop={(shop,newInfo)=>{
-                        const newDB={...db.priceDB,[name]:{...data,shops:{...data.shops,[shop]:{...data.shops[shop],...newInfo,priceRef:pricePerKg(newInfo.price,newInfo.qty,newInfo.unit),updatedAt:Date.now()}}}};
-                        const nd={...db,priceDB:newDB};setDb(nd);saveDB(nd);showToast("✅ Prix mis à jour");
-                      }} onUpdateCat={(newCat)=>{
-                        const newDB={...db.priceDB,[name]:{...data,shops:Object.fromEntries(Object.entries(data.shops).map(([s,i])=>[s,{...i,category:newCat}]))}};
-                        const nd={...db,priceDB:newDB};setDb(nd);saveDB(nd);
-                      }}/>
+                      <PriceItemCard key={name} name={name} data={data} best={best} catEmoji={catEmoji}
+                        onDelete={()=>deletePriceItem(name)}
+                        onDeleteShop={shop=>deleteShopPrice(name,shop)}
+                        onUpdateShop={(shop,newInfo)=>{
+                          const ref=pricePerKg(newInfo.price,newInfo.qty,newInfo.unit);
+                          const newDB={...db.priceDB,[name]:{...data,shops:{...data.shops,[shop]:{...data.shops[shop],...newInfo,priceRef:ref,updatedAt:Date.now()}}}};
+                          const nd={...db,priceDB:newDB};setDb(nd);saveDB(nd);showToast("✅ Prix mis à jour");
+                        }}
+                        onUpdateCat={newCat=>{
+                          const newDB={...db.priceDB,[name]:{...data,shops:Object.fromEntries(Object.entries(data.shops).map(([s,i])=>[s,{...i,category:newCat}]))}};
+                          const nd={...db,priceDB:newDB};setDb(nd);saveDB(nd);
+                        }}
+                      />
                     );
                   })}
                 </div>
@@ -3219,6 +3104,102 @@ Exemples de noms génériques : "lait", "œufs", "beurre", "carottes", "yaourt n
 }
 
 
+// ─── PRICE ITEM CARD avec édition inline ─────────────────────
+function PriceItemCard({name,data,best,catEmoji,onDelete,onDeleteShop,onUpdateShop,onUpdateCat}){
+  const [editShop,setEditShop]=useState(null);
+  const [editVals,setEditVals]=useState({});
+  const [showCatPicker,setShowCatPicker]=useState(false);
+  const shops=Object.entries(data.shops||{});
+  function startEdit(shop,info){setEditShop(shop);setEditVals({price:info.price||0,qty:info.qty||"",unit:info.unit||""});}
+  function saveEdit(){onUpdateShop(editShop,{price:parseFloat(editVals.price)||0,qty:editVals.qty,unit:editVals.unit});setEditShop(null);}
+  return(
+    <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:6}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+          <span style={{fontSize:20,cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPicker(!showCatPicker)}>{catEmoji}</span>
+          <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+          <span style={{fontSize:14}}>{priceFreshness(best[1]?.updatedAt)}</span>
+          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:13,padding:"0 2px"}} onClick={onDelete}>🗑️</button>
+        </div>
+      </div>
+      {showCatPicker&&(
+        <div style={{marginBottom:8,display:"flex",flexWrap:"wrap",gap:5}}>
+          {CATEGORIES.map(c=>(
+            <span key={c} style={{fontSize:11,padding:"2px 8px",borderRadius:16,background:CREAM2,border:`1px solid ${BDR}`,cursor:"pointer",color:TXT2}} onClick={()=>{onUpdateCat(c);setShowCatPicker(false);}}>{c}</span>
+          ))}
+        </div>
+      )}
+      {shops.map(([shop,info])=>(
+        <div key={shop}>
+          {editShop===shop?(
+            <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 10px",marginBottom:4}}>
+              <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>{shop}</div>
+              <div style={{display:"flex",gap:6,marginBottom:6}}>
+                <div style={{flex:1}}><span style={{...lbl,marginBottom:3}}>Prix (€)</span><input style={{...inp,fontSize:13,padding:"6px 8px",textAlign:"center"}} type="number" step="0.01" min="0" value={editVals.price} onChange={e=>setEditVals(v=>({...v,price:e.target.value}))}/></div>
+                <div style={{flex:1}}><span style={{...lbl,marginBottom:3}}>Qté</span><input style={{...inp,fontSize:13,padding:"6px 8px",textAlign:"center"}} placeholder="500" value={editVals.qty} onChange={e=>setEditVals(v=>({...v,qty:e.target.value}))}/></div>
+                <div style={{flex:1}}><span style={{...lbl,marginBottom:3}}>Unité</span><select style={{...sel,fontSize:12,padding:"6px 4px"}} value={editVals.unit} onChange={e=>setEditVals(v=>({...v,unit:e.target.value}))}>{UNITS.map(u=><option key={u} value={u}>{UL[u]||u||"pcs"}</option>)}</select></div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={()=>setEditShop(null)}>Annuler</button>
+                <button style={{...btn("acc"),flex:1,fontSize:11}} onClick={saveEdit}>💾 Sauvegarder</button>
+              </div>
+            </div>
+          ):(
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3,cursor:"pointer"}} onClick={()=>startEdit(shop,info)}>
+              <div style={{flex:1}}>
+                <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
+                {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty} {info.unit}</span>}
+              </div>
+              <div style={{textAlign:"right",marginRight:6}}>
+                <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
+                {info.priceRef&&<div style={{fontSize:9,color:TXT3}}>{info.priceRef.value.toFixed(2)}{info.priceRef.label}</div>}
+              </div>
+              <span style={{fontSize:10,color:TXT3,marginRight:4}}>✏️</span>
+              <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:11,padding:"0 2px",flexShrink:0}} onClick={e=>{e.stopPropagation();onDeleteShop(shop);}}>✕</button>
+            </div>
+          )}
+        </div>
+      ))}
+      {shops.length>1&&<div style={{fontSize:10,color:SUC,marginTop:4,fontWeight:600}}>✓ Meilleur prix : {best[0]}</div>}
+    </div>
+  );
+}
+
+// ─── BUDGET SESSION CARD avec détail articles ─────────────────
+function BudgetSessionCard({session,onDelete}){
+  const [open,setOpen]=useState(false);
+  const hasItems=session.items&&session.items.length>0;
+  return(
+    <div style={{...card,background:"rgba(255,255,255,.88)",marginBottom:6}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:hasItems?"pointer":"default"}} onClick={()=>hasItems&&setOpen(!open)}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:700,color:TXT}}>{session.shop||"Magasin inconnu"}</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{session.date} · {session.count} article{session.count>1?"s":""}</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{fontSize:15,fontWeight:900,color:CARAMEL}}>{session.total?.toFixed(2)}€</div>
+          {hasItems&&<span style={{fontSize:12,color:TXT3,fontWeight:700,display:"inline-block",transform:open?"rotate(90deg)":"rotate(0deg)",transition:"transform .2s"}}>›</span>}
+          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:16,padding:"0 4px"}} onClick={e=>{e.stopPropagation();onDelete();}}>🗑️</button>
+        </div>
+      </div>
+      {open&&hasItems&&(
+        <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${BDR}`}}>
+          <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Articles achetés :</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {session.items.map((name,i)=>(
+              <span key={i} style={{fontSize:11,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:16,padding:"3px 9px",color:TXT2,fontWeight:600}}>
+                {guessCat(name).split(" ")[0]} {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PAGE CALENDRIER — Phase 8 — Planning repas
 // ═══════════════════════════════════════════════════════════════
@@ -3227,72 +3208,58 @@ const MEAL_LABELS={midi:"☀️ Midi",soir:"🌙 Soir"};
 const DAY_NAMES=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const DAY_NAMES_FULL=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 
-function getWeekDates(offset=0){
+function getWeekDates(offset){
   const now=new Date();
   const day=now.getDay();
   const monday=new Date(now);
-  monday.setDate(now.getDate()-(day===0?6:day-1)+offset*7);
-  return Array.from({length:7},(_,i)=>{
-    const d=new Date(monday);d.setDate(monday.getDate()+i);
-    return d;
-  });
+  monday.setDate(now.getDate()-(day===0?6:day-1)+(offset||0)*7);
+  return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;});
 }
-
-function dateKey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 
 function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [weekOffset,setWeekOffset]=useState(0);
-  const [showPicker,setShowPicker]=useState(null); // {dateKey, slot}
-  const [showActions,setShowActions]=useState(null); // {dateKey, slot, meal}
+  const [showPicker,setShowPicker]=useState(null);
+  const [showActions,setShowActions]=useState(null);
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
   const weekDates=getWeekDates(weekOffset);
-  const today=dateKey(new Date());
+  const todayKey=dateKey(new Date());
 
   function setMeal(dk,slot,recipeId){
-    const newCal={...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipeId}};
-    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);
-    setShowPicker(null);
+    const nd={...db,calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipeId}}};
+    setDb(nd);saveDB(nd);setShowPicker(null);
+    showToast("📅 Repas planifié");
   }
   function removeMeal(dk,slot){
-    const newCal={...calendar,[dk]:{...(calendar[dk]||{}),[slot]:null}};
-    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);
-    setShowActions(null);
+    const nd={...db,calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:null}}};
+    setDb(nd);saveDB(nd);setShowActions(null);
+    showToast("🗑️ Repas retiré");
   }
-
   function generateShoppingList(){
-    // Collect all recipes planned from today onwards
     const todayD=new Date();todayD.setHours(0,0,0,0);
-    const planned=[];
+    let items=[...db.items];let added=0;
     Object.entries(calendar).forEach(([dk,slots])=>{
       const d=new Date(dk);d.setHours(0,0,0,0);
       if(d<todayD)return;
       Object.values(slots||{}).forEach(recipeId=>{
         if(!recipeId)return;
-        const recipe=db.recipes?.find(r=>String(r.id)===String(recipeId));
-        if(recipe)planned.push(recipe);
+        const recipe=(db.recipes||[]).find(r=>String(r.id)===String(recipeId));
+        if(!recipe)return;
+        (recipe.ingredients||[]).forEach(ing=>{
+          if(!ing.name?.trim())return;
+          items=mergeItem(items,ing.name,parseFloat(ing.qty)||1,ing.unit||"","recette",guessCat(ing.name));
+          added++;
+        });
       });
     });
-    if(!planned.length){showToast("⚠️ Aucun repas planifié à venir");return;}
-    // Add all ingredients to list
-    let added=0;
-    let items=[...db.items];
-    planned.forEach(recipe=>{
-      (recipe.ingredients||[]).forEach(ing=>{
-        if(!ing.name?.trim())return;
-        items=mergeItem(items,ing.name,parseFloat(ing.qty)||1,ing.unit||"","recette",guessCat(ing.name));
-        added++;
-      });
-    });
-    const nd={...db,items};setDb(nd);saveDB(nd);
+    if(!added){showToast("⚠️ Aucun repas planifié à venir");return;}
+    setDb({...db,items});saveDB({...db,items});
     showToast(`✅ ${added} ingrédient${added>1?"s":""} ajouté${added>1?"s":""} à la liste`);
     goToListe();
   }
-
-  // Suggest recipes using red pantry items
   function antiGaspiSuggestions(){
-    if(!redItems.length||!db.recipes?.length)return[];
+    if(!redItems.length||!(db.recipes||[]).length)return[];
     const redNames=redItems.map(i=>i.name.toLowerCase());
     return(db.recipes||[]).filter(r=>r.ingredients?.some(ing=>redNames.some(rn=>rn.includes(ing.name?.toLowerCase())||ing.name?.toLowerCase()?.includes(rn)))).slice(0,3);
   }
@@ -3300,36 +3267,30 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
 
   return(
     <div style={{padding:14,paddingBottom:90}}>
-      {/* Header */}
       <div style={{...card,background:"rgba(255,255,255,.88)",padding:"14px 16px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT}}>📅 Planning repas</div>
           <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={generateShoppingList}>🛒 Générer la liste</button>
         </div>
-        {/* Navigation semaine */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <button style={{...btn("gh"),padding:"6px 12px",fontSize:16}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
+          <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:13,fontWeight:700,color:TXT}}>
               {weekOffset===0?"Cette semaine":weekOffset===1?"Semaine prochaine":weekOffset===-1?"Semaine dernière":`Semaine du ${weekDates[0].getDate()}/${weekDates[0].getMonth()+1}`}
             </div>
-            <div style={{fontSize:10,color:TXT3}}>
-              {weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}
-            </div>
+            <div style={{fontSize:10,color:TXT3}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
           </div>
-          <button style={{...btn("gh"),padding:"6px 12px",fontSize:16}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
+          <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
         </div>
         {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:8,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Retour à cette semaine</button>}
       </div>
 
-      {/* Alerte anti-gaspi */}
       {redItems.length>0&&suggestions.length>0&&(
         <div style={{background:"rgba(212,96,74,.08)",border:"1.5px solid rgba(212,96,74,.25)",borderRadius:12,padding:"10px 14px",marginBottom:10}}>
           <div style={{fontSize:12,fontWeight:700,color:DNG,marginBottom:6}}>⚠️ Produits à utiliser vite — recettes suggérées :</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {suggestions.map(r=>(
               <div key={r.id} style={{fontSize:11,background:SURF,border:`1px solid ${BDR}`,borderRadius:20,padding:"4px 10px",color:TXT2,cursor:"pointer",fontWeight:600}} onClick={()=>{
-                // Find next free slot
                 let placed=false;
                 for(const d of weekDates){
                   for(const slot of MEAL_SLOTS){
@@ -3339,43 +3300,36 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                   if(placed)break;
                 }
                 if(!placed)showToast("⚠️ Semaine complète");
-                else showToast(`✅ ${r.name} planifié`);
-              }}>
-                {guessRecipeEmoji(r.name)} {r.name}
-              </div>
+              }}>{guessRecipeEmoji(r.name)} {r.name}</div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Grille de la semaine */}
       {weekDates.map((d,di)=>{
         const dk=dateKey(d);
-        const isToday=dk===today;
-        const isPast=d<new Date(new Date().setHours(0,0,0,0));
+        const isToday=dk===todayKey;
+        const isPast=new Date(dk)<new Date(new Date().setHours(0,0,0,0));
         return(
           <div key={dk} style={{...card,background:isToday?"rgba(200,132,90,.08)":isPast?"rgba(255,255,255,.6)":"rgba(255,255,255,.88)",marginBottom:6,border:isToday?`1.5px solid ${CARAMEL2}`:`1px solid ${BDR}`,opacity:isPast&&!isToday?.75:1}}>
-            {/* Jour header */}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{width:34,height:34,borderRadius:10,background:isToday?`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`:"rgba(200,132,90,.12)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <div style={{width:36,height:36,borderRadius:10,background:isToday?`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`:"rgba(200,132,90,.1)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <div style={{fontSize:8,fontWeight:800,color:isToday?"rgba(255,255,255,.8)":TXT3,letterSpacing:.5}}>{DAY_NAMES[di]}</div>
                 <div style={{fontSize:15,fontWeight:900,color:isToday?"white":TXT,fontFamily:"'Fraunces',serif",lineHeight:1}}>{d.getDate()}</div>
               </div>
               <div style={{fontSize:12,fontWeight:700,color:isToday?CARAMEL:TXT2}}>{DAY_NAMES_FULL[di]}{isToday&&<span style={{fontSize:10,color:CARAMEL2,marginLeft:6,fontWeight:600}}>· Aujourd'hui</span>}</div>
             </div>
-            {/* Créneaux */}
             <div style={{display:"flex",gap:6}}>
               {MEAL_SLOTS.map(slot=>{
                 const recipeId=calendar[dk]?.[slot];
-                const recipe=recipeId?db.recipes?.find(r=>String(r.id)===String(recipeId)):null;
+                const recipe=recipeId?(db.recipes||[]).find(r=>String(r.id)===String(recipeId)):null;
                 return(
-                  <div key={slot} style={{flex:1,borderRadius:10,border:`1.5px dashed ${recipe?CARAMEL2:BDR}`,background:recipe?"rgba(200,132,90,.06)":CREAM,padding:"7px 8px",cursor:"pointer",minHeight:52,display:"flex",flexDirection:"column",justifyContent:"center"}}
-                    onClick={()=>recipe?setShowActions({dk,slot,recipe}):setShowPicker({dk,slot})}>
+                  <div key={slot} style={{flex:1,borderRadius:10,border:`1.5px ${recipe?"solid":"dashed"} ${recipe?CARAMEL2:BDR}`,background:recipe?"rgba(200,132,90,.06)":CREAM,padding:"7px 8px",cursor:"pointer",minHeight:54,display:"flex",flexDirection:"column",justifyContent:"center"}} onClick={()=>recipe?setShowActions({dk,slot,recipe}):setShowPicker({dk,slot})}>
                     <div style={{fontSize:9,fontWeight:700,color:TXT3,marginBottom:3}}>{MEAL_LABELS[slot]}</div>
                     {recipe?(
                       <div style={{display:"flex",alignItems:"center",gap:5}}>
-                        <span style={{fontSize:14}}>{guessRecipeEmoji(recipe.name)}</span>
-                        <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2,flex:1}}>{recipe.name}</div>
+                        <span style={{fontSize:14,flexShrink:0}}>{guessRecipeEmoji(recipe.name)}</span>
+                        <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2}}>{recipe.name}</div>
                       </div>
                     ):(
                       <div style={{fontSize:10,color:TXT3,textAlign:"center"}}>+ Ajouter</div>
@@ -3387,38 +3341,28 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
           </div>
         );
       })}
+      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Appuyez sur un créneau pour assigner une recette</div>
 
-      {/* Légende */}
-      <div style={{textAlign:"center",padding:"10px 0",fontSize:10,color:TXT3}}>
-        Appuyez sur un créneau pour ajouter une recette · 🛒 Génère la liste des courses à partir du planning
-      </div>
-
-      {/* Modal picker de recette */}
       {showPicker&&(
         <Modal open onClose={()=>setShowPicker(null)}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:4,color:TXT}}>Choisir une recette</div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Choisir une recette</div>
           <div style={{fontSize:11,color:TXT3,marginBottom:12}}>
             {DAY_NAMES_FULL[new Date(showPicker.dk).getDay()===0?6:new Date(showPicker.dk).getDay()-1]} · {MEAL_LABELS[showPicker.slot]}
           </div>
-          {db.recipes?.length===0?(
+          {!(db.recipes||[]).length?(
             <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
-              Aucune recette disponible — créez d'abord vos recettes
+              Aucune recette — créez d'abord vos recettes
               <button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={()=>{setShowPicker(null);goToRecettes();}}>→ Aller aux recettes</button>
             </div>
           ):(
-            <div style={{maxHeight:380,overflowY:"auto"}}>
-              {/* Anti-gaspi suggestions en tête si pertinent */}
+            <div style={{maxHeight:400,overflowY:"auto"}}>
               {suggestions.length>0&&(
                 <div style={{marginBottom:8}}>
                   <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Utilise des produits à finir :</div>
                   {suggestions.map(r=>(
-                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
+                    <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
                       <span style={{fontSize:20}}>{guessRecipeEmoji(r.name)}</span>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>
-                        {r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}
-                      </div>
-                      <span style={{fontSize:10,color:DNG,fontWeight:700}}>⚠️</span>
+                      <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>{r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}</div>
                     </div>
                   ))}
                   <div style={{borderBottom:`1px solid ${BDR}`,marginBottom:8}}/>
@@ -3429,10 +3373,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                   <span style={{fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                    <div style={{fontSize:10,color:TXT3}}>
-                      {r.duration&&<span style={{marginRight:6}}>⏱️ {r.duration}</span>}
-                      {r.persons&&<span>👥 {r.persons} pers.</span>}
-                    </div>
+                    <div style={{fontSize:10,color:TXT3}}>{r.duration&&<span style={{marginRight:6}}>⏱️ {r.duration}</span>}{r.persons&&<span>👥 {r.persons} pers.</span>}</div>
                   </div>
                   <span style={{color:TXT3,fontSize:16}}>›</span>
                 </div>
@@ -3442,7 +3383,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
         </Modal>
       )}
 
-      {/* Modal actions sur un repas planifié */}
       {showActions&&(
         <Modal open onClose={()=>setShowActions(null)}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
@@ -3452,7 +3392,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               <div style={{fontSize:11,color:TXT3}}>{DAY_NAMES_FULL[new Date(showActions.dk).getDay()===0?6:new Date(showActions.dk).getDay()-1]} · {MEAL_LABELS[showActions.slot]}</div>
             </div>
           </div>
-          {showActions.recipe.duration&&<div style={{fontSize:12,color:TXT2,marginBottom:10}}>⏱️ {showActions.recipe.duration} · 👥 {showActions.recipe.persons||"❓"} pers.</div>}
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowPicker({dk:showActions.dk,slot:showActions.slot});setShowActions(null);}}>🔄 Changer la recette</button>
             <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>removeMeal(showActions.dk,showActions.slot)}>🗑️ Retirer ce repas</button>
