@@ -4326,7 +4326,7 @@ function App(){
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 60%)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 9</span></div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 10</span></div>
             {pseudo?<div style={{fontSize:11,color:"rgba(255,255,255,.75)",marginTop:2,fontWeight:600}}>Bonjour {pseudo} 👋</div>
             :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
@@ -4341,14 +4341,7 @@ function App(){
             <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 12px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer"}} onClick={handleLogout}>🔒 Déco.</button>
           </div>
         </div>
-        {/* NAV TABS */}
-        <div style={{display:"flex",marginTop:14,gap:2,paddingBottom:0}}>
-          {[{id:"liste",icon:"📋",label:"Liste"},{id:"recettes",icon:"🍽️",label:"Recettes"},{id:"prix",icon:"🧾",label:"Prix"},{id:"placard",icon:"📦",label:"Placard"},{id:"calendrier",icon:"📅",label:"Planning"},{id:"historique",icon:"🕐",label:"Historique"},{id:"parametres",icon:"⚙️",label:"Réglages"}].map(t=>(
-            <div key={t.id} style={{flex:1,padding:"9px 3px",textAlign:"center",fontSize:9,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",color:page===t.id?"white":"rgba(255,255,255,.55)",cursor:"pointer",borderBottom:page===t.id?"2.5px solid white":"2.5px solid transparent",transition:"all .2s",userSelect:"none"}} onClick={()=>setPage(t.id)}>
-              <span style={{fontSize:15,display:"block",marginBottom:2}}>{t.icon}</span>{t.label}
-            </div>
-          ))}
-        </div>
+        {/* NAV TABS — bottom, 4 onglets */}
       </div>
       {/* PAGE CONTENT */}
       <div style={{background:"rgba(255,255,255,.04)",minHeight:"calc(100vh - 120px)"}}>
@@ -4359,6 +4352,65 @@ function App(){
         {page==="calendrier"&&<PageCalendrier db={db} setDb={setDbSync} showToast={showToast} goToRecettes={()=>setPage("recettes")} goToListe={()=>setPage("liste")}/>}
         {page==="historique"&&<PageHistorique db={db} setDb={setDbSync} showToast={showToast} goToListe={()=>setPage("liste")}/>}
         {page==="parametres"&&<PageParametres db={db} setDb={setDbSync} showToast={showToast} pseudo={pseudo} setPseudo={setPseudo} docId={docId} setShowApiKeyGlobal={setShowApiKeyGlobal} onLogout={()=>{["ws_docid","ws_r1","ws_foyerid","ws_pwd_saved"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}/>}
+        {page==="maison"&&(
+          <div style={{padding:14,paddingBottom:90}}>
+            {/* Stats rapides */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+              {[["Recettes",(db.recipes||[]).length,"🍽️"],["Budget",`${((db.budget?.sessions||[]).reduce((s,x)=>s+(x.total||0),0)).toFixed(0)}€`,"💰"],["Planifiés",(()=>{const t=new Date();t.setHours(0,0,0,0);return Object.entries(db.calendar||{}).filter(([dk])=>new Date(dk)>=t).reduce((s,[,sl])=>s+(sl.midi?1:0)+(sl.soir?1:0),0);})(),"📅"]].map(([label,val,ico])=>(
+                <div key={label} style={{background:"rgba(255,255,255,.88)",border:`1px solid ${BDR}`,borderRadius:14,padding:"12px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:18,marginBottom:4}}>{ico}</div>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:CARAMEL,lineHeight:1}}>{val}</div>
+                  <div style={{fontSize:9,color:TXT3,fontWeight:700,textTransform:"uppercase",letterSpacing:.3,marginTop:3}}>{label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Hub grid */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              {[
+                {id:"prix",ico:"🧾",title:"Prix & Tickets",sub:"Scanner & base de prix",badge:`${Object.keys(db.priceDB||{}).length} prix`},
+                {id:"placard",ico:"📦",title:"Placard",sub:"Inventaire & anti-gaspi",badge:(db.pantry||[]).filter(i=>i.signal==="red").length>0?`${(db.pantry||[]).filter(i=>i.signal==="red").length} 🔴`:"OK"},
+                {id:"historique",ico:"🕐",title:"Historique",sub:"Courses passées",badge:`${(db.shoppingHistory||[]).length} sessions`},
+                {id:"parametres",ico:"⚙️",title:"Paramètres",sub:"Profil, API, données",badge:"Compte"},
+              ].map(h=>(
+                <div key={h.id} onClick={()=>setPage(h.id)} style={{background:"rgba(255,255,255,.88)",border:`1px solid ${BDR}`,borderRadius:16,padding:"16px 14px",cursor:"pointer",display:"flex",flexDirection:"column",gap:8}}>
+                  <div style={{fontSize:28}}>{h.ico}</div>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700,color:TXT}}>{h.title}</div>
+                    <div style={{fontSize:11,color:TXT3,lineHeight:1.4,marginTop:2}}>{h.sub}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:10,fontWeight:700,background:CREAM2,color:TXT2,padding:"2px 8px",borderRadius:10}}>{h.badge}</span>
+                    <span style={{fontSize:16,color:CARAMEL}}>›</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Lien invitation */}
+            <div style={{background:`rgba(184,112,58,.06)`,border:`1.5px dashed rgba(184,112,58,.25)`,borderRadius:14,padding:"14px",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:24}}>🔗</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:TXT,marginBottom:2}}>Inviter votre partenaire</div>
+                <div style={{fontSize:11,color:TXT3}}>Partagez votre foyer en 1 clic</div>
+              </div>
+              <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={()=>{const fid=localStorage.getItem("ws_foyerid");if(fid){const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));}}}>Copier</button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* BOTTOM NAV — 4 onglets */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:200,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
+        {[
+          {id:"liste",     icon:"🛒", label:"Liste"},
+          {id:"recettes",  icon:"🍽️", label:"Recettes"},
+          {id:"calendrier",icon:"📅", label:"Planning"},
+          {id:"maison",    icon:"🏠", label:"Maison"},
+        ].map(t=>(
+          <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
+            <span style={{fontSize:22,lineHeight:1}}>{t.icon}</span>
+            <span style={{fontSize:9,fontWeight:700,color:page===t.id?CARAMEL:TXT3,letterSpacing:.2}}>{t.label}</span>
+            {page===t.id&&<div style={{width:4,height:4,borderRadius:"50%",background:CARAMEL}}/>}
+          </div>
+        ))}
       </div>
       <Toast msg={toast}/>
       {showApiKeyGlobal&&<ApiKeyModal open onSave={()=>setShowApiKeyGlobal(false)} onClose={()=>setShowApiKeyGlobal(false)}/>}
