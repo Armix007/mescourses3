@@ -3688,7 +3688,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     upcoming.sort((a,b)=>a.dk.localeCompare(b.dk)||MEAL_SLOTS.indexOf(a.slot)-MEAL_SLOTS.indexOf(b.slot));
     setWizardQueue(upcoming);
     setWizardStep(0);
-    setWizardItems({...db.items});
+    setWizardItems([...db.items]);
     setShowWizard(true);
   }
 
@@ -3865,7 +3865,17 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
       {/* Wizard Générer la liste */}
       {showWizard&&wizardQueue.length>0&&(()=>{
         const current=wizardQueue[wizardStep];
+        // Guard : si wizardStep hors limites (ex: skip sur dernière étape mal calculée), fermer proprement
+        if(!current){
+          setTimeout(()=>{setShowWizard(false);goToListe();},0);
+          return null;
+        }
         const recipe=current.recipe;
+        // Guard : recette corrompue ou supprimée
+        if(!recipe||!recipe.name){
+          setTimeout(()=>{setWizardStep(s=>s+1);},0);
+          return null;
+        }
         const isLast=wizardStep>=wizardQueue.length-1;
         const dayLabel=new Date(current.dk).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"short"});
         return(
@@ -3879,26 +3889,27 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             priceDB={db.priceDB}
             onNext={(vp,haveIdxs)=>{
               const newItems=finishWizardStep(recipe,vp,haveIdxs,wizardItems);
-              setWizardItems(newItems);
               if(isLast){
                 const nd={...db,items:newItems};setDb(nd);saveDB(nd);
-                setShowWizard(false);
+                setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
                 goToListe();
                 showToast("✅ Liste générée ! Bon shopping 🛒");
               } else {
-                setWizardStep(s=>s+1);
+                setWizardItems(newItems);
+                setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));
               }
             }}
             onSkip={()=>{
               if(isLast){
                 const nd={...db,items:wizardItems};setDb(nd);saveDB(nd);
-                setShowWizard(false);goToListe();
+                setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
+                goToListe();
                 showToast("✅ Liste générée !");
               } else {
-                setWizardStep(s=>s+1);
+                setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));
               }
             }}
-            onCancel={()=>setShowWizard(false)}
+            onCancel={()=>{setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);}}
           />
         );
       })()}
@@ -3943,7 +3954,7 @@ function WizardStep({recipe,dayLabel,slot,stepNum,totalSteps,isLast,priceDB,onNe
         {/* Ingrédients */}
         <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Cochez ce que vous avez déjà :</div>
         <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"6px 12px",marginBottom:12}}>
-          {recipe.ingredients.map((ing,i)=>(
+          {(recipe.ingredients||[]).map((ing,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<recipe.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:13}}>
               <div onClick={()=>togHave(i)} style={{width:20,height:20,borderRadius:5,border:have.has(i)?"none":`1.5px solid ${BDR}`,background:have.has(i)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
                 {have.has(i)&&<span style={{color:"white",fontSize:11,fontWeight:700}}>✓</span>}
