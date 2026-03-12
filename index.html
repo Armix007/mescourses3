@@ -114,17 +114,52 @@ function roundQ(n){return n%1===0?n:+n.toFixed(2);}
 function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
 function guessCat(name){
   const n=name.toLowerCase();
-  if(/tomate|salade|carotte|courgette|aubergine|oignon|poireau|brocoli|épinard|poivron|concombre|chou|radis|betterave|asperge|fenouil|échalotte|ail|gingembre|navet/.test(n))return"🥦 Légumes";
-  if(/pomme|poire|banane|fraise|framboise|cerise|abricot|pêche|melon|pastèque|mangue|ananas|kiwi|orange|citron|raisin|figue|prune|myrtille|avocat/.test(n))return"🍎 Fruits";
-  if(/viande|boeuf|porc|veau|agneau|poulet|dinde|canard|lapin|saucisse|jambon|lard|lardon|steak|côte|filet/.test(n))return"🥩 Viande";
-  if(/poisson|saumon|thon|cabillaud|sole|dorade|crevette|moule|huître|sardine|anchois/.test(n))return"🐟 Poisson";
-  if(/lait|yaourt|crème fraîche|crème|beurre/.test(n))return"🥛 Laitiers";
-  if(/fromage|gruyère|emmental|parmesan|comté|mozzarella|camembert|brie|roquefort|chèvre/.test(n))return"🧀 Fromage";
-  if(/oeuf|oeufs/.test(n))return"🥚 Oeufs";
-  if(/pain|baguette|brioche|croissant/.test(n))return"🍞 Boulangerie";
-  if(/shampo|savon|dentifrice|gel douche|déodorant/.test(n))return"🧴 Hygiène";
-  if(/eau|jus|soda|bière|vin|café|thé/.test(n))return"🍷 Boissons";
-  return"🥫 Épicerie sèche";
+  // Légumes
+  if(/tomate|salade|carotte|courgette|aubergine|oignon|poireau|brocoli|épinard|poivron|concombre|chou|radis|betterave|asperge|fenouil|échalotte|ail|gingembre|navet|céleri|endive|artichaut|haricot vert|petits pois|maïs|patate douce|potiron|butternut/.test(n))return"🥦 Légumes";
+  if(/champignon|pleurote|morille|cèpe/.test(n))return"🍄 Champignons";
+  if(/pomme de terre|pommes de terre/.test(n))return"🥔 Féculents";
+  // Fruits
+  if(/pomme|poire|banane|fraise|framboise|cerise|abricot|pêche|melon|pastèque|mangue|ananas|kiwi|orange|citron|raisin|figue|prune|myrtille|grenade|litchi|clémentine|mandarine/.test(n))return"🍎 Fruits";
+  if(/avocat/.test(n))return"🥑 Fruits";
+  // Protéines animales
+  if(/viande|boeuf|bœuf|steak|côte|filet de bœuf|bourguignon|pot-au-feu|paleron|entrecôte/.test(n))return"🥩 Bœuf";
+  if(/porc|lard|lardon|bacon|saucisse|jambon|chorizo|merguez|chipolata|côte de porc|filet mignon/.test(n))return"🥓 Porc";
+  if(/poulet|dinde|canard|volaille|pintade|caille|blanc de poulet|cuisse|aile/.test(n))return"🍗 Volaille";
+  if(/agneau|veau|mouton|lapin|gibier|cerf|sanglier/.test(n))return"🥩 Viande";
+  if(/poisson|saumon|thon|cabillaud|sole|dorade|daurade|lotte|bar|turbot|flétan/.test(n))return"🐟 Poisson";
+  if(/crevette|moule|huître|coquille|homard|langoustine|seiche|poulpe|calmar|saint-jacques/.test(n))return"🦐 Fruits de mer";
+  if(/sardine|anchois|hareng|maquereau/.test(n))return"🐟 Poisson";
+  // Laitiers
+  if(/lait/.test(n))return"🥛 Lait";
+  if(/yaourt|fromage blanc|petit-suisse|crème fraîche|crème liquide|beurre|ghee|margarine/.test(n))return"🧈 Laitiers";
+  if(/fromage|gruyère|emmental|parmesan|comté|mozzarella|camembert|brie|roquefort|chèvre|edam|gouda|reblochon/.test(n))return"🧀 Fromage";
+  if(/oeuf|oeufs|œuf|œufs/.test(n))return"🥚 Œufs";
+  // Boulangerie
+  if(/pain|baguette|brioche|croissant|viennoiserie|biscuit|gâteau|tarte|far breton|kouglof|madeleine/.test(n))return"🍞 Boulangerie";
+  if(/farine|levure|sucre glace|sucre|sel|poivre|épice|cannelle|cumin|curcuma|paprika|curry|muscade/.test(n))return"🧂 Épices & Sel";
+  // Féculents & céréales
+  if(/pâte|spaghetti|macaroni|tagliatelle|lasagne|ravioli|gnocchi|riz|quinoa|boulgour|semoule|polenta|avoine|muesli|céréale/.test(n))return"🍝 Féculents";
+  if(/pain de mie|toast/.test(n))return"🍞 Boulangerie";
+  // Hygiene
+  if(/shampo|savon|dentifrice|gel douche|déodorant|lessive|produit ménager|éponge|papier toilette|essuie/.test(n))return"🧴 Hygiène";
+  // Boissons
+  if(/eau|jus|jus de fruit|nectar|sirop/.test(n))return"💧 Eau & Jus";
+  if(/soda|cola|limonade|tonic/.test(n))return"🥤 Sodas";
+  if(/bière/.test(n))return"🍺 Bière";
+  if(/vin|champagne|prosecco|rosé|bordeaux|bourgogne/.test(n))return"🍷 Vin";
+  if(/café|expresso|cappuccino|latte/.test(n))return"☕ Café";
+  if(/thé|infusion|tisane|herbe/.test(n))return"🍵 Thé";
+  // Huiles & condiments
+  if(/huile|olive|tournesol|colza|noix|sésame/.test(n))return"🫙 Huiles";
+  if(/vinaigre|moutarde|ketchup|mayonnaise|tabasco|sauce soja|nuoc-mam|wasabi/.test(n))return"🫙 Condiments";
+  if(/miel|confiture|nutella|pâte à tartiner|sirop d'érable/.test(n))return"🍯 Sucré";
+  if(/chocolat|cacao|praline/.test(n))return"🍫 Chocolat";
+  // Conserves & surgelés
+  if(/conserve|boite|bocal|surgelé|congelé/.test(n))return"🥫 Conserves";
+  if(/légumineuse|lentille|pois chiche|haricot|fève|soja|tofu/.test(n))return"🫘 Légumineuses";
+  // Noix & graines
+  if(/noix|amande|noisette|pistache|cajou|arachide|cacahuète|graine|sésame|lin|chia/.test(n))return"🥜 Oléagineux";
+  return"🛒 Épicerie";
 }
 function normUnit(u){
   if(!u)return"";
@@ -154,7 +189,7 @@ const btn=(v="acc")=>({
 });
 const lbl={fontSize:11,color:TXT3,fontWeight:700,textTransform:"uppercase",letterSpacing:.7,display:"block",marginBottom:6};
 const card={background:SURF,border:`1px solid ${BDR}`,borderRadius:16,padding:14,marginBottom:10,boxShadow:"0 2px 12px rgba(160,90,40,.07)"};
-const ovl={position:"fixed",inset:0,background:"rgba(80,40,10,.55)",zIndex:200,display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"};
+const ovl={position:"fixed",inset:0,background:"rgba(80,40,10,.55)",zIndex:300,display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"};
 const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",width:"100%",maxHeight:"94vh",overflowY:"auto"};
 
 // ─── COMPOSANTS DE BASE ───────────────────────────────────────
@@ -340,7 +375,7 @@ function QuickAddModal({open,product,onConfirm,onClose}){
 }
 
 // ─── HISTORY SESSION ──────────────────────────────────────────
-function HistorySession({session,onReloadAll,onReloadSelected}){
+function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
   const [open,setOpen]=useState(false);
   const [sel,setSel]=useState(new Set());
   function toggle(name){const s=new Set(sel);if(s.has(name))s.delete(name);else s.add(name);setSel(s);}
@@ -351,11 +386,11 @@ function HistorySession({session,onReloadAll,onReloadSelected}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 13px",cursor:"pointer"}} onClick={()=>setOpen(o=>!o)}>
         <div>
           <div style={{fontWeight:600,fontSize:13,color:TXT}}>{session.date}</div>
-          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{session.count} articles</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{items.length} articles</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <button style={{...btn("out"),fontSize:11,padding:"5px 9px"}} onClick={e=>{e.stopPropagation();onReloadAll();}}>Tout ajouter</button>
-          <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+          <button style={{...btn("out"),fontSize:11,padding:"5px 9px"}} onClick={e=>{e.stopPropagation();onReloadAll();}}>🔄 Recharger</button>
+          <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>⌄</span>
         </div>
       </div>
       {open&&(
@@ -365,17 +400,19 @@ function HistorySession({session,onReloadAll,onReloadSelected}){
             <div style={{display:"flex",gap:5}}>
               <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={selAll}>Tout</button>
               <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={()=>setSel(new Set())}>Aucun</button>
-              <button style={{...btn("suc"),fontSize:11,padding:"4px 8px"}} onClick={()=>onReloadSelected(sel)} disabled={sel.size===0}>✅ Ajouter ({sel.size})</button>
+              <button style={{...btn("suc"),fontSize:11,padding:"4px 8px"}} onClick={()=>onReloadSelected(sel)} disabled={sel.size===0}>+ Ajouter</button>
             </div>
           </div>
-          <div style={{maxHeight:240,overflowY:"auto"}}>
+          <div style={{maxHeight:280,overflowY:"auto"}}>
             {items.map((item,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 4px",borderBottom:i<items.length-1?`1px solid ${BDR}`:"none",cursor:"pointer",background:sel.has(item.name)?`rgba(200,132,90,.08)`:"transparent"}} onClick={()=>toggle(item.name)}>
-                <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid ${BDR}`,background:sel.has(item.name)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 4px",borderBottom:i<items.length-1?`1px solid ${BDR}`:"none"}}>
+                <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid ${BDR}`,background:sel.has(item.name)?CARAMEL2:"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>toggle(item.name)}>
                   {sel.has(item.name)&&<span style={{color:"white",fontSize:10,fontWeight:700}}>✓</span>}
                 </div>
+                <span style={{fontSize:14,flexShrink:0}}>{(item.category||guessCat(item.name)).split(" ")[0]}</span>
                 <span style={{flex:1,fontSize:13}}>{item.name}</span>
-                <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</span>
+                <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join("+")}</span>
+                {onDeleteItem&&<span style={{fontSize:11,color:TXT3,cursor:"pointer",padding:"2px 6px",opacity:.5}} onClick={()=>onDeleteItem(item.name)} title="Supprimer">✕</span>}
               </div>
             ))}
           </div>
@@ -411,6 +448,79 @@ function PageListe({db,setDb,showToast,goToPlanning}){
     const ni=db.items.map(i=>i.id===id?{...i,category:newCat}:i);
     const nd={...db,items:ni};setDb(nd);saveDB(nd);
   }
+
+  // ─── VOCAL ────────────────────────────────────────────
+  function parseVocalText(text){
+    // Split by virgule ou "et" en début de segment
+    const segments=text.split(/,|\set\s/i).map(s=>s.trim()).filter(Boolean);
+    return segments.map(seg=>{
+      const s=seg.toLowerCase().trim();
+      // Try to extract quantity + unit + name
+      // Patterns: "300g de tomate", "2 litres de lait", "5 œufs", "poivron rouge"
+      const m=s.match(/^(\d+[\.,]?\d*)\s*(g|kg|l|litre[s]?|ml|cl|unité[s]?|pièce[s]?)?\s*(?:de\s+)?(.+)$/i);
+      if(m){
+        const qv=parseFloat(m[1].replace(",","."))||1;
+        const rawUnit=(m[2]||"").toLowerCase();
+        const unitMap={g:"g",kg:"kg",l:"L",litre:"L",litres:"L",ml:"ml",cl:"cl"};
+        const uv=unitMap[rawUnit]||"";
+        const n=m[3].trim();
+        return{name:n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv,category:guessCat(n)};
+      }
+      // pattern "Œuf 5" or "Oeufs 3"
+      const m2=s.match(/^(.+?)\s+(\d+)$/i);
+      if(m2){
+        return{name:m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:"",category:guessCat(m2[1])};
+      }
+      // Just a name
+      return{name:s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:"",category:guessCat(s)};
+    });
+  }
+
+  function startVocal(){
+    const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SpeechRec){showToast("⚠️ Reconnaissance vocale non supportée");return;}
+    const rec=new SpeechRec();
+    rec.lang="fr-FR";rec.continuous=false;rec.interimResults=false;
+    recognitionRef.current=rec;
+    setVocalActive(true);
+    rec.onresult=e=>{
+      const transcript=e.results[0][0].transcript;
+      setVocalActive(false);
+      const items=parseVocalText(transcript);
+      setVocalPending(items);
+    };
+    rec.onerror=()=>{setVocalActive(false);showToast("❌ Erreur vocale");};
+    rec.onend=()=>setVocalActive(false);
+    rec.start();
+  }
+  function stopVocal(){
+    recognitionRef.current?.stop();
+    setVocalActive(false);
+  }
+  function confirmVocalItem(idx){
+    const item=vocalPending[idx];
+    const ni=mergeItem(db.items,item.name,item.qty,item.unit,"vocal",item.category);
+    const ph={...db.productHistory};
+    if(!ph[item.name])ph[item.name]={count:0,category:item.category,lastUnit:item.unit};
+    ph[item.name].count++;
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    setVocalPending(prev=>prev.filter((_,i)=>i!==idx));
+    showToast("✅ "+item.name+" ajouté");
+  }
+  function removeVocalItem(idx){
+    setVocalPending(prev=>prev.filter((_,i)=>i!==idx));
+  }
+  function confirmAllVocal(){
+    let ni=[...db.items],ph={...db.productHistory};
+    vocalPending.forEach(item=>{
+      ni=mergeItem(ni,item.name,item.qty,item.unit,"vocal",item.category);
+      if(!ph[item.name])ph[item.name]={count:0,category:item.category,lastUnit:item.unit};
+      ph[item.name].count++;
+    });
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    setVocalPending([]);showToast(`✅ ${vocalPending.length} articles ajoutés`);
+  }
+  // ──────────────────────────────────────────────────────
   function addItem(){
     const n=name.trim();if(!n)return;
     const ni=mergeItem(db.items,n,qty,unit,"manuel",cat);
@@ -579,7 +689,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                             {(()=>{const c=estimateRecipeCost(recipe,db.priceDB,recipe.persons);return c?<span style={{fontSize:9,background:"rgba(90,138,58,.1)",padding:"1px 6px",borderRadius:10,color:SUC,fontWeight:700}}>~{c.total.toFixed(2)}€</span>:null;})()}
                           </div>
                         </div>
-                      :<div style={{flex:1,fontSize:11,color:TXT3,fontStyle:"italic"}}>Rien de planifié</div>
+                      :<div style={{flex:1,fontSize:11,color:TXT3,fontStyle:"italic",cursor:"pointer"}} onClick={goToPlanning}>+ Planifier un repas →</div>
                     }
                     {recipe&&(
                       <button onClick={()=>addMealToList(recipe)}
@@ -675,14 +785,26 @@ function PageListe({db,setDb,showToast,goToPlanning}){
       <div style={{...card,background:"rgba(255,255,255,.9)"}}>
         <div style={{display:"flex",gap:8,marginBottom:8}}>
           <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
+          <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal} title="Ajout vocal">
+            {vocalActive?"⏹️":"🎤"}
+          </button>
           <button style={{...btn("acc"),fontSize:18,padding:"10px 16px"}} onClick={addItem}>+</button>
         </div>
+        {vocalActive&&(
+          <div style={{background:"rgba(212,96,74,.08)",border:"1.5px solid rgba(212,96,74,.3)",borderRadius:10,padding:"10px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:10,height:10,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite"}}/>
+            <span style={{fontSize:12,color:DNG,fontWeight:700}}>En écoute… Dites vos articles séparés par des virgules</span>
+          </div>
+        )}
         {sugg.length>0&&(
           <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
-            {sugg.map(([n,d])=>(
+            {sugg.slice(0,5).map(([n,d])=>(
               <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT}}
                 onClick={()=>{setName(n);if(d.category)setCat(d.category);if(d.lastUnit!==undefined)setUnit(d.lastUnit);setSugg([]);}}>
-                <span style={{fontWeight:600}}>{n}</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:14}}>{(d.category||guessCat(n)).split(" ")[0]}</span>
+                  <span style={{fontWeight:600}}>{n}</span>
+                </div>
                 <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{d.count}× · {UL[d.lastUnit]||"pcs"}</span>
               </div>
             ))}
@@ -694,6 +816,37 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
         </div>
       </div>
+
+      {/* Validation vocale en attente */}
+      {vocalPending.length>0&&(
+        <div style={{...card,background:"rgba(255,255,255,.95)",border:`1.5px solid ${CARAMEL2}`,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:700,color:TXT}}>🎤 Articles détectés — Vérifiez avant d'ajouter</div>
+            <button style={{...btn("acc"),fontSize:11,padding:"5px 10px"}} onClick={confirmAllVocal}>Tout ajouter ✓</button>
+          </div>
+          {vocalPending.map((item,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:i<vocalPending.length-1?`1px solid ${BDR}`:"none"}}>
+              <span style={{fontSize:18}}>{item.category.split(" ")[0]}</span>
+              <div style={{flex:1}}>
+                <input style={{...inp,padding:"6px 10px",fontSize:13,marginBottom:4}} value={item.name}
+                  onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,name:e.target.value,category:guessCat(e.target.value)}:it))}/>
+                <div style={{display:"flex",gap:4}}>
+                  <input type="number" style={{...inp,padding:"4px 8px",fontSize:12,width:60}} value={item.qty}
+                    onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,qty:parseFloat(e.target.value)||1}:it))}/>
+                  <select style={{...sel,padding:"4px 8px",fontSize:12,flex:1}} value={item.unit}
+                    onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,unit:e.target.value}:it))}>
+                    {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+                <button style={{...btn("suc"),padding:"6px 10px",fontSize:12}} onClick={()=>confirmVocalItem(i)}>✓</button>
+                <button style={{...btn("dng"),padding:"6px 10px",fontSize:12}} onClick={()=>removeVocalItem(i)}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {db.items.length===0?(
         <div style={{textAlign:"center",padding:"48px 20px"}}>
           <div style={{fontSize:44,marginBottom:12}}>🛍️</div>
@@ -844,10 +997,11 @@ function PageRecettes({db,setDb,showToast}){
   const [showEdit,setShowEdit]=useState(false);
   const [editIdx,setEditIdx]=useState(-1);
   const [viewIdx,setViewIdx]=useState(-1);
-  const [dietFilter,setDietFilter]=useState("Tout");
-  const [diffFilter,setDiffFilter]=useState("");
-  const [typeFilter,setTypeFilter]=useState("");
-  const [timeFilter,setTimeFilter]=useState("");
+  const [dietFilters,setDietFilters]=useState(new Set());
+  const [diffFilters,setDiffFilters]=useState(new Set());
+  const [typeFilters,setTypeFilters]=useState(new Set());
+  const [timeFilters,setTimeFilters]=useState(new Set());
+  function toggleFilter(setter,val){setter(prev=>{const s=new Set(prev);if(s.has(val))s.delete(val);else s.add(val);return s;});}
   const [showMealDB,setShowMealDB]=useState(false);
   const [showAI,setShowAI]=useState(false);
   const [showFolders,setShowFolders]=useState(false);
@@ -879,9 +1033,10 @@ function PageRecettes({db,setDb,showToast}){
     mdbTimer.current=setTimeout(async()=>{
       setMealdbLoading(true);
       try{
-        const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(search)}`);
+        const searchEN=translateSearchToEN(search);
+        const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(searchEN)}`);
         const d=await r.json();
-        setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
+        setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:translateMealName(m.strMeal),nameEN:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
       }catch{setMealdbResults([]);}
       setMealdbLoading(false);
     },600);
@@ -921,28 +1076,30 @@ function PageRecettes({db,setDb,showToast}){
       const d=await r.json();const m=d.meals?.[0];if(!m){showToast("❌ Introuvable");return;}
       const ings=[];
       for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
-      importRecipe({id:Date.now(),name:m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")});
+      importRecipe({id:Date.now(),name:translateMealName(m.strMeal),source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")});
     }catch{showToast("❌ Erreur import");}
   }
 
   function getTimeLabel(r){const d=parseInt(r.duration);if(isNaN(d))return null;if(d<=30)return"fast";if(d<=60)return"medium";return"slow";}
 
   function matchDiet(r){
-    if(dietFilter==="Tout")return true;
+    if(dietFilters.size===0)return true;
     const ings=(r.ingredients||[]).map(i=>i.name.toLowerCase()).join(" ");
-    if(dietFilter==="🌱 Végétarien")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|poisson|crevette/.test(ings);
-    if(dietFilter==="🌿 Vegan")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|poisson|crevette|oeuf|lait|beurre|crème|fromage|yaourt|miel/.test(ings);
-    if(dietFilter==="🚫🌾 Sans gluten")return!/farine|pain|pâte|blé|seigle|orge|brioche|biscuit/.test(ings);
-    if(dietFilter==="🥛 Sans lactose")return!/lait|beurre|crème|fromage|yaourt/.test(ings);
-    if(dietFilter==="🐟 Poisson")return/poisson|saumon|thon|cabillaud|dorade|crevette|moule/.test(ings);
-    if(dietFilter==="🥩 Viande")return/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard/.test(ings);
-    if(dietFilter==="⚡ Rapide"){const d=parseInt(r.duration);return!isNaN(d)&&d<=30;}
-    return true;
+    return [...dietFilters].some(f=>{
+      if(f==="🌱 Végétarien")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|crevette|moule/.test(ings);
+      if(f==="🌿 Vegan")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|crevette|moule|lait|oeuf|beurre|crème|fromage|yaourt|miel/.test(ings);
+      if(f==="🚫🌾 Sans gluten")return!/farine|pain|pâte|blé|seigle|orge|brioche|biscuit/.test(ings);
+      if(f==="🥛 Sans lactose")return!/lait|beurre|crème|fromage|yaourt/.test(ings);
+      if(f==="🐟 Poisson")return/poisson|saumon|thon|cabillaud|dorade|crevette|moule/.test(ings);
+      if(f==="🥩 Viande")return/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard/.test(ings);
+      if(f==="⚡ Rapide"){const d=parseInt(r.duration);return!isNaN(d)&&d<=30;}
+      return true;
+    });
   }
 
   const likedIds=new Set(db.likedRecipes||[]);
   const folders=db.folders||[];
-  const activeFiltersCount=[diffFilter,typeFilter,timeFilter,dietFilter!=="Tout"?dietFilter:""].filter(Boolean).length;
+  const activeFiltersCount=[...diffFilters,...typeFilters,...timeFilters,...dietFilters].length;
 
   function getFiltered(){
     let list=db.recipes;
@@ -956,9 +1113,9 @@ function PageRecettes({db,setDb,showToast}){
     }
     if(search.trim()) list=list.filter(r=>r.name.toLowerCase().includes(search.toLowerCase())||
       (r.ingredients||[]).some(i=>i.name.toLowerCase().includes(search.toLowerCase())));
-    if(diffFilter) list=list.filter(r=>r.difficulty===diffFilter);
-    if(typeFilter) list=list.filter(r=>r.mealType===typeFilter);
-    if(timeFilter) list=list.filter(r=>getTimeLabel(r)===timeFilter);
+    if(diffFilters.size) list=list.filter(r=>diffFilters.has(r.difficulty));
+    if(typeFilters.size) list=list.filter(r=>typeFilters.has(r.mealType));
+    if(timeFilters.size) list=list.filter(r=>timeFilters.has(getTimeLabel(r)));
     return list.filter(matchDiet);
   }
   const filtered=getFiltered();
@@ -1006,15 +1163,15 @@ function PageRecettes({db,setDb,showToast}){
       </div>
       <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
         <button style={{...btn(activeFiltersCount>0?"acc":"gh"),fontSize:11,padding:"7px 12px"}} onClick={()=>setShowFilters(!showFilters)}>🎚️ Filtres{activeFiltersCount>0?` (${activeFiltersCount})`:""}</button>
-        {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"5px 10px",color:DNG}} onClick={()=>{setDiffFilter("");setTypeFilter("");setTimeFilter("");setDietFilter("Tout");}}>✕ Effacer</button>}
+        {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"5px 10px",color:DNG}} onClick={()=>{setDiffFilters(new Set());setTypeFilters(new Set());setTimeFilters(new Set());setDietFilters(new Set());}}>✕ Effacer</button>}
       </div>
       {showFilters&&(
         <div style={{...card,background:"rgba(255,255,255,.92)",marginBottom:10,padding:"12px 14px"}}>
           <div style={{marginBottom:10}}>
             <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Régime</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {["Tout","🌱 Végétarien","🌿 Vegan","🚫🌾 Sans gluten","🥛 Sans lactose","🐟 Poisson","🥩 Viande","⚡ Rapide"].map(f=>(
-                <span key={f} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:dietFilter===f?CARAMEL2:CREAM2,color:dietFilter===f?"white":TXT2,border:`1px solid ${dietFilter===f?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setDietFilter(f)}>{f}</span>
+              {["🌱 Végétarien","🌿 Vegan","🚫🌾 Sans gluten","🥛 Sans lactose","🐟 Poisson","🥩 Viande","⚡ Rapide"].map(f=>(
+                <span key={f} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:dietFilters.has(f)?CARAMEL2:CREAM2,color:dietFilters.has(f)?"white":TXT2,border:`1px solid ${dietFilters.has(f)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600,display:"inline-flex",alignItems:"center",gap:3}} onClick={()=>toggleFilter(setDietFilters,f)}>{dietFilters.has(f)&&<span style={{fontSize:9}}>✓</span>}{f}</span>
               ))}
             </div>
           </div>
@@ -1022,7 +1179,7 @@ function PageRecettes({db,setDb,showToast}){
             <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Difficulté</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               {RECIPE_DIFFICULTY.map(d=>(
-                <span key={d.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:diffFilter===d.id?CARAMEL2:CREAM2,color:diffFilter===d.id?"white":TXT2,border:`1px solid ${diffFilter===d.id?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setDiffFilter(d.id)}>{d.label}</span>
+                <span key={d.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:diffFilters.has(d.id)?CARAMEL2:CREAM2,color:diffFilters.has(d.id)?"white":TXT2,border:`1px solid ${diffFilters.has(d.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>d.id===""?setDiffFilters(new Set()):toggleFilter(setDiffFilters,d.id)}>{d.label}{diffFilters.has(d.id)&&" ✓"}</span>
               ))}
             </div>
           </div>
@@ -1030,7 +1187,7 @@ function PageRecettes({db,setDb,showToast}){
             <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Type de repas</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               {RECIPE_MEAL_TYPE.map(t=>(
-                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:typeFilter===t.id?CARAMEL2:CREAM2,color:typeFilter===t.id?"white":TXT2,border:`1px solid ${typeFilter===t.id?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setTypeFilter(t.id)}>{t.label}</span>
+                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:typeFilters.has(t.id)?CARAMEL2:CREAM2,color:typeFilters.has(t.id)?"white":TXT2,border:`1px solid ${typeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>t.id===""?setTypeFilters(new Set()):toggleFilter(setTypeFilters,t.id)}>{t.label}{typeFilters.has(t.id)&&" ✓"}</span>
               ))}
             </div>
           </div>
@@ -1038,7 +1195,7 @@ function PageRecettes({db,setDb,showToast}){
             <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Temps</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
               {[{id:"",label:"Tous"},{id:"fast",label:"⚡ <30min"},{id:"medium",label:"🕐 30-60min"},{id:"slow",label:"🐢 >1h"}].map(t=>(
-                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:timeFilter===t.id?CARAMEL2:CREAM2,color:timeFilter===t.id?"white":TXT2,border:`1px solid ${timeFilter===t.id?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setTimeFilter(t.id)}>{t.label}</span>
+                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:timeFilters.has(t.id)?CARAMEL2:CREAM2,color:timeFilters.has(t.id)?"white":TXT2,border:`1px solid ${timeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>t.id===""?setTimeFilters(new Set()):toggleFilter(setTimeFilters,t.id)}>{t.label}{timeFilters.has(t.id)&&" ✓"}</span>
               ))}
             </div>
           </div>
@@ -1100,11 +1257,14 @@ function PageRecettes({db,setDb,showToast}){
         </div>
       )}
       <div style={{display:"flex",gap:4,background:"rgba(255,255,255,.6)",borderRadius:12,padding:3,marginBottom:10}}>
-        {[{id:"recettes",label:"🍽️ Toutes"},{id:"dossiers",label:"🏷️ Thèmes de recettes"}].map(t=>(
-          <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:12,fontWeight:700,borderRadius:9,background:tab===t.id?SURF:"transparent",color:tab===t.id?CARAMEL:TXT3,cursor:"pointer"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
+        {[{id:"recettes",label:"🍽️ Toutes"},{id:"dossiers",label:"🏷️ Thèmes"}].map(t=>(
+          <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:12,fontWeight:700,borderRadius:9,background:tab===t.id?"white":CREAM2,color:tab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .2s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
             {t.label}
           </div>
-        ))}\n      </div>\n\n            {/* Sous-navigation dossiers */}
+        ))}
+      </div>
+
+            {/* Sous-navigation dossiers */}
       {tab==="dossiers"&&(
         <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8,marginBottom:10,scrollbarWidth:"none"}}>
           <div style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:activeFolder==="likes"?CARAMEL:"rgba(255,255,255,.75)",color:activeFolder==="likes"?"white":TXT2,cursor:"pointer",border:`1px solid ${activeFolder==="likes"?CARAMEL:BDR}`}} onClick={()=>setActiveFolder("likes")}>
@@ -1122,7 +1282,7 @@ function PageRecettes({db,setDb,showToast}){
       {(tab==="recettes"||activeFolder!==null)&&(
         <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8,marginBottom:10,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
           {DIET_TAGS.map(t=>(
-            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilter===t?CARAMEL:"rgba(255,255,255,.75)",color:dietFilter===t?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilter===t?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>setDietFilter(t)}>
+            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:3}} onClick={()=>toggleFilter(setDietFilters,t)}>
               {t}
             </div>
           ))}
@@ -1163,6 +1323,12 @@ function PageRecettes({db,setDb,showToast}){
 // ─── MEALDB SEARCH ───────────────────────────────────────────
 // Traductions catégories et origines TheMealDB
 const CAT_FR={"Beef":"🥩 Bœuf","Chicken":"🍗 Poulet","Dessert":"🍰 Desserts","Lamb":"🥩 Agneau","Miscellaneous":"🍽️ Divers","Pasta":"🍝 Pâtes","Pork":"🥩 Porc","Seafood":"🐟 Fruits de mer","Side":"🥗 Accompagnements","Starter":"🥙 Entrées","Vegan":"🌿 Vegan","Vegetarian":"🌱 Végétarien","Breakfast":"🍳 Petit-déjeuner","Goat":"🥩 Chèvre"};
+// Dictionnaire de traduction des noms courants TheMealDB
+const MEAL_NAME_FR={"Beef and Mustard Pie":"Tourte bœuf moutarde","Beef and Oyster pie":"Tourte bœuf aux huîtres","Beef Bourguignon":"Bœuf Bourguignon","Beef Brisket Pot Roast":"Pot-au-feu de poitrine","Beef Lo Mein":"Bœuf aux nouilles sautées","Beef Rendang":"Rendang de bœuf","Beef stroganoff":"Bœuf Stroganoff","Bigos (Hunters Stew)":"Bigos (ragoût chasseur)","Chicken Alfredo":"Poulet Alfredo","Chicken Basquaise":"Poulet basquaise","Chicken Congee":"Congee de poulet","Chicken Couscous":"Couscous au poulet","Chicken Handi":"Poulet Handi","Chicken Karahi":"Poulet Karahi","Chicken Marengo":"Poulet Marengo","Chicken Marsala":"Poulet Marsala","Chicken Parmesan":"Poulet Parmesan","Coq au vin":"Coq au vin","Egg Drop Soup":"Soupe aux œufs","Fish pie":"Tourte au poisson","French Onion Soup":"Soupe à l'oignon","Grilled Salmon with Cajun":"Saumon grillé cajun","Honey Teriyaki Salmon":"Saumon teriyaki au miel","Kedgeree":"Kedgeree","Lamb and Potato Pie":"Tourte agneau pommes de terre","Lamb Biryani":"Biryani d'agneau","Lobster Bisque":"Bisque de homard","Poutine":"Poutine","Ribollita":"Ribollita (soupe toscane)","Ratatouille":"Ratatouille","Salmon Prawn Risotto":"Risotto saumon crevettes","Smoked Haddock Kedgeree":"Kedgeree haddock fumé","Spaghetti Bolognese":"Spaghettis bolognaise","Spaghetti alla Carbonara":"Spaghettis carbonara","Steak Diane":"Steak Diane","Thai Green Curry":"Curry vert thaïlandais","Thai Red Curry":"Curry rouge thaïlandais","Tuna Nicoise":"Salade niçoise au thon","Vegetarian Lasagne":"Lasagnes végétariennes","Yorkshire Pudding":"Yorkshire Pudding"};
+// Traduction FR → EN pour la recherche TheMealDB
+const SEARCH_FR_TO_EN={"poulet":"chicken","boeuf":"beef","bœuf":"beef","porc":"pork","agneau":"lamb","poisson":"fish","saumon":"salmon","crevette":"shrimp","pâtes":"pasta","riz":"rice","soupe":"soup","salade":"salad","tarte":"pie","pizza":"pizza","curry":"curry","risotto":"risotto","omelette":"omelette","crêpe":"crepe","ratatouille":"ratatouille","bouillabaisse":"bouillabaisse","cassoulet":"cassoulet","gratin":"gratin"};
+function translateMealName(enName){return MEAL_NAME_FR[enName]||enName;}
+function translateSearchToEN(frTerm){const low=frTerm.toLowerCase().trim();const exact=SEARCH_FR_TO_EN[low];if(exact)return exact;for(const[fr,en]of Object.entries(SEARCH_FR_TO_EN)){if(low.includes(fr))return en;}return frTerm;}
 const AREA_FR={"American":"🇺🇸 Américain","British":"🇬🇧 Britannique","Canadian":"🇨🇦 Canadien","Chinese":"🇨🇳 Chinois","Croatian":"🇭🇷 Croate","Dutch":"🇳🇱 Néerlandais","Egyptian":"🇪🇬 Égyptien","Filipino":"🇵🇭 Philippin","French":"🇫🇷 Français","Greek":"🇬🇷 Grec","Indian":"🇮🇳 Indien","Irish":"🇮🇪 Irlandais","Italian":"🇮🇹 Italien","Jamaican":"🇯🇲 Jamaïcain","Japanese":"🇯🇵 Japonais","Kenyan":"🇰🇪 Kenyan","Malaysian":"🇲🇾 Malaisien","Mexican":"🇲🇽 Mexicain","Moroccan":"🇲🇦 Marocain","Polish":"🇵🇱 Polonais","Portuguese":"🇵🇹 Portugais","Russian":"🇷🇺 Russe","Spanish":"🇪🇸 Espagnol","Thai":"🇹🇭 Thaïlandais","Tunisian":"🇹🇳 Tunisien","Turkish":"🇹🇷 Turc","Ukrainian":"🇺🇦 Ukrainien","Vietnamese":"🇻🇳 Vietnamien"};
 
 function parseMealDBMeasure(measure){
@@ -1239,7 +1405,7 @@ function MealDBSearch({onImport,onClose,showToast}){
       const rawSteps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
       const steps=rawSteps.map(s=>s.replace(/^(STEP|Step|step)\s*\d+[:\.\s]*/,"").trim()).filter(s=>s.length>3);
       const raw={
-        id:Date.now(),name:m.strMeal,persons:null,duration:null,photo:null,
+        id:Date.now(),name:translateMealName(m.strMeal),persons:null,duration:null,photo:null,
         source:"mealdb",mealdbId:m.idMeal,
         category:CAT_FR[m.strCategory]||m.strCategory||"",
         area:AREA_FR[m.strArea]||m.strArea||"",
@@ -1364,7 +1530,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
                   {guessRecipeEmoji(m.strMeal)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.strMeal}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{translateMealName(m.strMeal)}</div>
                   {m.strCategory&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{CAT_FR[m.strCategory]||m.strCategory}</div>}
                 </div>
                 <div style={{fontSize:18,color:TXT3,flexShrink:0}}>›</div>
@@ -2439,6 +2605,15 @@ function PageHistorique({db,setDb,showToast,goToListe}){
     setQprod(null);goToListe();showToast("✅ "+name+" ajouté");
   }
 
+  function deleteHistItem(sessionIdx,itemName){
+    const h=db.shoppingHistory.map((s,i)=>{
+      if(i!==sessionIdx)return s;
+      const items=s.items.filter(it=>it.name!==itemName);
+      return{...s,items,count:items.length};
+    }).filter(s=>s.items.length>0);
+    const nd={...db,shoppingHistory:h};setDb(nd);saveDB(nd);showToast("🗑️ Article supprimé");
+  }
+
   function reloadAll(idx){
     const s=db.shoppingHistory[idx];let ni=[...db.items];
     s.items.forEach(old=>{
@@ -2493,7 +2668,7 @@ function PageHistorique({db,setDb,showToast,goToListe}){
         <>
           <div style={{fontSize:13,fontWeight:700,color:TXT2,marginBottom:8}}>🕐 Courses passées</div>
           {db.shoppingHistory.map((s,i)=>(
-            <HistorySession key={i} session={s} onReloadAll={()=>reloadAll(i)} onReloadSelected={sel=>reloadSel(i,sel)}/>
+            <HistorySession key={i} session={s} onReloadAll={()=>reloadAll(i)} onReloadSelected={sel=>reloadSel(i,sel)} onDeleteItem={name=>deleteHistItem(i,name)}/>
           ))}
         </>
       ):allTop.length===0?(
@@ -3172,8 +3347,28 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
   const [showAdd,setShowAdd]=useState(false);
   const [showScan,setShowScan]=useState(false);
   const [filterSignal,setFilterSignal]=useState("tous");
+  const [showAIFromPantry,setShowAIFromPantry]=useState(false);
+  const [pantryAILoading,setPantryAILoading]=useState(false);
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
+
+  async function generateRecipeFromPantry(){
+    const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise dans Maison > Paramètres");return;}
+    const ingredientList=pantry.map(i=>i.name).join(", ");
+    setPantryAILoading(true);
+    try{
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Je dispose des ingrédients suivants dans mon placard : ${ingredientList}. Génère une recette en utilisant principalement ces ingrédients. Réponds UNIQUEMENT en JSON, sans markdown. Format: {"name":"...","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})});
+      const data=await resp.json();const text=data.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const recipe=JSON.parse(clean);
+      recipe.id=Date.now();recipe.source="ai";recipe.date=new Date().toLocaleDateString("fr-FR");
+      const nd={...db,recipes:[...db.recipes,recipe]};setDb(nd);saveDB(nd);
+      setShowAIFromPantry(false);
+      showToast("🤖 Recette créée : "+recipe.name);
+      goToRecettes();
+    }catch(e){showToast("❌ Erreur IA : "+e.message);}
+    setPantryAILoading(false);
+  }
 
   function delItem(id){
     const nd={...db,pantry:pantry.filter(i=>i.id!==id)};setDb(nd);showToast("🗑️ Article supprimé");
@@ -3292,11 +3487,13 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
               <div style={{fontSize:40,marginBottom:10}}>🍽️</div>
               <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,marginBottom:6}}>Aucune recette trouvée</div>
               <div style={{fontSize:12,color:TXT3,marginBottom:14}}>Ajoutez des produits à votre placard pour voir les recettes réalisables</div>
-              <button style={{...btn("gh"),fontSize:12}} onClick={()=>setTab("inventaire")}>← Retour à l'inventaire</button>
+              <button style={{...btn("gh"),fontSize:12,marginBottom:8}} onClick={()=>setTab("inventaire")}>← Retour à l'inventaire</button>
+              <button style={{...btn("acc"),fontSize:12,width:"100%",justifyContent:"center",marginTop:4}} onClick={()=>setShowAIFromPantry(true)}>🤖 Créer une recette avec mon placard</button>
             </div>
           ):(
             <>
-              <div style={{fontSize:12,color:TXT2,marginBottom:10}}>Recettes triées par ingrédients disponibles dans votre placard :</div>
+              <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Recettes triées par ingrédients disponibles dans votre placard :</div>
+              <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:11,marginBottom:10,padding:"8px"}} onClick={()=>setShowAIFromPantry(true)}>🤖 Créer une recette IA avec mon placard</button>
               {recipesWithScore.map(recipe=>(
                 <div key={recipe.id} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:8}}>
                   <div style={{display:"flex",gap:10,alignItems:"center"}}>
@@ -3313,7 +3510,6 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
                       <div style={{fontSize:9,color:TXT3,fontWeight:600}}>{recipe.score.matched}/{recipe.score.total}</div>
                     </div>
                   </div>
-                  {/* Barre de progression */}
                   <div style={{height:4,background:CREAM2,borderRadius:2,marginTop:8,overflow:"hidden"}}>
                     <div style={{height:"100%",width:recipe.score.pct+"%",background:recipe.score.pct>=70?SUC:recipe.score.pct>=40?CARAMEL:TXT3,borderRadius:2,transition:"width .3s"}}/>
                   </div>
@@ -3329,6 +3525,25 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
 
       {showAdd&&<AddPantryItemModal onClose={()=>setShowAdd(false)} onSave={(item)=>{const nd={...db,pantry:[...pantry,{id:Date.now()+Math.random(),...item}]};setDb(nd);setShowAdd(false);showToast("✅ "+item.name+" ajouté au placard");}} showToast={showToast}/>}
       {showScan&&<ScanPantryModal onClose={()=>setShowScan(false)} onSave={(items)=>{const nd={...db,pantry:[...pantry,...items.map(i=>({id:Date.now()+Math.random(),...i}))]};setDb(nd);setShowScan(false);showToast(`✅ ${items.length} article${items.length>1?"s":""} ajouté${items.length>1?"s":""}`);}} showToast={showToast}/>}
+      {showAIFromPantry&&(
+        <Modal open onClose={()=>setShowAIFromPantry(false)}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:8,color:TXT}}>🤖 Recette depuis le placard</div>
+          <div style={{fontSize:12,color:TXT2,marginBottom:12,lineHeight:1.5}}>
+            L'IA va analyser les <strong>{pantry.length} produits</strong> de votre placard et créer une recette sur mesure.
+          </div>
+          <div style={{background:CREAM2,borderRadius:10,padding:"10px 12px",marginBottom:16,fontSize:11,color:TXT3}}>
+            <strong>Ingrédients utilisables :</strong><br/>{pantry.slice(0,8).map(i=>i.name).join(", ")}{pantry.length>8&&` … +${pantry.length-8} autres`}
+          </div>
+          {pantryAILoading?(
+            <div style={{textAlign:"center",padding:"16px",fontSize:13,color:TXT3}}>⏳ Création de la recette en cours…</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={generateRecipeFromPantry}>✨ Générer la recette</button>
+              <button style={{...btn("gh"),width:"100%",justifyContent:"center"}} onClick={()=>setShowAIFromPantry(false)}>Annuler</button>
+            </div>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
@@ -3644,20 +3859,45 @@ function getWeekDates(offset){
   return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;});
 }
 
-function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
+function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){\
   const [weekOffset,setWeekOffset]=useState(0);
-  const [showPicker,setShowPicker]=useState(null);
+  const [showPicker,setShowPicker]=useState(null); // {dk,slot,mode:"list"|"ai"|"free"}
   const [showActions,setShowActions]=useState(null);
   const [pickerConflict,setPickerConflict]=useState(null);
   const [showWizard,setShowWizard]=useState(false);
   const [wizardQueue,setWizardQueue]=useState([]);
   const [wizardStep,setWizardStep]=useState(0);
   const [wizardItems,setWizardItems]=useState([]);
+  const [freeText,setFreeText]=useState("");
+  const [calAILoading,setCalAILoading]=useState(false);
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
   const weekDates=getWeekDates(weekOffset);
   const todayKey=dateKey(new Date());
+
+  async function addFreeTextMeal(dk,slot,name){\
+    if(!name.trim())return;\
+    const fakeRecipe={id:"free_"+Date.now(),name:name.trim(),source:"libre",ingredients:[],steps:[]};\
+    const nd={...db,recipes:[...db.recipes,fakeRecipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:fakeRecipe.id}}};\
+    setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");\
+    showToast("✅ "+name.trim()+" planifié");\
+  }\
+  async function generateAIMeal(dk,slot){\
+    const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}\
+    setCalAILoading(true);\
+    try{\
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre. Format: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})\
+      const data=await resp.json();const text=data.content?.[0]?.text||"";\
+      const clean=text.replace(/```json|```/g,"").trim();\
+      const recipe=JSON.parse(clean);\
+      recipe.id=Date.now();recipe.source="ai";recipe.date=new Date().toLocaleDateString("fr-FR");\
+      const nd={...db,recipes:[...db.recipes,recipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipe.id}}};\
+      setDb(nd);saveDB(nd);setShowPicker(null);\
+      showToast("🤖 "+recipe.name+" créé et planifié !");\
+    }catch(e){showToast("❌ Erreur IA");}\
+    setCalAILoading(false);\
+  }
 
   function setMeal(dk,slot,recipeId){
     const nd={...db,calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipeId}}};
@@ -3788,40 +4028,66 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
       <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Appuyez sur un créneau pour assigner une recette</div>
 
       {showPicker&&(
-        <Modal open onClose={()=>setShowPicker(null)}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Choisir une recette</div>
+        <Modal open onClose={()=>{setShowPicker(null);setFreeText("");}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Que planifier ?</div>
           <div style={{fontSize:11,color:TXT3,marginBottom:12}}>
             {DAY_NAMES_FULL[new Date(showPicker.dk).getDay()===0?6:new Date(showPicker.dk).getDay()-1]} · {MEAL_LABELS[showPicker.slot]}
           </div>
-          {!(db.recipes||[]).length?(
-            <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
-              Aucune recette — créez d'abord vos recettes
-              <button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={()=>{setShowPicker(null);goToRecettes();}}>→ Aller aux recettes</button>
-            </div>
-          ):(
-            <div style={{maxHeight:400,overflowY:"auto"}}>
-              {suggestions.length>0&&(
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Utilise des produits à finir :</div>
-                  {suggestions.map(r=>(
-                    <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
-                      <span style={{fontSize:20}}>{guessRecipeEmoji(r.name)}</span>
-                      <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>{r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}</div>
-                    </div>
-                  ))}
-                  <div style={{borderBottom:`1px solid ${BDR}`,marginBottom:8}}/>
-                </div>
-              )}
-              {(db.recipes||[]).map(r=>(
-                <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
-                  <span style={{fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                    <div style={{fontSize:10,color:TXT3}}>{r.duration&&<span style={{marginRight:6}}>⏱️ {r.duration}</span>}{r.persons&&<span>👥 {r.persons} pers.</span>}</div>
+          {/* Tabs 3 modes */}
+          <div style={{display:"flex",gap:6,marginBottom:12}}>
+            {[{id:"list",label:"📖 Mes recettes"},{id:"ai",label:"🤖 Créer via IA"},{id:"free",label:"✏️ Nom libre"}].map(m=>(
+              <div key={m.id} style={{flex:1,textAlign:"center",padding:"7px 4px",borderRadius:10,fontSize:10,fontWeight:700,cursor:"pointer",background:(showPicker.mode||"list")===m.id?CARAMEL:CREAM2,color:(showPicker.mode||"list")===m.id?"white":TXT2,border:`1px solid ${(showPicker.mode||"list")===m.id?CARAMEL:BDR}`}} onClick={()=>setShowPicker(p=>({...p,mode:m.id}))}>{m.label}</div>
+            ))}
+          </div>
+          {(showPicker.mode||"list")==="list"&&(
+            !(db.recipes||[]).length?(
+              <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
+                Aucune recette — créez d'abord vos recettes
+                <button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={()=>{setShowPicker(null);goToRecettes();}}>→ Aller aux recettes</button>
+              </div>
+            ):(
+              <div style={{maxHeight:360,overflowY:"auto"}}>
+                {suggestions.length>0&&(
+                  <div style={{marginBottom:8}}>
+                    <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Utilise des produits à finir :</div>
+                    {suggestions.map(r=>(
+                      <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
+                        <span style={{fontSize:20}}>{guessRecipeEmoji(r.name)}</span>
+                        <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>{r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}</div>
+                      </div>
+                    ))}
+                    <div style={{borderBottom:`1px solid ${BDR}`,marginBottom:8}}/>
                   </div>
-                  <span style={{color:TXT3,fontSize:16}}>›</span>
-                </div>
-              ))}
+                )}
+                {(db.recipes||[]).filter(r=>r.source!=="libre").map(r=>(
+                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
+                    <span style={{fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                      <div style={{fontSize:10,color:TXT3}}>{r.duration&&<span style={{marginRight:6}}>⏱️ {r.duration}</span>}{r.persons&&<span>👥 {r.persons} pers.</span>}</div>
+                    </div>
+                    <span style={{color:TXT3,fontSize:16}}>›</span>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+          {(showPicker.mode)==="ai"&&(
+            <div style={{textAlign:"center",padding:"16px 8px"}}>
+              <div style={{fontSize:32,marginBottom:8}}>🤖</div>
+              <div style={{fontSize:13,color:TXT2,marginBottom:16,lineHeight:1.5}}>L'IA va générer une recette complète et la planifier pour ce créneau.</div>
+              {calAILoading?(
+                <div style={{fontSize:13,color:TXT3}}>⏳ Génération en cours…</div>
+              ):(
+                <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={()=>generateAIMeal(showPicker.dk,showPicker.slot)}>✨ Générer une recette</button>
+              )}
+            </div>
+          )}
+          {(showPicker.mode)==="free"&&(
+            <div>
+              <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Entrez simplement le nom du repas, sans ingrédients :</div>
+              <input style={{...inp,marginBottom:12}} placeholder="Ex: Raclette, Sushi maison, Pizza…" value={freeText} onChange={e=>setFreeText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&freeText.trim()&&addFreeTextMeal(showPicker.dk,showPicker.slot,freeText)} autoFocus/>
+              <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} disabled={!freeText.trim()} onClick={()=>addFreeTextMeal(showPicker.dk,showPicker.slot,freeText)}>✅ Planifier "{freeText||"…"}"</button>
             </div>
           )}
         </Modal>
@@ -3837,7 +4103,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowPicker({dk:showActions.dk,slot:showActions.slot});setShowActions(null);}}>🔄 Changer la recette</button>
+            <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowPicker({dk:showActions.dk,slot:showActions.slot,mode:"list"});setShowActions(null);}}>🔄 Changer la recette</button>
             <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>removeMeal(showActions.dk,showActions.slot)}>🗑️ Retirer ce repas</button>
             <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setShowActions(null)}>Fermer</button>
           </div>
@@ -4006,7 +4272,7 @@ function PickerRecettes({db,suggestions,onSelect,onImport,goToRecettes,showToast
       const d=await r.json();const m=d.meals?.[0];if(!m)return;
       const ings=[];
       for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
-      const recipe={id:Date.now(),name:m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")};
+      const recipe={id:Date.now(),name:translateMealName(m.strMeal),source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")};
       onImport(recipe);
     }catch{showToast("❌ Erreur import");}
   }
@@ -4398,7 +4664,7 @@ function App(){
         )}
       </div>
       {/* BOTTOM NAV — 4 onglets */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:200,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:50,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
