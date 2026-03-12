@@ -873,6 +873,15 @@ function MealDBSearch({onImport,onClose,showToast}){
     setLoading(false);
   }
 
+  async function browseArea(area){
+    setSelectedCat("__area__"+area);setLoading(true);setResults([]);setView("list");
+    try{
+      const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${encodeURIComponent(area)}`);
+      const d=await r.json();setResults(d.meals||[]);
+    }catch{showToast("❌ Erreur de connexion");}
+    setLoading(false);
+  }
+
   async function loadDetail(id){
     setLoading(true);setDetail(null);setView("detail");
     try{
@@ -886,7 +895,9 @@ function MealDBSearch({onImport,onClose,showToast}){
         if(!name)continue;
         ings.push({name:name.toLowerCase(),...parseMealDBMeasure(measure)});
       }
-      const steps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
+      // Nettoyage des étapes : supprimer les "STEP 1", "Step 1:", etc. parasites
+      const rawSteps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
+      const steps=rawSteps.map(s=>s.replace(/^(STEP|Step|step)\s*\d+[:\.\s]*/,"").trim()).filter(s=>s.length>3);
       const raw={
         id:Date.now(),name:m.strMeal,persons:null,duration:null,photo:null,
         source:"mealdb",mealdbId:m.idMeal,
@@ -896,23 +907,25 @@ function MealDBSearch({onImport,onClose,showToast}){
         date:new Date().toLocaleDateString("fr-FR")
       };
       setLoading(false);
-      // Traduire avec Anthropic si clé dispo
+      // Traduire avec Anthropic si clé dispo — ingrédients EN PRIORITÉ
       const apiKey=localStorage.getItem("ws_apikey")||"";
       if(apiKey){
         setTranslating(true);
         try{
-          const prompt=`Tu es un traducteur culinaire français expert. Traduis cette recette de l'anglais vers le français.
-RÈGLES :
-- Traduis le nom du plat en français naturel (si traduction connue, sinon garde l'original)
-- Traduis chaque ingrédient en nom générique français courant (sans marque)
-- Traduis chaque étape de préparation en français naturel et fluide
-- Garde les quantités et unités telles quelles
-- Réponds UNIQUEMENT en JSON valide (sans markdown, sans backtick)
+          const prompt=`Tu es un traducteur culinaire français expert. Traduis cette recette anglaise en français.
 
-FORMAT :
-{"name":"","ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
+RÈGLES STRICTES :
+- Traduis le nom du plat en français naturel (si traduction connue), sinon garde l'original
+- Pour chaque ingrédient : traduis en nom générique français COURANT (ex: "chicken thighs" → "cuisses de poulet", "garlic cloves" → "gousses d'ail", "olive oil" → "huile d'olive", "chorizo" → "chorizo")
+- Traduis chaque étape en français naturel et fluide
+- Conserve exactement les mêmes qty et unit pour chaque ingrédient
+- Ne jamais laisser de mots anglais dans les noms d'ingrédients
+- Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backtick, pas de commentaire)
 
-DONNÉES :
+FORMAT EXACT :
+{"name":"string","ingredients":[{"name":"string","qty":"string","unit":"string"}],"steps":["string"]}
+
+DONNÉES À TRADUIRE :
 Nom: ${raw.name}
 Ingrédients: ${JSON.stringify(raw.ingredients)}
 Étapes: ${JSON.stringify(raw.steps)}`;
@@ -926,9 +939,9 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
             let text=(data.content||[]).map(c=>c.text||"").join("").trim();
             text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
             const translated=JSON.parse(text);
-            raw.name=translated.name||raw.name;
-            raw.ingredients=translated.ingredients||raw.ingredients;
-            raw.steps=translated.steps||raw.steps;
+            if(translated.name)raw.name=translated.name;
+            if(translated.ingredients?.length===raw.ingredients.length)raw.ingredients=translated.ingredients;
+            if(translated.steps?.length)raw.steps=translated.steps;
           }
         }catch(e){console.warn("Traduction échouée:",e);}
         setTranslating(false);
@@ -938,12 +951,14 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
     setLoading(false);setTranslating(false);
   }
 
+  const [catTab,setCatTab]=useState("categories"); // categories | areas
+
   return(
     <Modal open onClose={onClose}>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:2,color:TXT}}>🌐 Parcourir TheMealDB</div>
       {/* Attribution claire avec lien */}
       <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>
-        Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA · Données textuelles uniquement
+        Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA
       </div>
 
       {/* VUE CATÉGORIES */}
@@ -953,16 +968,36 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
             <input style={{...inp,flex:1}} placeholder="Rechercher (en anglais)…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
             <button style={{...btn("acc"),padding:"10px 14px"}} onClick={search} disabled={loading}>{loading?"⏳":"🔍"}</button>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:TXT2,marginBottom:8}}>Parcourir par catégorie</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:320,overflowY:"auto"}}>
-            {categories.map(cat=>(
-              <div key={cat.idCategory} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",fontSize:12,fontWeight:600,color:TXT,width:"calc(50% - 4px)",boxSizing:"border-box"}} onClick={()=>browseCategory(cat.strCategory)}>
-                <span style={{fontSize:18}}>{(CAT_FR[cat.strCategory]||cat.strCategory).split(" ")[0]}</span>
-                <span style={{flex:1,fontSize:11}}>{(CAT_FR[cat.strCategory]||cat.strCategory).replace(/^[^ ]+ /,"")}</span>
-                <span style={{color:TXT3}}>›</span>
+          {/* Sous-onglets catégorie / origine */}
+          <div style={{display:"flex",gap:4,background:"rgba(255,255,255,.6)",borderRadius:10,padding:3,marginBottom:10}}>
+            {[{id:"categories",label:"🍽️ Catégories"},{id:"areas",label:"🌍 Origines"}].map(t=>(
+              <div key={t.id} style={{flex:1,padding:"6px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:7,background:catTab===t.id?SURF:"transparent",color:catTab===t.id?CARAMEL:TXT3,cursor:"pointer"}} onClick={()=>setCatTab(t.id)}>
+                {t.label}
               </div>
             ))}
           </div>
+          {catTab==="categories"&&(
+            <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:300,overflowY:"auto"}}>
+              {categories.map(cat=>(
+                <div key={cat.idCategory} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",fontSize:12,fontWeight:600,color:TXT,width:"calc(50% - 4px)",boxSizing:"border-box"}} onClick={()=>browseCategory(cat.strCategory)}>
+                  <span style={{fontSize:18}}>{(CAT_FR[cat.strCategory]||cat.strCategory).split(" ")[0]}</span>
+                  <span style={{flex:1,fontSize:11}}>{(CAT_FR[cat.strCategory]||cat.strCategory).replace(/^[^ ]+ /,"")}</span>
+                  <span style={{color:TXT3}}>›</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {catTab==="areas"&&(
+            <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:300,overflowY:"auto"}}>
+              {Object.entries(AREA_FR).map(([en,fr])=>(
+                <div key={en} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",fontSize:12,fontWeight:600,color:TXT,width:"calc(50% - 4px)",boxSizing:"border-box"}} onClick={()=>browseArea(en)}>
+                  <span style={{fontSize:18}}>{fr.split(" ")[0]}</span>
+                  <span style={{flex:1,fontSize:11}}>{fr.replace(/^[^ ]+ /,"")}</span>
+                  <span style={{color:TXT3}}>›</span>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -971,7 +1006,9 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
         <>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
             <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setView("categories");setResults([]);}}>← Retour</button>
-            <div style={{fontSize:13,fontWeight:700,color:TXT,flex:1}}>{selectedCat?CAT_FR[selectedCat]||selectedCat:"Résultats"}</div>
+            <div style={{fontSize:13,fontWeight:700,color:TXT,flex:1}}>
+              {selectedCat.startsWith("__area__")?AREA_FR[selectedCat.replace("__area__","")]||selectedCat.replace("__area__",""):selectedCat?CAT_FR[selectedCat]||selectedCat:"Résultats"}
+            </div>
             <span style={{fontSize:11,color:TXT3}}>{results.length} recettes</span>
           </div>
           {loading&&<div style={{textAlign:"center",padding:20,color:TXT3}}>⏳ Chargement…</div>}
@@ -1442,9 +1479,29 @@ function CookingMode({recipe,onClose}){
       </div>
 
       {/* Étape courante */}
-      <div style={{flex:1,background:"rgba(255,255,255,.1)",borderRadius:20,padding:24,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+      <div style={{flex:1,background:"rgba(255,255,255,.1)",borderRadius:20,padding:24,display:"flex",flexDirection:"column",justifyContent:"center",overflowY:"auto"}}>
         <div style={{fontSize:13,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Étape {step+1} / {total}</div>
-        <div style={{fontSize:17,color:"white",lineHeight:1.7,fontWeight:500}}>{steps[step]}</div>
+        <div style={{fontSize:17,color:"white",lineHeight:1.7,fontWeight:500,marginBottom:16}}>{steps[step]}</div>
+        {/* Ingrédients mentionnés dans cette étape */}
+        {(()=>{
+          const stepText=(steps[step]||"").toLowerCase();
+          const mentioned=(recipe.ingredients||[]).filter(ing=>{
+            const n=ing.name.toLowerCase();
+            return stepText.includes(n)||(n.length>4&&stepText.includes(n.slice(0,-1)));
+          });
+          return mentioned.length>0?(
+            <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:10}}>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.5)",fontWeight:700,letterSpacing:.5,marginBottom:6}}>INGRÉDIENTS POUR CETTE ÉTAPE</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {mentioned.map((ing,i)=>(
+                  <div key={i} style={{background:"rgba(255,255,255,.15)",borderRadius:8,padding:"3px 8px",fontSize:11,color:"rgba(255,255,255,.9)",fontWeight:600}}>
+                    {ing.qty?`${ing.qty}${ing.unit?" "+ing.unit:""} `:""}• {ing.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ):null;
+        })()}
       </div>
 
       {/* Minuteur */}
@@ -1482,40 +1539,52 @@ function CookingMode({recipe,onClose}){
 
 // ─── AI RECIPE GENERATOR ──────────────────────────────────────
 function AIRecipeGen({onImport,onClose,showToast,items}){
-  const [mode,setMode]=useState("frigo"); // frigo | variation
+  const [mode,setMode]=useState("frigo");
   const [fridgeInput,setFridgeInput]=useState("");
   const [variationBase,setVariationBase]=useState("");
   const [variationType,setVariationType]=useState("végétarien");
   const [generating,setGenerating]=useState(false);
   const [result,setResult]=useState(null);
+  const [listening,setListening]=useState(false);
+  const recognitionRef=useRef(null);
 
-  // Pré-remplir avec les articles de la liste courante
   useEffect(()=>{
-    if(items?.length){
-      const names=items.map(i=>i.name).join(", ");
-      setFridgeInput(names);
-    }
+    if(items?.length)setFridgeInput(items.map(i=>i.name).join(", "));
   },[]);
+
+  function startVoice(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){showToast("⚠️ Reconnaissance vocale non supportée");return;}
+    const recog=new SR();
+    recog.lang="fr-FR";recog.continuous=false;recog.interimResults=false;
+    recog.onstart=()=>setListening(true);
+    recog.onend=()=>setListening(false);
+    recog.onresult=(e)=>{
+      const text=e.results[0][0].transcript.trim();
+      setFridgeInput(prev=>prev?prev+", "+text:text);
+      showToast(`🎤 "${text}" ajouté`);
+    };
+    recog.onerror=()=>{setListening(false);showToast("❌ Erreur micro");};
+    recognitionRef.current=recog;recog.start();
+  }
 
   async function generate(){
     const apiKey=localStorage.getItem("ws_apikey")||"";
     if(!apiKey){showToast("⚠️ Clé API requise");return;}
     setGenerating(true);setResult(null);
     const prompt=mode==="frigo"
-      ?`Tu es un chef cuisinier créatif. L'utilisateur a ces ingrédients disponibles : ${fridgeInput}
-
-Propose UNE recette réalisable avec tout ou partie de ces ingrédients. Sois créatif mais réaliste.
+      ?`Tu es un chef cuisinier créatif. Propose UNE recette réalisable avec tout ou partie de ces ingrédients : ${fridgeInput}
 
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
-{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":[],"tip":""}
+{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"astuce du chef en 1 phrase"}
 
-- tip : une astuce personnelle du chef en 1 phrase`
-      :`Tu es un chef cuisinier expert. Voici une recette : "${variationBase}"
-
-Crée une variation ${variationType} de cette recette. Adapte les ingrédients et les étapes en conséquence.
+Les étapes doivent être complètes et bien expliquées en français.`
+      :`Tu es un chef cuisinier expert. Crée une variation ${variationType} de la recette : "${variationBase}"
 
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
-{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":[],"tip":""}`;
+{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"astuce du chef en 1 phrase"}
+
+Les étapes doivent être complètes et bien expliquées en français.`;
 
     try{
       const resp=await fetch("https://api.anthropic.com/v1/messages",{
@@ -1540,8 +1609,6 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
     <Modal open onClose={onClose}>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:4,color:TXT}}>🤖 Recette par IA</div>
       <div style={{fontSize:11,color:TXT3,marginBottom:12}}>Génération basée sur vos ingrédients ou une variation d'une recette existante</div>
-
-      {/* Mode selector */}
       <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.6)",borderRadius:12,padding:3}}>
         {[{id:"frigo",label:"🧊 Frigo → Recette"},{id:"variation",label:"✨ Variation"}].map(m=>(
           <div key={m.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:mode===m.id?SURF:"transparent",color:mode===m.id?CARAMEL:TXT3,cursor:"pointer"}} onClick={()=>{setMode(m.id);setResult(null);}}>
@@ -1555,12 +1622,17 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
           {mode==="frigo"?(
             <>
               <span style={lbl}>Ingrédients disponibles</span>
-              <textarea style={{...inp,minHeight:80,resize:"none",fontSize:13,marginBottom:12}} placeholder="Ex: poulet, courgettes, riz, tomates…" value={fridgeInput} onChange={e=>setFridgeInput(e.target.value)}/>
-              {items?.length>0&&<div style={{fontSize:10,color:TXT3,marginBottom:10}}>💡 Pré-rempli avec vos articles de la liste courante</div>}
+              <textarea style={{...inp,minHeight:70,resize:"none",fontSize:12,marginBottom:6}} placeholder="Ex: poulet, courgettes, riz…" value={fridgeInput} onChange={e=>setFridgeInput(e.target.value)}/>
+              <div style={{display:"flex",gap:6,marginBottom:12}}>
+                <button style={{...btn("gh"),flex:1,fontSize:11,background:listening?"rgba(212,96,74,.1)":"",color:listening?DNG:undefined}} onClick={startVoice} disabled={listening}>
+                  {listening?"🎤 Écoute…":"🎤 Ajouter par vocal"}
+                </button>
+                {items?.length>0&&<div style={{fontSize:10,color:TXT3,display:"flex",alignItems:"center"}}>💡 Pré-rempli depuis votre liste</div>}
+              </div>
             </>
           ):(
             <>
-              <span style={lbl}>Nom de la recette de base</span>
+              <span style={lbl}>Recette de base</span>
               <input style={{...inp,marginBottom:10}} placeholder="Ex: Poulet rôti, Quiche lorraine…" value={variationBase} onChange={e=>setVariationBase(e.target.value)}/>
               <span style={lbl}>Type de variation</span>
               <select style={{...sel,marginBottom:12}} value={variationType} onChange={e=>setVariationType(e.target.value)}>
@@ -1571,6 +1643,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
           <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={generate} disabled={generating}>
             {generating?"⏳ Génération en cours…":"✨ Générer la recette"}
           </button>
+          {!localStorage.getItem("ws_apikey")&&<div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:8}}>⚠️ Clé API Anthropic requise — configurez-la via 🔑 dans le header</div>}
         </>
       ):(
         <>
@@ -1582,7 +1655,8 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
             <span style={{fontSize:10,background:"rgba(200,132,90,.1)",padding:"2px 8px",borderRadius:20,color:CARAMEL2,fontWeight:600}}>🤖 IA</span>
           </div>
           {result.tip&&<div style={{fontSize:11,color:TXT2,padding:"8px 10px",background:CREAM,borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`,marginBottom:10}}>💡 {result.tip}</div>}
-          <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:140,overflowY:"auto"}}>
+          {/* Ingrédients */}
+          <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:120,overflowY:"auto"}}>
             {result.ingredients.map((ing,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:12,borderBottom:i<result.ingredients.length-1?`1px solid ${BDR}`:"none"}}>
                 <span style={{color:TXT}}>{ing.name}</span>
@@ -1590,9 +1664,20 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
               </div>
             ))}
           </div>
+          {/* Étapes */}
+          {result.steps?.length>0&&(
+            <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:160,overflowY:"auto"}}>
+              {result.steps.map((step,i)=>(
+                <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:i<result.steps.length-1?`1px solid ${BDR}`:"none",fontSize:12,color:TXT2,lineHeight:1.5}}>
+                  <div style={{width:18,height:18,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
+                  <div>{step}</div>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{display:"flex",gap:8}}>
-            <button style={{...btn("gh"),flex:1}} onClick={()=>setResult(null)}>↩ Régénérer</button>
-            <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(result)}>✅ Importer</button>
+            <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={()=>setResult(null)}>↩ Régénérer</button>
+            <button style={{...btn("acc"),flex:2,fontSize:11}} onClick={()=>onImport(result)}>💾 Enregistrer dans mes recettes</button>
           </div>
         </>
       )}
@@ -1707,7 +1792,9 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
       {/* Titre + like */}
       <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8}}>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:20,flex:1,lineHeight:1.3}}>{recipe.name}</div>
-        <button style={{background:"none",border:"none",fontSize:24,cursor:"pointer",padding:0,flexShrink:0}} onClick={toggleLike}>{isLiked?"❤️":"🤍"}</button>
+        <button style={{background:"none",border:"none",fontSize:14,cursor:"pointer",padding:"4px 8px",flexShrink:0,color:isLiked?DNG:TXT3,fontWeight:700,display:"flex",alignItems:"center",gap:4,borderRadius:8,border:`1px solid ${isLiked?"rgba(212,96,74,.3)":BDR}`}} onClick={toggleLike}>
+          {isLiked?"❤️ Favori":"🤍 Favoris"}
+        </button>
       </div>
       {/* Badges */}
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
@@ -1777,10 +1864,10 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
       )}
       {/* Actions */}
       <div style={{display:"flex",gap:6,marginBottom:8}}>
-        <button style={{...btn("gh"),flex:1,fontSize:11,padding:8}} onClick={onEdit}>✏️ Modifier</button>
-        <button style={{...btn("gh"),flex:1,fontSize:11,padding:8}} onClick={()=>setShowNote(!showNote)}>📝 Note</button>
-        <button style={{...btn("gh"),flex:1,fontSize:11,padding:8}} onClick={()=>setShowFolderPick(!showFolderPick)}>📁</button>
-        <button style={{...btn("dng"),fontSize:11,padding:8}} onClick={onDel}>🗑️</button>
+        <button style={{...btn("gh"),flex:1,fontSize:11,padding:"8px 4px"}} onClick={onEdit}>✏️ Modifier</button>
+        <button style={{...btn("gh"),flex:1,fontSize:11,padding:"8px 4px"}} onClick={()=>setShowNote(!showNote)}>📝 Note</button>
+        <button style={{...btn("gh"),flex:1,fontSize:11,padding:"8px 4px"}} onClick={()=>setShowFolderPick(!showFolderPick)}>📁 Dossier</button>
+        <button style={{...btn("dng"),fontSize:11,padding:"8px 6px"}} onClick={onDel}>🗑️</button>
       </div>
       {/* Sélecteur de dossier */}
       {showFolderPick&&(
@@ -2082,7 +2169,7 @@ function PagePrix({db,setDb,showToast}){
   const [tab,setTab]=useState("scanner");
   const [scanPhotos,setScanPhotos]=useState([]);
   const [scanning,setScanning]=useState(false);
-  const [scanResult,setScanResult]=useState(null);
+  const [scanResult,setScanResult]=useState(null); // [{genericName,originalName,price,qty,unit,selected,failed}]
   const [scanMsg,setScanMsg]=useState("");
   const [scanStatus,setScanStatus]=useState("idle");
   const [shopName,setShopName]=useState("");
@@ -2090,7 +2177,10 @@ function PagePrix({db,setDb,showToast}){
   const [budgetInput,setBudgetInput]=useState("");
   const [searchPrice,setSearchPrice]=useState("");
   const [showPriceVisible,setShowPriceVisible]=useState(()=>localStorage.getItem("ws_prices_visible")!=="false");
+  const [listening,setListening]=useState(false);
+  const [showApiKey,setShowApiKey]=useState(false);
   const scanRef=useRef();
+  const recognitionRef=useRef(null);
 
   function togglePriceVisible(){
     const v=!showPriceVisible;setShowPriceVisible(v);
@@ -2105,37 +2195,62 @@ function PagePrix({db,setDb,showToast}){
     };r.readAsDataURL(file);e.target.value="";
   }
 
+  // Ajout manuel d'un article vide
+  function addManualItem(){
+    setScanResult(prev=>[...(prev||[]),{genericName:"",originalName:"",price:0,qty:"",unit:"",selected:true,manual:true}]);
+  }
+
+  // Edition inline d'un article
+  function editItem(i,field,val){
+    setScanResult(prev=>prev.map((it,j)=>j===i?{...it,[field]:field==="price"?parseFloat(val)||0:val}:it));
+  }
+
+  // Vocal pour ajouter des articles
+  function startVoice(){
+    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SpeechRecognition){showToast("⚠️ Reconnaissance vocale non supportée");return;}
+    const recog=new SpeechRecognition();
+    recog.lang="fr-FR";recog.continuous=false;recog.interimResults=false;
+    recog.onstart=()=>setListening(true);
+    recog.onend=()=>setListening(false);
+    recog.onresult=(e)=>{
+      const text=e.results[0][0].transcript.trim().toLowerCase();
+      // Essai de parser "nom prix" ex: "beurre 1.50" ou "lait 0,89"
+      const match=text.match(/^(.+?)\s+([\d.,]+)\s*€?\s*$/);
+      if(match){
+        const name=match[1].trim();
+        const price=parseFloat(match[2].replace(",","."))||0;
+        setScanResult(prev=>[...(prev||[]),{genericName:name,originalName:name,price,qty:"",unit:"",selected:true,manual:true}]);
+        showToast(`🎤 "${name}" ajouté`);
+      } else {
+        setScanResult(prev=>[...(prev||[]),{genericName:text,originalName:text,price:0,qty:"",unit:"",selected:true,manual:true}]);
+        showToast(`🎤 "${text}" ajouté — complétez le prix`);
+      }
+    };
+    recog.onerror=()=>{setListening(false);showToast("❌ Erreur micro");};
+    recognitionRef.current=recog;
+    recog.start();
+  }
+
   async function doTicketScan(){
     if(!scanPhotos.length){showToast("⚠️ Ajoutez au moins une photo du ticket");return;}
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){showToast("⚠️ Clé API requise — configurez-la dans l'onglet Recettes");return;}
+    if(!apiKey){setShowApiKey(true);return;}
     if(!shopName.trim()){showToast("⚠️ Indiquez le nom du magasin");return;}
     setScanning(true);setScanMsg("");setScanStatus("idle");setScanResult(null);
     const n=scanPhotos.length;
-    const prompt=`Tu es un expert en lecture de tickets de caisse. ${n>1?`On t'envoie ${n} photos d'un même ticket (zones successives ou qui se chevauchent).`:"Analyse ce ticket de caisse."}
-TÂCHE : Extrais TOUS les articles achetés avec leurs prix.
+    const prompt=`Tu es un expert en lecture de tickets de caisse. ${n>1?`On t'envoie ${n} photos d'un même ticket (zones successives).`:"Analyse ce ticket de caisse."}
+TÂCHE : Extrais TOUS les articles achetés avec leurs prix, dans l'ordre exact d'apparition sur le ticket.
 RÈGLES :
+- Conserve l'ordre exact des articles sur le ticket
 - Si un article apparaît plusieurs fois (zones qui se recoupent), ne le garde qu'UNE fois
 - Ignore les lignes de total, sous-total, TVA, remise globale, numéros de caisse, dates
 - Pour chaque article : normalise le nom en nom générique français sans marque commerciale
-- Exemples de normalisation :
-  "PRESIDENT BEURRE 250G" → genericName:"beurre", qty:"250", unit:"g"
-  "COCA COLA 1.5L" → genericName:"soda cola", qty:"1.5", unit:"L"
-  "OEUFS PLEIN AIR X6" → genericName:"oeufs", qty:"6", unit:"pièce"
-  "JAMBON BLANC 4 TRANCHES" → genericName:"jambon blanc", qty:"4", unit:"tranche"
-  "YAOURT NATURE X4 125G" → genericName:"yaourt nature", qty:"4", unit:"pièce"
-  "LESSIVE 30 DOSES" → genericName:"lessive", qty:"30", unit:"sachet"
-  "CAMEMBERT 250G" → genericName:"camembert", qty:"250", unit:"g"
-  "HUILE OLIVE 75CL" → genericName:"huile d'olive", qty:"75", unit:"cl"
-- prix = prix unitaire total payé pour cet article (nombre décimal)
-- Priorité pour qty+unit : poids (g,kg) ou volume (ml,cl,L) si indiqué, sinon quantité en pièces/tranches/sachets/boîtes si indiqué, sinon laisser vide
+- Exemples : "PRESIDENT BEURRE 250G" → genericName:"beurre", originalName:"PRESIDENT BEURRE 250G"
+- Si tu ne parviens pas à lire un article correctement, mets failed:true et garde l'originalName brut
+- prix = prix unitaire total payé (nombre décimal)
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
-{"items":[{"genericName":"","originalName":"","price":0,"qty":"","unit":""}]}
-- genericName : nom générique normalisé en français minuscules
-- originalName : nom exact sur le ticket
-- price : prix en euros (nombre)
-- qty : quantité/grammage/volume si visible, sinon ""
-- unit : unité parmi (g, kg, ml, cl, L, pièce, tranche, sachet, boîte, bouteille, paquet, botte) si applicable, sinon ""`;
+{"items":[{"genericName":"","originalName":"","price":0,"qty":"","unit":"","failed":false}]}`;
     try{
       const content=[
         ...scanPhotos.map((p,i)=>[
@@ -2154,20 +2269,22 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
       let text=(data.content||[]).map(c=>c.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       const p=JSON.parse(text);
-      const items=(p.items||[]).filter(i=>i.genericName&&i.price>0);
-      setScanResult(items.map(i=>({...i,selected:true})));
-      setScanMsg(`✅ ${items.length} article${items.length>1?"s":""} détecté${items.length>1?"s":""}`);
+      const items=(p.items||[]);
+      const failed=items.filter(i=>i.failed).length;
+      setScanResult(items.map(i=>({...i,selected:!i.failed,genericName:i.failed?"":i.genericName})));
+      setScanMsg(`✅ ${items.length-failed} article${items.length-failed>1?"s":""} détecté${items.length-failed>1?"s":""}${failed>0?` · ⚠️ ${failed} non reconnu${failed>1?"s":""}`:""}`) ;
       setScanStatus("ok");
     }catch(err){console.error(err);setScanMsg("❌ "+err.message);setScanStatus("error");}
     setScanning(false);
   }
 
   function toggleItem(i){setScanResult(prev=>prev.map((it,j)=>j===i?{...it,selected:!it.selected}:it));}
+  function removeItem(i){setScanResult(prev=>prev.filter((_,j)=>j!==i));}
 
   function savePrices(){
     if(!scanResult?.length)return;
-    const selected=scanResult.filter(i=>i.selected);
-    if(!selected.length){showToast("⚠️ Aucun article sélectionné");return;}
+    const selected=scanResult.filter(i=>i.selected&&i.genericName.trim()&&i.price>0);
+    if(!selected.length){showToast("⚠️ Aucun article valide sélectionné");return;}
     const shop=shopName.trim()||"Inconnu";
     const now=Date.now();
     const newPriceDB={...(db.priceDB||{})};
@@ -2175,17 +2292,28 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
       const key=item.genericName.toLowerCase().trim();
       if(!newPriceDB[key])newPriceDB[key]={shops:{}};
       const ref=pricePerKg(item.price,item.qty,item.unit);
-      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",priceRef:ref,updatedAt:now,originalName:item.originalName};
+      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",priceRef:ref,updatedAt:now,originalName:item.originalName,category:guessCat(key)};
     });
     const total=selected.reduce((s,i)=>s+i.price,0);
     const sessions=[{date:new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long"}),shop,total:Math.round(total*100)/100,count:selected.length,ts:now},...(db.budget?.sessions||[])].slice(0,50);
-    setDb({...db,priceDB:newPriceDB,budget:{...(db.budget||{}),sessions}});
+    const nd={...db,priceDB:newPriceDB,budget:{...(db.budget||{}),sessions}};setDb(nd);saveDB(nd);
     showToast(`💾 ${selected.length} prix sauvegardés !`);
     setScanResult(null);setScanPhotos([]);setScanMsg("");setScanStatus("idle");setShopName("");
     setTab("base");
   }
 
+  // Base prix groupée par catégorie
+  const CAT_ORDER=["Fruits & Légumes","Viandes & Poissons","Produits laitiers","Épicerie","Boissons","Surgelés","Hygiène","Autres"];
   const priceEntries=Object.entries(db.priceDB||{}).filter(([k])=>!searchPrice||k.includes(searchPrice.toLowerCase()));
+  const byCat={};
+  priceEntries.forEach(([name,data])=>{
+    const shops=Object.entries(data.shops||{});if(!shops.length)return;
+    const cat=shops[0]?.[1]?.category||guessCat(name)||"Autres";
+    if(!byCat[cat])byCat[cat]=[];
+    byCat[cat].push([name,data]);
+  });
+  const catsSorted=[...CAT_ORDER.filter(c=>byCat[c]),...Object.keys(byCat).filter(c=>!CAT_ORDER.includes(c))];
+
   const sessions=db.budget?.sessions||[];
   const monthlyBudget=db.budget?.monthly||0;
   const now2=new Date();
@@ -2196,7 +2324,6 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
 
   return(
     <div style={{padding:14,paddingBottom:90}}>
-      {/* Sous-onglets */}
       <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.6)",borderRadius:14,padding:4}}>
         {[{id:"scanner",label:"📷 Scanner"},{id:"base",label:"💰 Base prix"},{id:"budget",label:"📊 Budget"}].map(t=>(
           <div key={t.id} style={{flex:1,padding:"8px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:10,background:tab===t.id?SURF:"transparent",color:tab===t.id?CARAMEL:TXT3,cursor:"pointer",transition:"all .2s",boxShadow:tab===t.id?"0 2px 8px rgba(160,90,40,.1)":"none"}} onClick={()=>setTab(t.id)}>
@@ -2207,6 +2334,14 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
 
       {tab==="scanner"&&(
         <>
+          {/* Clé API info si absente */}
+          {!localStorage.getItem("ws_apikey")&&(
+            <div style={{fontSize:11,color:TXT2,padding:"8px 12px",background:"rgba(200,132,90,.08)",borderRadius:10,border:`1px solid ${CARAMEL2}`,marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+              <span>🔑</span>
+              <span style={{flex:1}}>Clé API requise pour scanner</span>
+              <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setShowApiKey(true)}>Configurer</span>
+            </div>
+          )}
           <div style={{...card,background:"rgba(255,255,255,.9)"}}>
             <span style={lbl}>Magasin</span>
             <input style={inp} placeholder="Ex: Carrefour, Lidl, Monoprix…" value={shopName} onChange={e=>setShopName(e.target.value)}/>
@@ -2226,7 +2361,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
               ))}
               <div style={{width:64,height:64,border:`2px dashed ${CARAMEL2}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column",gap:2}} onClick={()=>scanRef.current.click()}>
                 <div style={{fontSize:22}}>📷</div>
-                <div style={{fontSize:8,color:TXT3,fontWeight:600}}>Ajouter</div>
+                <div style={{fontSize:8,color:TXT3,fontWeight:600}}>Photo</div>
               </div>
             </div>
             <input ref={scanRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScanFile} capture="environment"/>
@@ -2235,39 +2370,83 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                 {scanning?"⏳ Analyse en cours…":`🔍 Analyser ${scanPhotos.length} photo${scanPhotos.length>1?"s":""}`}
               </button>
             )}
-            {!shopName.trim()&&scanPhotos.length>0&&<div style={{fontSize:10,color:DNG,textAlign:"center",marginTop:6,fontWeight:600}}>⚠️ Indiquez d'abord le magasin</div>}
           </div>
           {scanMsg&&<div style={{fontSize:12,textAlign:"center",padding:"8px 12px",borderRadius:10,background:scanStatus==="ok"?"rgba(90,138,58,.1)":"rgba(212,96,74,.1)",color:scanStatus==="ok"?SUC:DNG,marginBottom:10,fontWeight:600}}>{scanMsg}</div>}
-          {scanResult&&(
+
+          {/* Résultat scan — éditable */}
+          {(scanResult||[]).length>0&&(
             <div style={{...card,background:"rgba(255,255,255,.95)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT}}>Valider les articles</div>
-                <div style={{display:"flex",gap:6}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:TXT}}>Valider les articles</div>
+                <div style={{display:"flex",gap:5}}>
                   <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>setScanResult(prev=>prev.map(i=>({...i,selected:true})))}>Tout</button>
                   <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>setScanResult(prev=>prev.map(i=>({...i,selected:false})))}>Aucun</button>
                 </div>
               </div>
-              <div style={{maxHeight:320,overflowY:"auto"}}>
+              <div style={{maxHeight:400,overflowY:"auto"}}>
                 {scanResult.map((item,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 4px",borderBottom:i<scanResult.length-1?`1px solid ${BDR}`:"none",cursor:"pointer",background:item.selected?"rgba(200,132,90,.06)":"transparent",borderRadius:6}} onClick={()=>toggleItem(i)}>
-                    <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${item.selected?CARAMEL:BDR}`,background:item.selected?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {item.selected&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+                  <div key={i} style={{padding:"8px 0",borderBottom:i<scanResult.length-1?`1px solid ${BDR}`:"none"}}>
+                    {/* Nom original ticket (petit, grisé) */}
+                    {item.originalName&&<div style={{fontSize:9,color:TXT3,marginBottom:2,fontStyle:"italic",paddingLeft:26}}>{item.originalName}</div>}
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${item.selected?CARAMEL:BDR}`,background:item.selected?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}} onClick={()=>toggleItem(i)}>
+                        {item.selected&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        {/* Nom générique éditable */}
+                        <input
+                          style={{width:"100%",background:item.failed?"rgba(212,96,74,.06)":"transparent",border:item.failed?`1px dashed ${DNG}`:"none",borderRadius:6,color:item.failed?DNG:TXT,fontFamily:"inherit",fontSize:13,fontWeight:700,outline:"none",padding:item.failed?"3px 5px":"0"}}
+                          placeholder={item.failed?item.originalName||"Article non reconnu — saisissez le nom":"Nom de l'article"}
+                          value={item.genericName}
+                          onChange={e=>editItem(i,"genericName",e.target.value)}
+                        />
+                        {/* Qté + unité éditables */}
+                        <div style={{display:"flex",gap:4,marginTop:3}}>
+                          <input style={{width:44,background:"rgba(0,0,0,.04)",border:"none",borderRadius:5,padding:"2px 4px",fontSize:10,color:TXT2,fontFamily:"inherit",outline:"none",textAlign:"center"}} placeholder="Qté" value={item.qty} onChange={e=>editItem(i,"qty",e.target.value)}/>
+                          <select style={{background:"rgba(0,0,0,.04)",border:"none",borderRadius:5,padding:"2px 4px",fontSize:10,color:TXT2,fontFamily:"inherit",outline:"none"}} value={item.unit} onChange={e=>editItem(i,"unit",e.target.value)}>
+                            <option value="">—</option>
+                            {["g","kg","ml","cl","L","pièce","tranche","sachet","boîte","bouteille","paquet","botte"].map(u=><option key={u} value={u}>{u}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      {/* Prix éditable */}
+                      <div style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}>
+                        <input style={{width:52,background:"rgba(184,112,58,.06)",border:"none",borderRadius:6,padding:"4px 5px",fontSize:13,fontWeight:800,color:CARAMEL,fontFamily:"inherit",textAlign:"right",outline:"none"}} type="number" step="0.01" min="0" value={item.price||""} onChange={e=>editItem(i,"price",e.target.value)}/>
+                        <span style={{fontSize:11,color:CARAMEL2,fontWeight:700}}>€</span>
+                      </div>
+                      <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:13,padding:"0 2px",flexShrink:0}} onClick={()=>removeItem(i)}>✕</button>
                     </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.genericName}</div>
-                      {item.originalName&&item.originalName!==item.genericName&&<div style={{fontSize:9,color:TXT3}}>{item.originalName}</div>}
-                      {item.qty&&<div style={{fontSize:10,color:TXT2}}>{item.qty}{item.unit}{item.unit&&fmtPriceRef(item.price,item.qty,item.unit)?` · ${fmtPriceRef(item.price,item.qty,item.unit)}`:""}</div>}
-                    </div>
-                    <div style={{fontSize:14,fontWeight:800,color:CARAMEL,flexShrink:0}}>{item.price.toFixed(2)}€</div>
+                    {/* Prix de référence calculé */}
+                    {item.qty&&item.unit&&item.price>0&&(
+                      <div style={{fontSize:9,color:TXT3,paddingLeft:26,marginTop:2}}>{fmtPriceRef(item.price,item.qty,item.unit)||""}</div>
+                    )}
                   </div>
                 ))}
               </div>
-              <div style={{borderTop:`1px solid ${BDR}`,marginTop:8,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:12,color:TXT2,fontWeight:600}}>
-                  {scanResult.filter(i=>i.selected).length} art. · <strong style={{color:CARAMEL}}>{scanResult.filter(i=>i.selected).reduce((s,i)=>s+i.price,0).toFixed(2)}€</strong>
+              {/* Actions bas */}
+              <div style={{borderTop:`1px solid ${BDR}`,marginTop:8,paddingTop:8}}>
+                <div style={{display:"flex",gap:6,marginBottom:8}}>
+                  <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={addManualItem}>+ Article manuel</button>
+                  <button style={{...btn("gh"),flex:1,fontSize:11,background:listening?"rgba(212,96,74,.1)":"",color:listening?DNG:undefined}} onClick={startVoice} disabled={listening}>
+                    {listening?"🎤 Écoute…":"🎤 Vocal"}
+                  </button>
                 </div>
-                <button style={{...btn("acc"),fontSize:12}} onClick={savePrices}>💾 Sauvegarder</button>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:12,color:TXT2,fontWeight:600}}>
+                    {scanResult.filter(i=>i.selected&&i.genericName).length} art. · <strong style={{color:CARAMEL}}>{scanResult.filter(i=>i.selected).reduce((s,i)=>s+i.price,0).toFixed(2)}€</strong>
+                  </div>
+                  <button style={{...btn("acc"),fontSize:12}} onClick={savePrices}>💾 Sauvegarder</button>
+                </div>
               </div>
+            </div>
+          )}
+          {/* Boutons ajout sans scan */}
+          {!scanResult&&!scanning&&(
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={()=>{setScanResult([]);addManualItem();}}>+ Saisie manuelle</button>
+              <button style={{...btn("gh"),flex:1,fontSize:11,background:listening?"rgba(212,96,74,.1)":"",color:listening?DNG:undefined}} onClick={()=>{setScanResult([]);startVoice();}} disabled={listening}>
+                {listening?"🎤 Écoute…":"🎤 Ajouter par vocal"}
+              </button>
             </div>
           )}
         </>
@@ -2290,36 +2469,37 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
           ):(
             <>
               <input style={{...inp,marginBottom:10}} placeholder="🔍 Rechercher un produit…" value={searchPrice} onChange={e=>setSearchPrice(e.target.value)}/>
-              {priceEntries.map(([name,data])=>{
-                const shops=Object.entries(data.shops||{});
-                if(!shops.length)return null;
-                const best=shops.sort((a,b)=>{
-                  const ra=a[1].priceRef?.value??a[1].price;
-                  const rb=b[1].priceRef?.value??b[1].price;
-                  return ra-rb;
-                })[0];
-                return(
-                  <div key={name} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                      <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize"}}>{name}</div>
-                      <span style={{fontSize:14}}>{priceFreshness(best[1]?.updatedAt)}</span>
-                    </div>
-                    {shops.map(([shop,info])=>(
-                      <div key={shop} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3}}>
-                        <div>
-                          <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
-                          {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty} {info.unit}</span>}
+              {catsSorted.map(cat=>(
+                <div key={cat} style={{marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:800,color:TXT2,letterSpacing:.5,textTransform:"uppercase",marginBottom:6,paddingLeft:4}}>{cat}</div>
+                  {(byCat[cat]||[]).map(([name,data])=>{
+                    const shops=Object.entries(data.shops||{});
+                    if(!shops.length)return null;
+                    const best=shops.sort((a,b)=>(a[1].priceRef?.value??a[1].price)-(b[1].priceRef?.value??b[1].price))[0];
+                    return(
+                      <div key={name} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:6}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                          <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize"}}>{name}</div>
+                          <span style={{fontSize:14}}>{priceFreshness(best[1]?.updatedAt)}</span>
                         </div>
-                        <div style={{textAlign:"right"}}>
-                          <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
-                          {info.priceRef&&<div style={{fontSize:9,color:TXT3}}>{info.priceRef.value.toFixed(2)}{info.priceRef.label}</div>}
-                        </div>
+                        {shops.map(([shop,info])=>(
+                          <div key={shop} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:shop===best[0]?CREAM2:"transparent",borderRadius:8,marginBottom:3}}>
+                            <div>
+                              <span style={{fontSize:12,fontWeight:600,color:TXT2}}>{shop}</span>
+                              {info.qty&&<span style={{fontSize:10,color:TXT3,marginLeft:5}}>{info.qty} {info.unit}</span>}
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontSize:13,fontWeight:800,color:CARAMEL}}>{info.price?.toFixed(2)}€</div>
+                              {info.priceRef&&<div style={{fontSize:9,color:TXT3}}>{info.priceRef.value.toFixed(2)}{info.priceRef.label}</div>}
+                            </div>
+                          </div>
+                        ))}
+                        {shops.length>1&&<div style={{fontSize:10,color:SUC,marginTop:4,fontWeight:600}}>✓ Meilleur prix : {best[0]}</div>}
                       </div>
-                    ))}
-                    {shops.length>1&&<div style={{fontSize:10,color:SUC,marginTop:4,fontWeight:600}}>✓ Meilleur prix : {best[0]}</div>}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ))}
             </>
           )}
         </>
@@ -2372,11 +2552,12 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
           <button style={{...btn("gh"),flex:1}} onClick={()=>setShowBudgetEdit(false)}>Annuler</button>
           <button style={{...btn("acc"),flex:1}} onClick={()=>{
             const v=parseFloat(budgetInput)||0;
-            setDb({...db,budget:{...(db.budget||{}),monthly:v}});
+            const nd={...db,budget:{...(db.budget||{}),monthly:v}};setDb(nd);saveDB(nd);
             setShowBudgetEdit(false);showToast("💰 Budget mis à jour");
           }}>Enregistrer</button>
         </div>
       </Modal>
+      {showApiKey&&<ApiKeyModal open onSave={()=>setShowApiKey(false)} onClose={()=>setShowApiKey(false)}/>}
     </div>
   );
 }
@@ -2391,6 +2572,7 @@ function App(){
   const [pseudo,setPseudo]=useState(()=>localStorage.getItem("ws_pseudo")||"");
   const [docId,setDocId]=useState(()=>localStorage.getItem("ws_docid")||null);
   const [fbReady,setFbReady]=useState(!!window._firebaseReady);
+  const [showApiKeyGlobal,setShowApiKeyGlobal]=useState(false);
   const ttRef=useRef(null);
   const localRef=useRef(false);
 
@@ -2490,6 +2672,8 @@ function App(){
             :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 10px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:10,cursor:"pointer"}} title="Clé API Anthropic"
+              onClick={()=>setShowApiKeyGlobal(true)}>🔑</button>
             <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 10px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:10,cursor:"pointer"}}
               onClick={()=>{
                 const fid=localStorage.getItem("ws_foyerid");
@@ -2515,6 +2699,7 @@ function App(){
         {page==="historique"&&<PageHistorique db={db} setDb={setDbSync} showToast={showToast} goToListe={()=>setPage("liste")}/>}
       </div>
       <Toast msg={toast}/>
+      {showApiKeyGlobal&&<ApiKeyModal open onSave={()=>setShowApiKeyGlobal(false)} onClose={()=>setShowApiKeyGlobal(false)}/>}
     </div>
   );
 }
