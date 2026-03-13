@@ -435,6 +435,10 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   // Widget haut de liste
   const [widgetTab,setWidgetTab]=useState(()=>localStorage.getItem("ws_widget_tab")||"planning");
   const [selectedDay,setSelectedDay]=useState(null);
+  // Vocal
+  const [vocalActive,setVocalActive]=useState(false);
+  const [vocalPending,setVocalPending]=useState([]);
+  const recognitionRef=useRef(null);
 
   useEffect(()=>{
     if(!name.trim()){setSugg([]);return;}
