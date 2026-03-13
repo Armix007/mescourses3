@@ -189,7 +189,7 @@ const btn=(v="acc")=>({
 });
 const lbl={fontSize:11,color:TXT3,fontWeight:700,textTransform:"uppercase",letterSpacing:.7,display:"block",marginBottom:6};
 const card={background:SURF,border:`1px solid ${BDR}`,borderRadius:16,padding:14,marginBottom:10,boxShadow:"0 2px 12px rgba(160,90,40,.07)"};
-const ovl={position:"fixed",inset:0,background:"rgba(80,40,10,.55)",zIndex:300,display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"};
+const ovl={position:"fixed",inset:0,background:"rgba(80,40,10,.55)",zIndex:200,display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"};
 const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",width:"100%",maxHeight:"94vh",overflowY:"auto"};
 
 // ─── COMPOSANTS DE BASE ───────────────────────────────────────
@@ -375,7 +375,7 @@ function QuickAddModal({open,product,onConfirm,onClose}){
 }
 
 // ─── HISTORY SESSION ──────────────────────────────────────────
-function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
+function HistorySession({session,onReloadAll,onReloadSelected}){
   const [open,setOpen]=useState(false);
   const [sel,setSel]=useState(new Set());
   function toggle(name){const s=new Set(sel);if(s.has(name))s.delete(name);else s.add(name);setSel(s);}
@@ -386,11 +386,11 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 13px",cursor:"pointer"}} onClick={()=>setOpen(o=>!o)}>
         <div>
           <div style={{fontWeight:600,fontSize:13,color:TXT}}>{session.date}</div>
-          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{items.length} articles</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>{session.count} articles</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <button style={{...btn("out"),fontSize:11,padding:"5px 9px"}} onClick={e=>{e.stopPropagation();onReloadAll();}}>🔄 Recharger</button>
-          <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>⌄</span>
+          <button style={{...btn("out"),fontSize:11,padding:"5px 9px"}} onClick={e=>{e.stopPropagation();onReloadAll();}}>Tout ajouter</button>
+          <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
         </div>
       </div>
       {open&&(
@@ -400,19 +400,17 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
             <div style={{display:"flex",gap:5}}>
               <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={selAll}>Tout</button>
               <button style={{...btn("gh"),fontSize:11,padding:"4px 8px"}} onClick={()=>setSel(new Set())}>Aucun</button>
-              <button style={{...btn("suc"),fontSize:11,padding:"4px 8px"}} onClick={()=>onReloadSelected(sel)} disabled={sel.size===0}>+ Ajouter</button>
+              <button style={{...btn("suc"),fontSize:11,padding:"4px 8px"}} onClick={()=>onReloadSelected(sel)} disabled={sel.size===0}>✅ Ajouter ({sel.size})</button>
             </div>
           </div>
-          <div style={{maxHeight:280,overflowY:"auto"}}>
+          <div style={{maxHeight:240,overflowY:"auto"}}>
             {items.map((item,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 4px",borderBottom:i<items.length-1?`1px solid ${BDR}`:"none"}}>
-                <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid ${BDR}`,background:sel.has(item.name)?CARAMEL2:"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>toggle(item.name)}>
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 4px",borderBottom:i<items.length-1?`1px solid ${BDR}`:"none",cursor:"pointer",background:sel.has(item.name)?`rgba(200,132,90,.08)`:"transparent"}} onClick={()=>toggle(item.name)}>
+                <div style={{width:18,height:18,borderRadius:4,border:sel.has(item.name)?"none":`1.5px solid ${BDR}`,background:sel.has(item.name)?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {sel.has(item.name)&&<span style={{color:"white",fontSize:10,fontWeight:700}}>✓</span>}
                 </div>
-                <span style={{fontSize:14,flexShrink:0}}>{(item.category||guessCat(item.name)).split(" ")[0]}</span>
                 <span style={{flex:1,fontSize:13}}>{item.name}</span>
-                <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join("+")}</span>
-                {onDeleteItem&&<span style={{fontSize:11,color:TXT3,cursor:"pointer",padding:"2px 6px",opacity:.5}} onClick={()=>onDeleteItem(item.name)} title="Supprimer">✕</span>}
+                <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</span>
               </div>
             ))}
           </div>
@@ -1327,10 +1325,6 @@ const CAT_FR={"Beef":"🥩 Bœuf","Chicken":"🍗 Poulet","Dessert":"🍰 Desser
 const MEAL_NAME_FR={"Beef and Mustard Pie":"Tourte bœuf moutarde","Beef and Oyster pie":"Tourte bœuf aux huîtres","Beef Bourguignon":"Bœuf Bourguignon","Beef Brisket Pot Roast":"Pot-au-feu de poitrine","Beef Lo Mein":"Bœuf aux nouilles sautées","Beef Rendang":"Rendang de bœuf","Beef stroganoff":"Bœuf Stroganoff","Bigos (Hunters Stew)":"Bigos (ragoût chasseur)","Chicken Alfredo":"Poulet Alfredo","Chicken Basquaise":"Poulet basquaise","Chicken Congee":"Congee de poulet","Chicken Couscous":"Couscous au poulet","Chicken Handi":"Poulet Handi","Chicken Karahi":"Poulet Karahi","Chicken Marengo":"Poulet Marengo","Chicken Marsala":"Poulet Marsala","Chicken Parmesan":"Poulet Parmesan","Coq au vin":"Coq au vin","Egg Drop Soup":"Soupe aux œufs","Fish pie":"Tourte au poisson","French Onion Soup":"Soupe à l'oignon","Grilled Salmon with Cajun":"Saumon grillé cajun","Honey Teriyaki Salmon":"Saumon teriyaki au miel","Kedgeree":"Kedgeree","Lamb and Potato Pie":"Tourte agneau pommes de terre","Lamb Biryani":"Biryani d'agneau","Lobster Bisque":"Bisque de homard","Poutine":"Poutine","Ribollita":"Ribollita (soupe toscane)","Ratatouille":"Ratatouille","Salmon Prawn Risotto":"Risotto saumon crevettes","Smoked Haddock Kedgeree":"Kedgeree haddock fumé","Spaghetti Bolognese":"Spaghettis bolognaise","Spaghetti alla Carbonara":"Spaghettis carbonara","Steak Diane":"Steak Diane","Thai Green Curry":"Curry vert thaïlandais","Thai Red Curry":"Curry rouge thaïlandais","Tuna Nicoise":"Salade niçoise au thon","Vegetarian Lasagne":"Lasagnes végétariennes","Yorkshire Pudding":"Yorkshire Pudding"};
 // Traduction FR → EN pour la recherche TheMealDB
 const SEARCH_FR_TO_EN={"poulet":"chicken","boeuf":"beef","bœuf":"beef","porc":"pork","agneau":"lamb","poisson":"fish","saumon":"salmon","crevette":"shrimp","pâtes":"pasta","riz":"rice","soupe":"soup","salade":"salad","tarte":"pie","pizza":"pizza","curry":"curry","risotto":"risotto","omelette":"omelette","crêpe":"crepe","ratatouille":"ratatouille","bouillabaisse":"bouillabaisse","cassoulet":"cassoulet","gratin":"gratin"};
-function translateMealName(enName){return MEAL_NAME_FR[enName]||enName;}
-function translateSearchToEN(frTerm){const low=frTerm.toLowerCase().trim();const exact=SEARCH_FR_TO_EN[low];if(exact)return exact;for(const[fr,en]of Object.entries(SEARCH_FR_TO_EN)){if(low.includes(fr))return en;}return frTerm;}
-const AREA_FR={"American":"🇺🇸 Américain","British":"🇬🇧 Britannique","Canadian":"🇨🇦 Canadien","Chinese":"🇨🇳 Chinois","Croatian":"🇭🇷 Croate","Dutch":"🇳🇱 Néerlandais","Egyptian":"🇪🇬 Égyptien","Filipino":"🇵🇭 Philippin","French":"🇫🇷 Français","Greek":"🇬🇷 Grec","Indian":"🇮🇳 Indien","Irish":"🇮🇪 Irlandais","Italian":"🇮🇹 Italien","Jamaican":"🇯🇲 Jamaïcain","Japanese":"🇯🇵 Japonais","Kenyan":"🇰🇪 Kenyan","Malaysian":"🇲🇾 Malaisien","Mexican":"🇲🇽 Mexicain","Moroccan":"🇲🇦 Marocain","Polish":"🇵🇱 Polonais","Portuguese":"🇵🇹 Portugais","Russian":"🇷🇺 Russe","Spanish":"🇪🇸 Espagnol","Thai":"🇹🇭 Thaïlandais","Tunisian":"🇹🇳 Tunisien","Turkish":"🇹🇷 Turc","Ukrainian":"🇺🇦 Ukrainien","Vietnamese":"🇻🇳 Vietnamien"};
-
 function parseMealDBMeasure(measure){
   if(!measure)return{qty:"",unit:""};
   const fracs={"1/2":"0.5","1/3":"0.33","1/4":"0.25","2/3":"0.67","3/4":"0.75"};
@@ -1405,7 +1399,7 @@ function MealDBSearch({onImport,onClose,showToast}){
       const rawSteps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
       const steps=rawSteps.map(s=>s.replace(/^(STEP|Step|step)\s*\d+[:\.\s]*/,"").trim()).filter(s=>s.length>3);
       const raw={
-        id:Date.now(),name:translateMealName(m.strMeal),persons:null,duration:null,photo:null,
+        id:Date.now(),name:m.strMeal,persons:null,duration:null,photo:null,
         source:"mealdb",mealdbId:m.idMeal,
         category:CAT_FR[m.strCategory]||m.strCategory||"",
         area:AREA_FR[m.strArea]||m.strArea||"",
@@ -1530,7 +1524,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
                   {guessRecipeEmoji(m.strMeal)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{translateMealName(m.strMeal)}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.strMeal}</div>
                   {m.strCategory&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{CAT_FR[m.strCategory]||m.strCategory}</div>}
                 </div>
                 <div style={{fontSize:18,color:TXT3,flexShrink:0}}>›</div>
@@ -4272,7 +4266,7 @@ function PickerRecettes({db,suggestions,onSelect,onImport,goToRecettes,showToast
       const d=await r.json();const m=d.meals?.[0];if(!m)return;
       const ings=[];
       for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
-      const recipe={id:Date.now(),name:translateMealName(m.strMeal),source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")};
+      const recipe={id:Date.now(),name:m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")};
       onImport(recipe);
     }catch{showToast("❌ Erreur import");}
   }
@@ -4664,7 +4658,7 @@ function App(){
         )}
       </div>
       {/* BOTTOM NAV — 4 onglets */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:50,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:200,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
