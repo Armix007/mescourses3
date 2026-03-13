@@ -3876,27 +3876,27 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const weekDates=getWeekDates(weekOffset);
   const todayKey=dateKey(new Date());
 
-  async function addFreeTextMeal(dk,slot,name){\
-    if(!name.trim())return;\
-    const fakeRecipe={id:"free_"+Date.now(),name:name.trim(),source:"libre",ingredients:[],steps:[]};\
-    const nd={...db,recipes:[...db.recipes,fakeRecipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:fakeRecipe.id}}};\
-    setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");\
-    showToast("✅ "+name.trim()+" planifié");\
-  }\
-  async function generateAIMeal(dk,slot){\
-    const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}\
-    setCalAILoading(true);\
-    try{\
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre. Format: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})\
-      const data=await resp.json();const text=data.content?.[0]?.text||"";\
-      const clean=text.replace(/```json|```/g,"").trim();\
-      const recipe=JSON.parse(clean);\
-      recipe.id=Date.now();recipe.source="ai";recipe.date=new Date().toLocaleDateString("fr-FR");\
-      const nd={...db,recipes:[...db.recipes,recipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipe.id}}};\
-      setDb(nd);saveDB(nd);setShowPicker(null);\
-      showToast("🤖 "+recipe.name+" créé et planifié !");\
-    }catch(e){showToast("❌ Erreur IA");}\
-    setCalAILoading(false);\
+  async function addFreeTextMeal(dk,slot,name){
+    if(!name.trim())return;
+    const fakeRecipe={id:"free_"+Date.now(),name:name.trim(),source:"libre",ingredients:[],steps:[]};
+    const nd={...db,recipes:[...db.recipes,fakeRecipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:fakeRecipe.id}}};
+    setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");
+    showToast("✅ "+name.trim()+" planifié");
+  }
+  async function generateAIMeal(dk,slot){
+    const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}
+    setCalAILoading(true);
+    try{
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre. Format: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})
+      const data=await resp.json();const text=data.content?.[0]?.text||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const recipe=JSON.parse(clean);
+      recipe.id=Date.now();recipe.source="ai";recipe.date=new Date().toLocaleDateString("fr-FR");
+      const nd={...db,recipes:[...db.recipes,recipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipe.id}}};
+      setDb(nd);saveDB(nd);setShowPicker(null);
+      showToast("🤖 "+recipe.name+" créé et planifié !");
+    }catch(e){showToast("❌ Erreur IA");}
+    setCalAILoading(false);
   }
 
   function setMeal(dk,slot,recipeId){
