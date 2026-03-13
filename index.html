@@ -3859,7 +3859,7 @@ function getWeekDates(offset){
   return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;});
 }
 
-function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){\
+function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [weekOffset,setWeekOffset]=useState(0);
   const [showPicker,setShowPicker]=useState(null); // {dk,slot,mode:"list"|"ai"|"free"}
   const [showActions,setShowActions]=useState(null);
