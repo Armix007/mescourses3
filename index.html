@@ -112,53 +112,136 @@ function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||
 function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
 function roundQ(n){return n%1===0?n:+n.toFixed(2);}
 function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
+// ─── BASE ARTICLES ~300 produits courants ────────────────────
+const PRODUCTS_DB=[
+  "Ail","Artichaut","Asperge","Aubergine","Betterave","Blette","Brocoli","Butternut","Carotte","Céleri","Champignon de Paris","Chou-fleur","Chou rouge","Chou vert","Ciboulette","Citrouille","Concombre","Courgette","Courge","Cresson","Échalote","Endive","Épinard","Fenouil","Gingembre","Haricot vert","Laitue","Mâche","Maïs","Navet","Oignon","Oignon rouge","Panais","Patate douce","Petit pois","Pleurote","Poireau","Pois gourmand","Poivron jaune","Poivron rouge","Poivron vert","Pomme de terre","Potiron","Radis","Roquette","Tomate","Tomate cerise","Tomate pelée","Cèpe","Morille",
+  "Abricot","Ananas","Avocat","Banane","Cerise","Citron","Citron vert","Clémentine","Figue","Fraise","Framboise","Grenade","Kiwi","Litchi","Mangue","Melon","Mûre","Myrtille","Orange","Pamplemousse","Pastèque","Pêche","Poire","Pomme","Prune","Raisin blanc","Raisin noir","Noix de coco",
+  "Bœuf haché","Côte de bœuf","Entrecôte","Escalope de veau","Filet mignon","Gigot d'agneau","Jarret de veau","Joue de bœuf","Lardons","Magret de canard","Merguez","Osso buco","Paleron","Rôti de bœuf","Rôti de porc","Saucisse","Steak","Tournedos","Travers de porc",
+  "Blanc de poulet","Cuisse de poulet","Dinde","Escalope de dinde","Pintade","Poulet entier",
+  "Bacon","Chorizo","Jambon blanc","Jambon cru","Jambon de pays","Mortadelle","Pancetta","Rillettes","Rosette","Salami","Saucisson sec",
+  "Bar","Cabillaud","Crevette","Dorade","Flétan","Homard","Huître","Langoustine","Lieu noir","Lotte","Maquereau","Moule","Poulpe","Saint-Jacques","Saumon","Sardine","Seiche","Sole","Thon","Truite",
+  "Beurre doux","Beurre demi-sel","Crème épaisse","Crème fraîche","Crème liquide","Fromage blanc","Lait demi-écrémé","Lait entier","Lait écrémé","Margarine","Petit-suisse","Yaourt nature","Yaourt grec",
+  "Beaufort","Brie","Camembert","Cheddar","Chèvre","Comté","Emmental","Feta","Gouda","Gruyère","Mascarpone","Mozzarella","Parmesan","Raclette","Reblochon","Ricotta","Roquefort","Tomme",
+  "Œufs","Baguette","Brioche","Croissant","Madeleine","Pain complet","Pain de campagne","Pain de mie","Toast","Wrap","Tortilla",
+  "Boulgour","Couscous","Flocons d'avoine","Gnocchi","Lasagne","Macaroni","Penne","Quinoa","Riz basmati","Riz complet","Semoule","Spaghetti","Tagliatelle",
+  "Fève","Haricot blanc","Haricot rouge","Lentille corail","Lentille verte","Pois chiche","Tofu",
+  "Concentré de tomate","Maïs en boîte","Olive noire","Olive verte","Sauce tomate","Thon en boîte","Tomate concassée","Tomate pelée en boîte",
+  "Farine de blé","Fécule de maïs","Levure chimique","Maïzena","Poudre d'amande","Sucre","Sucre glace","Sucre roux","Chapelure",
+  "Basilic","Cannelle","Coriandre","Cumin","Curcuma","Curry","Herbes de Provence","Muscade","Origan","Paprika","Persil","Piment","Piment d'Espelette","Poivre","Romarin","Safran","Sel","Thym","Vanille",
+  "Huile d'olive","Huile de tournesol","Huile de coco","Huile de sésame","Huile de colza","Vinaigre balsamique","Vinaigre blanc","Vinaigre de cidre",
+  "Ketchup","Mayonnaise","Moutarde","Nuoc-mâm","Pesto","Sauce soja","Tabasco","Tahini","Wasabi",
+  "Chocolat au lait","Chocolat blanc","Chocolat noir","Confiture de fraise","Confiture d'abricot","Miel","Nutella","Pâte à tartiner","Sirop d'érable","Caramel",
+  "Amande","Cacahuète","Cajou","Graine de chia","Graine de lin","Graine de sésame","Noisette","Noix","Pistache","Raisin sec","Pignon de pin",
+  "Café moulu","Eau gazeuse","Eau plate","Jus d'orange","Jus de pomme","Lait d'amande","Lait d'avoine","Lait de soja","Thé noir","Thé vert","Tisane","Soda",
+  "Brosse à dents","Déodorant","Dentifrice","Éponge","Essuie-tout","Gel douche","Lessive","Liquide vaisselle","Papier toilette","Shampooing","Savon",
+  "Glace","Légumes surgelés","Pizza surgelée","Sorbet","Steak haché surgelé",
+];
+
+function normalizeName(name){
+  const n=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const match=PRODUCTS_DB.find(p=>{
+    const pn=p.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+    return pn===n||pn.startsWith(n)||n.startsWith(pn);
+  });
+  return match||name;
+}
+
 function guessCat(name){
   const n=name.toLowerCase();
-  // Légumes
-  if(/tomate|salade|carotte|courgette|aubergine|oignon|poireau|brocoli|épinard|poivron|concombre|chou|radis|betterave|asperge|fenouil|échalotte|ail|gingembre|navet|céleri|endive|artichaut|haricot vert|petits pois|maïs|patate douce|potiron|butternut/.test(n))return"🥦 Légumes";
-  if(/champignon|pleurote|morille|cèpe/.test(n))return"🍄 Champignons";
+  if(/ail/.test(n))return"🧄 Légumes";
+  if(/piment/.test(n))return"🌶️ Épices";
+  if(/gingembre/.test(n))return"🫚 Épices";
+  if(/tomate cerise/.test(n))return"🍅 Légumes";
+  if(/tomate/.test(n))return"🍅 Légumes";
+  if(/carotte/.test(n))return"🥕 Légumes";
+  if(/salade|laitue|mâche|roquette|épinard|endive|cresson/.test(n))return"🥗 Légumes";
+  if(/brocoli|chou-fleur|chou rouge|chou vert|chou/.test(n))return"🥦 Légumes";
+  if(/poivron/.test(n))return"🫑 Légumes";
+  if(/courgette|aubergine|concombre/.test(n))return"🥒 Légumes";
+  if(/oignon|échalote|poireau|ciboulette/.test(n))return"🧅 Légumes";
+  if(/maïs/.test(n))return"🌽 Légumes";
+  if(/artichaut|asperge|céleri|fenouil|navet|radis|betterave|blette|panais|patate douce|butternut|potiron|courge|petit pois|haricot vert|pois gourmand|citrouille|cresson/.test(n))return"🥦 Légumes";
+  if(/champignon|pleurote|morille|cèpe|truffe/.test(n))return"🍄 Champignons";
   if(/pomme de terre|pommes de terre/.test(n))return"🥔 Féculents";
-  // Fruits
-  if(/pomme|poire|banane|fraise|framboise|cerise|abricot|pêche|melon|pastèque|mangue|ananas|kiwi|orange|citron|raisin|figue|prune|myrtille|grenade|litchi|clémentine|mandarine/.test(n))return"🍎 Fruits";
+  if(/fraise|framboise|mûre|myrtille/.test(n))return"🍓 Fruits";
+  if(/pomme/.test(n))return"🍎 Fruits";
+  if(/banane/.test(n))return"🍌 Fruits";
+  if(/citron|pamplemousse/.test(n))return"🍋 Fruits";
+  if(/orange|clémentine|mandarine/.test(n))return"🍊 Fruits";
+  if(/raisin/.test(n))return"🍇 Fruits";
+  if(/poire/.test(n))return"🍐 Fruits";
+  if(/cerise/.test(n))return"🍒 Fruits";
+  if(/pêche|abricot|prune/.test(n))return"🍑 Fruits";
+  if(/melon|pastèque/.test(n))return"🍈 Fruits";
+  if(/ananas/.test(n))return"🍍 Fruits";
+  if(/mangue|papaye|goyave|litchi|grenade/.test(n))return"🥭 Fruits";
+  if(/kiwi/.test(n))return"🥝 Fruits";
   if(/avocat/.test(n))return"🥑 Fruits";
-  // Protéines animales
-  if(/viande|boeuf|bœuf|steak|côte|filet de bœuf|bourguignon|pot-au-feu|paleron|entrecôte/.test(n))return"🥩 Bœuf";
-  if(/porc|lard|lardon|bacon|saucisse|jambon|chorizo|merguez|chipolata|côte de porc|filet mignon/.test(n))return"🥓 Porc";
-  if(/poulet|dinde|canard|volaille|pintade|caille|blanc de poulet|cuisse|aile/.test(n))return"🍗 Volaille";
-  if(/agneau|veau|mouton|lapin|gibier|cerf|sanglier/.test(n))return"🥩 Viande";
-  if(/poisson|saumon|thon|cabillaud|sole|dorade|daurade|lotte|bar|turbot|flétan/.test(n))return"🐟 Poisson";
+  if(/noix de coco/.test(n))return"🥥 Fruits";
+  if(/figue sèche|datte|abricot sec|raisin sec|pruneaux|cranberry|fruit sec/.test(n))return"🍇 Fruits secs";
+  if(/bœuf|boeuf|steak|entrecôte|côte de bœuf|rôti de bœuf|paleron|tournedos|bourguignon|pot-au-feu|joue de bœuf/.test(n))return"🥩 Bœuf";
+  if(/veau|osso buco|jarret de veau|escalope de veau/.test(n))return"🥩 Veau";
+  if(/rôti de porc|travers|côte de porc|filet mignon|porc/.test(n))return"🥩 Porc";
+  if(/agneau|gigot|mouton/.test(n))return"🥩 Agneau";
+  if(/lapin|gibier|cerf|sanglier/.test(n))return"🥩 Viande";
+  if(/lardons|lardon|bacon|saucisse|jambon|chorizo|merguez|chipolata|salami|rosette|saucisson|mortadelle|pancetta|rillettes/.test(n))return"🥓 Charcuterie";
+  if(/poulet|dinde|canard|volaille|pintade|caille|magret|blanc de poulet|cuisse|aile/.test(n))return"🍗 Volaille";
+  if(/saumon/.test(n))return"🐟 Poisson";
+  if(/thon/.test(n))return"🐟 Poisson";
+  if(/cabillaud|sole|dorade|daurade|lotte|bar|turbot|flétan|lieu|hareng|maquereau|sardine|truite/.test(n))return"🐟 Poisson";
+  if(/anchois/.test(n))return"🐟 Poisson";
   if(/crevette|moule|huître|coquille|homard|langoustine|seiche|poulpe|calmar|saint-jacques/.test(n))return"🦐 Fruits de mer";
-  if(/sardine|anchois|hareng|maquereau/.test(n))return"🐟 Poisson";
-  // Laitiers
+  if(/lait d'amande|lait d'avoine|lait de coco|lait de soja/.test(n))return"🥛 Boissons végétales";
   if(/lait/.test(n))return"🥛 Lait";
-  if(/yaourt|fromage blanc|petit-suisse|crème fraîche|crème liquide|beurre|ghee|margarine/.test(n))return"🧈 Laitiers";
-  if(/fromage|gruyère|emmental|parmesan|comté|mozzarella|camembert|brie|roquefort|chèvre|edam|gouda|reblochon/.test(n))return"🧀 Fromage";
+  if(/crème fraîche|crème épaisse|crème liquide/.test(n))return"🧈 Laitiers";
+  if(/beurre|margarine|ghee/.test(n))return"🧈 Beurre";
+  if(/yaourt|fromage blanc|petit-suisse|kéfir/.test(n))return"🥛 Laitiers";
+  if(/mozzarella|parmesan|gruyère|emmental|comté|beaufort|reblochon|raclette|brie|camembert|roquefort|chèvre|edam|gouda|feta|ricotta|mascarpone|cheddar|mimolette|manchego|tomme/.test(n))return"🧀 Fromage";
+  if(/fromage/.test(n))return"🧀 Fromage";
   if(/oeuf|oeufs|œuf|œufs/.test(n))return"🥚 Œufs";
-  // Boulangerie
-  if(/pain|baguette|brioche|croissant|viennoiserie|biscuit|gâteau|tarte|far breton|kouglof|madeleine/.test(n))return"🍞 Boulangerie";
-  if(/farine|levure|sucre glace|sucre|sel|poivre|épice|cannelle|cumin|curcuma|paprika|curry|muscade/.test(n))return"🧂 Épices & Sel";
-  // Féculents & céréales
-  if(/pâte|spaghetti|macaroni|tagliatelle|lasagne|ravioli|gnocchi|riz|quinoa|boulgour|semoule|polenta|avoine|muesli|céréale/.test(n))return"🍝 Féculents";
-  if(/pain de mie|toast/.test(n))return"🍞 Boulangerie";
-  // Hygiene
-  if(/shampo|savon|dentifrice|gel douche|déodorant|lessive|produit ménager|éponge|papier toilette|essuie/.test(n))return"🧴 Hygiène";
-  // Boissons
-  if(/eau|jus|jus de fruit|nectar|sirop/.test(n))return"💧 Eau & Jus";
+  if(/pain de mie|toast|wrap|tortilla/.test(n))return"🍞 Pain";
+  if(/baguette|pain complet|pain de campagne/.test(n))return"🥖 Pain";
+  if(/brioche|croissant|viennoiserie|madeleine|financier|gâteau|cake|tarte|éclair|kouglof|galette|flan/.test(n))return"🥐 Pâtisserie";
+  if(/biscuit/.test(n))return"🍪 Biscuits";
+  if(/sel/.test(n))return"🧂 Sel";
+  if(/poivre/.test(n))return"🧂 Poivre";
+  if(/cannelle|cumin|curcuma|paprika|curry|muscade|cardamome|safran|fenugrec|coriandre|anis/.test(n))return"🫙 Épices";
+  if(/herbes de provence|thym|romarin|origan|basilic|persil|estragon|menthe|sarriette|laurier/.test(n))return"🌿 Herbes";
+  if(/farine|levure|sucre glace|sucre roux|sucre|fécule|maïzena|chapelure|poudre d'amande/.test(n))return"🧁 Pâtisserie";
+  if(/riz/.test(n))return"🍚 Riz";
+  if(/pâte|spaghetti|macaroni|tagliatelle|lasagne|ravioli|gnocchi|fettuccine|penne|vermicelle/.test(n))return"🍝 Pâtes";
+  if(/quinoa|boulgour|semoule|couscous|polenta|épeautre|millet|orge/.test(n))return"🌾 Céréales";
+  if(/flocons d'avoine|granola|muesli|müesli|corn flakes/.test(n))return"🥣 Céréales";
+  if(/shampo|savon|dentifrice|gel douche|déodorant|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin|brosse à dents|rasoir|coton|serviette hygiénique|tampon/.test(n))return"🧴 Hygiène";
+  if(/eau gazeuse|eau plate|eau/.test(n))return"💧 Eau";
+  if(/jus d'orange|jus de pomme|jus de tomate|jus|nectar/.test(n))return"🧃 Jus";
   if(/soda|cola|limonade|tonic/.test(n))return"🥤 Sodas";
   if(/bière/.test(n))return"🍺 Bière";
-  if(/vin|champagne|prosecco|rosé|bordeaux|bourgogne/.test(n))return"🍷 Vin";
-  if(/café|expresso|cappuccino|latte/.test(n))return"☕ Café";
-  if(/thé|infusion|tisane|herbe/.test(n))return"🍵 Thé";
-  // Huiles & condiments
-  if(/huile|olive|tournesol|colza|noix|sésame/.test(n))return"🫙 Huiles";
-  if(/vinaigre|moutarde|ketchup|mayonnaise|tabasco|sauce soja|nuoc-mam|wasabi/.test(n))return"🫙 Condiments";
-  if(/miel|confiture|nutella|pâte à tartiner|sirop d'érable/.test(n))return"🍯 Sucré";
-  if(/chocolat|cacao|praline/.test(n))return"🍫 Chocolat";
-  // Conserves & surgelés
-  if(/conserve|boite|bocal|surgelé|congelé/.test(n))return"🥫 Conserves";
-  if(/légumineuse|lentille|pois chiche|haricot|fève|soja|tofu/.test(n))return"🫘 Légumineuses";
-  // Noix & graines
-  if(/noix|amande|noisette|pistache|cajou|arachide|cacahuète|graine|sésame|lin|chia/.test(n))return"🥜 Oléagineux";
+  if(/vin|champagne|prosecco|rosé|bordeaux/.test(n))return"🍷 Vin";
+  if(/café|expresso|cappuccino|latte|capsule/.test(n))return"☕ Café";
+  if(/thé|infusion|tisane/.test(n))return"🍵 Thé";
+  if(/huile d'olive/.test(n))return"🫒 Huile d'olive";
+  if(/huile/.test(n))return"🫙 Huile";
+  if(/vinaigre/.test(n))return"🫙 Vinaigre";
+  if(/moutarde/.test(n))return"🫙 Moutarde";
+  if(/ketchup/.test(n))return"🍅 Ketchup";
+  if(/mayonnaise/.test(n))return"🫙 Mayo";
+  if(/pesto|sauce tomate|sauce soja|tabasco|nuoc|wasabi|tahini/.test(n))return"🫙 Sauces";
+  if(/miel/.test(n))return"🍯 Miel";
+  if(/confiture|gelée/.test(n))return"🍓 Confiture";
+  if(/nutella|pâte à tartiner/.test(n))return"🍫 Pâte à tartiner";
+  if(/sirop d'érable|sirop d'agave/.test(n))return"🍯 Sirop";
+  if(/chocolat/.test(n))return"🍫 Chocolat";
+  if(/caramel/.test(n))return"🍬 Confiserie";
+  if(/concentré de tomate|tomate concassée|tomate pelée|sauce tomate/.test(n))return"🥫 Conserves";
+  if(/conserve|bocal|boite en/.test(n))return"🥫 Conserves";
+  if(/olive/.test(n))return"🫒 Olives";
+  if(/surgelé|congelé|glace|sorbet/.test(n))return"🧊 Surgelés";
+  if(/lentille|pois chiche|haricot blanc|haricot rouge|pois cassé|fève|soja|tofu|tempeh/.test(n))return"🫘 Légumineuses";
+  if(/amande|noisette|pistache|cajou|cacahuète|arachide|macadamia|noix du brésil|pignon/.test(n))return"🥜 Noix";
+  if(/noix/.test(n))return"🥜 Noix";
+  if(/graine de chia|graine de lin|graine de sésame|graine de tournesol|graine de courge/.test(n))return"🌱 Graines";
+  if(/sirop/.test(n))return"🍬 Sirop";
   return"🛒 Épicerie";
 }
 function normUnit(u){
@@ -375,7 +458,7 @@ function QuickAddModal({open,product,onConfirm,onClose}){
 }
 
 // ─── HISTORY SESSION ──────────────────────────────────────────
-function HistorySession({session,onReloadAll,onReloadSelected}){
+function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
   const [open,setOpen]=useState(false);
   const [sel,setSel]=useState(new Set());
   function toggle(name){const s=new Set(sel);if(s.has(name))s.delete(name);else s.add(name);setSel(s);}
@@ -411,6 +494,7 @@ function HistorySession({session,onReloadAll,onReloadSelected}){
                 </div>
                 <span style={{flex:1,fontSize:13}}>{item.name}</span>
                 <span style={{fontSize:11,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</span>
+                {onDeleteItem&&<span style={{fontSize:12,color:TXT3,opacity:.5,cursor:"pointer",padding:"2px 6px",flexShrink:0}} onClick={e=>{e.stopPropagation();onDeleteItem(item.name);}}>✕</span>}
               </div>
             ))}
           </div>
@@ -443,7 +527,11 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   useEffect(()=>{
     if(!name.trim()){setSugg([]);return;}
     const q=name.toLowerCase();
-    setSugg(Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count).slice(0,6));
+    // Fusionner l'historique utilisateur + base PRODUCTS_DB
+    const histEntries=Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count);
+    const histNames=new Set(histEntries.map(([n])=>n.toLowerCase()));
+    const dbEntries=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!histNames.has(p.toLowerCase())).slice(0,4).map(p=>[p,{count:0,category:guessCat(p),lastUnit:""}]);
+    setSugg([...histEntries,...dbEntries].slice(0,6));
   },[name,db.productHistory]);
 
   function changeCat(id,newCat){
@@ -453,8 +541,8 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
   // ─── VOCAL ────────────────────────────────────────────
   function parseVocalText(text){
-    // Split by virgule ou "et" en début de segment
-    const segments=text.split(/,|\set\s/i).map(s=>s.trim()).filter(Boolean);
+    // Split by virgule (symbol ou mot "virgule") ou "et" en début de segment
+    const segments=text.split(/,|\bvirgule\b|\set\s/i).map(s=>s.trim()).filter(Boolean);
     return segments.map(seg=>{
       const s=seg.toLowerCase().trim();
       // Try to extract quantity + unit + name
@@ -793,9 +881,15 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <button style={{...btn("acc"),fontSize:18,padding:"10px 16px"}} onClick={addItem}>+</button>
         </div>
         {vocalActive&&(
-          <div style={{background:"rgba(212,96,74,.08)",border:"1.5px solid rgba(212,96,74,.3)",borderRadius:10,padding:"10px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:10,height:10,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite"}}/>
-            <span style={{fontSize:12,color:DNG,fontWeight:700}}>En écoute… Dites vos articles séparés par des virgules</span>
+          <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.5)",borderRadius:10,padding:"10px 13px",marginBottom:8,display:"flex",flexDirection:"column",gap:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:10,height:10,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite",flexShrink:0}}/>
+              <span style={{fontSize:13,color:DNG,fontWeight:800}}>🎤 En écoute…</span>
+            </div>
+            <div style={{background:"rgba(212,96,74,.12)",borderRadius:8,padding:"7px 10px",fontSize:12,color:DNG,fontWeight:700,textAlign:"center",lineHeight:1.5}}>
+              Dites vos articles puis <span style={{background:DNG,color:"white",borderRadius:5,padding:"1px 6px",fontWeight:900}}>« virgule »</span> entre chaque
+            </div>
+            <div style={{fontSize:10,color:TXT3,textAlign:"center"}}>Ex : "tomates virgule lait virgule œufs"</div>
           </div>
         )}
         {sugg.length>0&&(
@@ -1217,7 +1311,7 @@ function PageRecettes({db,setDb,showToast}){
                 <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                 <div style={{fontSize:10,color:TXT3}}>{r.category}{r.area?" · "+r.area:""}</div>
               </div>
-              <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();importMealDBById(r.mealdbId);}}>+ Importer</button>
+              <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();setShowMealDB(r);}}>👁️ Voir & importer</button>
             </div>
           ))}
         </div>
@@ -1315,7 +1409,7 @@ function PageRecettes({db,setDb,showToast}){
         onClose={()=>setViewIdx(-1)}
         onEdit={()=>{setViewIdx(-1);setTimeout(()=>{setEditIdx(viewIdx);setShowEdit(true);},200);}}
         onDel={()=>delRecipe(viewIdx)} onAdd={addToList} showToast={showToast}/>}
-      {showMealDB&&<MealDBSearch onImport={importRecipe} onClose={()=>setShowMealDB(false)} showToast={showToast}/>}
+      {showMealDB&&<MealDBSearch onImport={importRecipe} onClose={()=>setShowMealDB(false)} showToast={showToast} initialMeal={typeof showMealDB==="object"?showMealDB:null}/>}
       {showAI&&<AIRecipeGen onImport={importRecipe} onClose={()=>setShowAI(false)} showToast={showToast} items={db.items}/>}
       {showFolders&&<FolderManager db={db} setDb={d=>{setDb(d);saveDB(d);}} showToast={showToast} onClose={()=>setShowFolders(false)}/>}
     </div>
@@ -1348,8 +1442,8 @@ function parseMealDBMeasure(measure){
   return{qty,unit:(unitMap[rawUnit]!==undefined?unitMap[rawUnit]:"").trim()};
 }
 
-function MealDBSearch({onImport,onClose,showToast}){
-  const [view,setView]=useState("categories"); // categories | list | detail
+function MealDBSearch({onImport,onClose,showToast,initialMeal}){
+  const [view,setView]=useState(initialMeal?"detail":"categories");
   const [categories,setCategories]=useState([]);
   const [query,setQuery]=useState("");
   const [results,setResults]=useState([]);
@@ -1359,9 +1453,13 @@ function MealDBSearch({onImport,onClose,showToast}){
   const [selectedCat,setSelectedCat]=useState("");
 
   useEffect(()=>{
-    fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
+    if(!initialMeal)fetch("https://www.themealdb.com/api/json/v1/1/categories.php")
       .then(r=>r.json()).then(d=>setCategories(d.categories||[])).catch(()=>{});
   },[]);
+
+  useEffect(()=>{
+    if(initialMeal?.mealdbId)loadDetail(initialMeal.mealdbId);
+  },[initialMeal]);
 
   async function browseCategory(cat){
     setSelectedCat(cat);setLoading(true);setResults([]);setView("list");
@@ -3874,6 +3972,8 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [wizardItems,setWizardItems]=useState([]);
   const [freeText,setFreeText]=useState("");
   const [calAILoading,setCalAILoading]=useState(false);
+  const [aiPantrySelected,setAIPantrySelected]=useState(new Set());
+  const [aiWish,setAIWish]=useState("");
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
@@ -3887,11 +3987,12 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");
     showToast("✅ "+name.trim()+" planifié");
   }
-  async function generateAIMeal(dk,slot){
+  async function generateAIMeal(dk,slot,pantryItems,wish){
     const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}
     setCalAILoading(true);
+    const pantryContext=pantryItems?.length?`\nIngrédients disponibles dans le placard (à utiliser en priorité) : ${pantryItems.join(", ")}`:"";    const wishContext=wish?.trim()?`\nIngédients ou type de plat souhaité par l'utilisateur : ${wish}`:"";
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre. Format: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre.${pantryContext}${wishContext}\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})
       const data=await resp.json();const text=data.content?.[0]?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const recipe=JSON.parse(clean);
@@ -4077,16 +4178,40 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             )
           )}
           {(showPicker.mode)==="ai"&&(
-            <div style={{textAlign:"center",padding:"16px 8px"}}>
-              <div style={{fontSize:32,marginBottom:8}}>🤖</div>
-              <div style={{fontSize:13,color:TXT2,marginBottom:16,lineHeight:1.5}}>L'IA va générer une recette complète et la planifier pour ce créneau.</div>
+            <div>
+              {pantry.length>0&&(
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>🏠 Utiliser depuis mon placard :</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5,maxHeight:100,overflowY:"auto"}}>
+                    {pantry.map(item=>{
+                      const isSel=aiPantrySelected.has(item.id);
+                      return(
+                        <div key={item.id} onClick={()=>{const s=new Set(aiPantrySelected);isSel?s.delete(item.id):s.add(item.id);setAIPantrySelected(s);}}
+                          style={{padding:"4px 10px",borderRadius:16,fontSize:11,fontWeight:600,cursor:"pointer",
+                            background:isSel?CARAMEL2:"rgba(255,255,255,.8)",color:isSel?"white":TXT2,
+                            border:`1.5px solid ${isSel?CARAMEL2:BDR}`}}>
+                          {guessCat(item.name).split(" ")[0]} {item.name}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>✨ Souhait / type de plat (optionnel) :</div>
+                <input style={{...inp,fontSize:12}} placeholder="Ex: pâtes, plat rapide, végétarien…" value={aiWish} onChange={e=>setAIWish(e.target.value)}/>
+              </div>
               {calAILoading?(
-                <div style={{fontSize:13,color:TXT3}}>⏳ Génération en cours…</div>
+                <div style={{textAlign:"center",padding:"12px 0",fontSize:13,color:TXT3}}>⏳ Génération en cours…</div>
               ):(
-                <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={()=>generateAIMeal(showPicker.dk,showPicker.slot)}>✨ Générer une recette</button>
+                <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={()=>{
+                  const pantryNames=pantry.filter(i=>aiPantrySelected.has(i.id)).map(i=>i.name);
+                  generateAIMeal(showPicker.dk,showPicker.slot,pantryNames,aiWish);
+                }}>🤖 Générer la recette</button>
               )}
             </div>
           )}
+          
           {(showPicker.mode)==="free"&&(
             <div>
               <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Entrez simplement le nom du repas, sans ingrédients :</div>
@@ -4669,7 +4794,7 @@ function App(){
         )}
       </div>
       {/* BOTTOM NAV — 4 onglets */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:200,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:20,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
