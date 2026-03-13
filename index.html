@@ -1325,6 +1325,7 @@ function PageRecettes({db,setDb,showToast}){
 // ─── MEALDB SEARCH ───────────────────────────────────────────
 // Traductions catégories et origines TheMealDB
 const CAT_FR={"Beef":"🥩 Bœuf","Chicken":"🍗 Poulet","Dessert":"🍰 Desserts","Lamb":"🥩 Agneau","Miscellaneous":"🍽️ Divers","Pasta":"🍝 Pâtes","Pork":"🥩 Porc","Seafood":"🐟 Fruits de mer","Side":"🥗 Accompagnements","Starter":"🥙 Entrées","Vegan":"🌿 Vegan","Vegetarian":"🌱 Végétarien","Breakfast":"🍳 Petit-déjeuner","Goat":"🥩 Chèvre"};
+const AREA_FR={"American":"🇺🇸 Américain","British":"🇬🇧 Britannique","Canadian":"🇨🇦 Canadien","Chinese":"🇨🇳 Chinois","Croatian":"🇭🇷 Croate","Dutch":"🇳🇱 Néerlandais","Egyptian":"🇪🇬 Égyptien","Filipino":"🇵🇭 Philippin","French":"🇫🇷 Français","Greek":"🇬🇷 Grec","Indian":"🇮🇳 Indien","Irish":"🇮🇪 Irlandais","Italian":"🇮🇹 Italien","Jamaican":"🇯🇲 Jamaïcain","Japanese":"🇯🇵 Japonais","Kenyan":"🇰🇪 Kényan","Malaysian":"🇲🇾 Malaisien","Mexican":"🇲🇽 Mexicain","Moroccan":"🇲🇦 Marocain","Polish":"🇵🇱 Polonais","Portuguese":"🇵🇹 Portugais","Russian":"🇷🇺 Russe","Spanish":"🇪🇸 Espagnol","Thai":"🇹🇭 Thaïlandais","Tunisian":"🇹🇳 Tunisien","Turkish":"🇹🇷 Turc","Ukrainian":"🇺🇦 Ukrainien","Unknown":"🌍 Inconnu","Vietnamese":"🇻🇳 Vietnamien"};
 // Dictionnaire de traduction des noms courants TheMealDB
 const MEAL_NAME_FR={"Beef and Mustard Pie":"Tourte bœuf moutarde","Beef and Oyster pie":"Tourte bœuf aux huîtres","Beef Bourguignon":"Bœuf Bourguignon","Beef Brisket Pot Roast":"Pot-au-feu de poitrine","Beef Lo Mein":"Bœuf aux nouilles sautées","Beef Rendang":"Rendang de bœuf","Beef stroganoff":"Bœuf Stroganoff","Bigos (Hunters Stew)":"Bigos (ragoût chasseur)","Chicken Alfredo":"Poulet Alfredo","Chicken Basquaise":"Poulet basquaise","Chicken Congee":"Congee de poulet","Chicken Couscous":"Couscous au poulet","Chicken Handi":"Poulet Handi","Chicken Karahi":"Poulet Karahi","Chicken Marengo":"Poulet Marengo","Chicken Marsala":"Poulet Marsala","Chicken Parmesan":"Poulet Parmesan","Coq au vin":"Coq au vin","Egg Drop Soup":"Soupe aux œufs","Fish pie":"Tourte au poisson","French Onion Soup":"Soupe à l'oignon","Grilled Salmon with Cajun":"Saumon grillé cajun","Honey Teriyaki Salmon":"Saumon teriyaki au miel","Kedgeree":"Kedgeree","Lamb and Potato Pie":"Tourte agneau pommes de terre","Lamb Biryani":"Biryani d'agneau","Lobster Bisque":"Bisque de homard","Poutine":"Poutine","Ribollita":"Ribollita (soupe toscane)","Ratatouille":"Ratatouille","Salmon Prawn Risotto":"Risotto saumon crevettes","Smoked Haddock Kedgeree":"Kedgeree haddock fumé","Spaghetti Bolognese":"Spaghettis bolognaise","Spaghetti alla Carbonara":"Spaghettis carbonara","Steak Diane":"Steak Diane","Thai Green Curry":"Curry vert thaïlandais","Thai Red Curry":"Curry rouge thaïlandais","Tuna Nicoise":"Salade niçoise au thon","Vegetarian Lasagne":"Lasagnes végétariennes","Yorkshire Pudding":"Yorkshire Pudding"};
 // Traduction FR → EN pour la recherche TheMealDB
@@ -4495,17 +4496,18 @@ function App(){
   const [toast,setToast]=useState("");
   const [pseudo,setPseudo]=useState(()=>localStorage.getItem("ws_pseudo")||"");
   const [docId,setDocId]=useState(()=>localStorage.getItem("ws_docid")||null);
-  const [fbReady,setFbReady]=useState(!!window._firebaseReady);
+  const [fbReady,setFbReady]=useState(true); // toujours démarrer, Firebase se sync en arrière-plan
   const [showApiKeyGlobal,setShowApiKeyGlobal]=useState(false);
   const ttRef=useRef(null);
   const localRef=useRef(false);
 
-  // Attendre que Firebase soit prêt
+  // Attendre que Firebase soit prêt (fallback 3s)
   useEffect(()=>{
     if(window._firebaseReady){setFbReady(true);return;}
     const h=()=>setFbReady(true);
     window.addEventListener("firebaseReady",h);
-    return()=>window.removeEventListener("firebaseReady",h);
+    const t=setTimeout(()=>setFbReady(true),3000);
+    return()=>{window.removeEventListener("firebaseReady",h);clearTimeout(t);};
   },[]);
 
   // Écouter les changements Firestore en temps réel
