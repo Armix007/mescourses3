@@ -112,6 +112,100 @@ function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||
 function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
 function roundQ(n){return n%1===0?n:+n.toFixed(2);}
 function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
+// ─── BASE PRODUITS (chargée depuis products.json) ────────────────────────────
+let PRODUCTS_CATALOG = []; // rempli au chargement
+
+async function loadProductsCatalog(){
+  try{
+    const r = await fetch('/products.json');
+    const d = await r.json();
+    PRODUCTS_CATALOG = d.produits || [];
+  } catch(e){
+    // Fallback silencieux — guessCat reste actif
+    PRODUCTS_CATALOG = [];
+  }
+}
+
+// Normalise un nom d'ingrédient (souvent généré par IA ou importé en anglais)
+// vers le nom canonique de la base + récupère emoji et catégorie
+function normalizeIngredient(rawName){
+  if(!rawName) return {nom: rawName, categorie: getCat(rawName), emoji: getCat(rawName).split(' ')[0]};
+  
+  // 1. Normalisation du texte : minuscules, sans accents
+  const normalize = s => s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/['']/g, "'")
+    .trim();
+  
+  const raw = normalize(rawName);
+  
+  // 2. Correspondance exacte sur nom ou clé
+  let match = PRODUCTS_CATALOG.find(p => normalize(p.nom) === raw || p.cle === raw);
+  
+  // 3. Correspondance exacte sur aliases
+  if(!match){
+    match = PRODUCTS_CATALOG.find(p => p.aliases.some(a => normalize(a) === raw));
+  }
+  
+  // 4. Correspondance partielle : le raw contient le nom canonique ou vice-versa
+  if(!match){
+    match = PRODUCTS_CATALOG.find(p => {
+      const nomN = normalize(p.nom);
+      return raw.includes(nomN) || nomN.includes(raw);
+    });
+  }
+
+  // 5. Correspondance partielle sur aliases
+  if(!match){
+    match = PRODUCTS_CATALOG.find(p =>
+      p.aliases.some(a => {
+        const aN = normalize(a);
+        return raw.includes(aN) || aN.includes(raw);
+      })
+    );
+  }
+
+  // 6. Correspondance par mots-clés (≥2 mots en commun)
+  if(!match){
+    const rawWords = raw.split(/\s+/).filter(w => w.length > 2);
+    if(rawWords.length >= 2){
+      match = PRODUCTS_CATALOG.find(p => {
+        const allNames = [p.nom, ...p.aliases].map(normalize).join(' ');
+        const commonWords = rawWords.filter(w => allNames.includes(w));
+        return commonWords.length >= 2;
+      });
+    }
+  }
+
+  if(match){
+    return {
+      nom: match.nom,
+      categorie: match.categorie,
+      emoji: match.emoji,
+      unite: match.unite_defaut,
+      rayon: match.rayon,
+      regimes: match.regimes
+    };
+  }
+
+  // Fallback : garde le nom original + devine catégorie par regex
+  const cat = getCat(rawName);
+  return {
+    nom: rawName,
+    categorie: cat,
+    emoji: cat.split(' ')[0],
+    unite: null,
+    rayon: null,
+    regimes: null
+  };
+}
+
+// Version simplifiée pour guessCat utilisant la base en priorité
+function getCatFromCatalog(name){
+  const r = normalizeIngredient(name);
+  return r.categorie;
+}
+
 // ─── BASE ARTICLES ~300 produits courants ────────────────────
 const PRODUCTS_DB=[
   "Ail","Artichaut","Asperge","Aubergine","Betterave","Blette","Brocoli","Butternut","Carotte","Céleri","Champignon de Paris","Chou-fleur","Chou rouge","Chou vert","Ciboulette","Citrouille","Concombre","Courgette","Courge","Cresson","Échalote","Endive","Épinard","Fenouil","Gingembre","Haricot vert","Laitue","Mâche","Maïs","Navet","Oignon","Oignon rouge","Panais","Patate douce","Petit pois","Pleurote","Poireau","Pois gourmand","Poivron jaune","Poivron rouge","Poivron vert","Pomme de terre","Potiron","Radis","Roquette","Tomate","Tomate cerise","Tomate pelée","Cèpe","Morille",
@@ -244,6 +338,22 @@ function guessCat(name){
   if(/sirop/.test(n))return"🍬 Sirop";
   return"🛒 Épicerie";
 }
+// getCat = version améliorée utilisant le catalogue en priorité
+function getCat(name){
+  if(PRODUCTS_CATALOG.length > 0){
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'").trim();
+    const raw = norm(name);
+    const found = PRODUCTS_CATALOG.find(p =>
+      norm(p.nom)===raw || p.cle===raw ||
+      p.aliases.some(a=>norm(a)===raw) ||
+      raw.includes(norm(p.nom)) || norm(p.nom).includes(raw)
+    );
+    if(found) return found.categorie;
+  }
+  return getCat(name);
+}
+
+
 function normUnit(u){
   if(!u)return"";
   const m={gramme:"g",grammes:"g",kilogramme:"kg",kilogrammes:"kg",litre:"L",litres:"L",millilitre:"ml",millilitres:"ml",centilitre:"cl",centilitres:"cl","pièce":"","pièces":"","cuillère à soupe":"càs","cuillères à soupe":"càs","cuillère à café":"càc","cuillères à café":"càc",pincée:"pincée",pincées:"pincée",sachet:"sachet",sachets:"sachet","boîte":"boîte","boîtes":"boîte",bouteille:"bouteille",bouteilles:"bouteille",paquet:"paquet",paquets:"paquet",tranche:"tranche",tranches:"tranche",botte:"botte",bottes:"botte"};
@@ -253,7 +363,7 @@ function mergeItem(items,n,qv,uv,src,ct){
   const arr=[...items],norm=n.toLowerCase();
   const ex=arr.find(i=>i.name.toLowerCase()===norm&&!i.checked);
   if(ex){const s=ex.quantities.find(q=>q.unit===uv);if(s)s.qty=roundQ(+s.qty+ +qv);else ex.quantities.push({qty:roundQ(+qv),unit:uv,source:src});}
-  else arr.push({id:Date.now()+Math.random(),name:n,category:ct||guessCat(n),quantities:[{qty:roundQ(+qv),unit:uv,source:src}],checked:false});
+  else arr.push({id:Date.now()+Math.random(),name:n,category:ct||getCat(n),quantities:[{qty:roundQ(+qv),unit:uv,source:src}],checked:false});
   return arr;
 }
 
@@ -530,7 +640,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
     // Fusionner l'historique utilisateur + base PRODUCTS_DB
     const histEntries=Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count);
     const histNames=new Set(histEntries.map(([n])=>n.toLowerCase()));
-    const dbEntries=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!histNames.has(p.toLowerCase())).slice(0,4).map(p=>[p,{count:0,category:guessCat(p),lastUnit:""}]);
+    const dbEntries=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!histNames.has(p.toLowerCase())).slice(0,4).map(p=>[p,{count:0,category:getCat(p),lastUnit:""}]);
     setSugg([...histEntries,...dbEntries].slice(0,6));
   },[name,db.productHistory]);
 
@@ -554,15 +664,15 @@ function PageListe({db,setDb,showToast,goToPlanning}){
         const unitMap={g:"g",kg:"kg",l:"L",litre:"L",litres:"L",ml:"ml",cl:"cl"};
         const uv=unitMap[rawUnit]||"";
         const n=m[3].trim();
-        return{name:n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv,category:guessCat(n)};
+        return{name:n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv,category:getCat(n)};
       }
       // pattern "Œuf 5" or "Oeufs 3"
       const m2=s.match(/^(.+?)\s+(\d+)$/i);
       if(m2){
-        return{name:m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:"",category:guessCat(m2[1])};
+        return{name:m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:"",category:getCat(m2[1])};
       }
       // Just a name
-      return{name:s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:"",category:guessCat(s)};
+      return{name:s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:"",category:getCat(s)};
     });
   }
 
@@ -756,7 +866,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               let ni=[...db.items],ph={...db.productHistory},added=0;
               (recipe.ingredients||[]).forEach(ing=>{
                 if(!ing.name?.trim())return;
-                const ct=ph[ing.name]?.category||guessCat(ing.name);
+                const ct=ph[ing.name]?.category||getCat(ing.name);
                 ni=mergeItem(ni,ing.name,parseFloat(ing.qty)||1,ing.unit||"","recette",ct);
                 if(!ph[ing.name])ph[ing.name]={count:0,category:ct,lastUnit:ing.unit||""};
                 ph[ing.name].count++;added++;
@@ -898,7 +1008,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT}}
                 onClick={()=>{setName(n);if(d.category)setCat(d.category);if(d.lastUnit!==undefined)setUnit(d.lastUnit);setSugg([]);}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:14}}>{(d.category||guessCat(n)).split(" ")[0]}</span>
+                  <span style={{fontSize:14}}>{(d.category||getCat(n)).split(" ")[0]}</span>
                   <span style={{fontWeight:600}}>{n}</span>
                 </div>
                 <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{d.count}× · {UL[d.lastUnit]||"pcs"}</span>
@@ -925,7 +1035,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               <span style={{fontSize:18}}>{item.category.split(" ")[0]}</span>
               <div style={{flex:1}}>
                 <input style={{...inp,padding:"6px 10px",fontSize:13,marginBottom:4}} value={item.name}
-                  onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,name:e.target.value,category:guessCat(e.target.value)}:it))}/>
+                  onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,name:e.target.value,category:getCat(e.target.value)}:it))}/>
                 <div style={{display:"flex",gap:4}}>
                   <input type="number" style={{...inp,padding:"4px 8px",fontSize:12,width:60}} value={item.qty}
                     onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,qty:parseFloat(e.target.value)||1}:it))}/>
@@ -990,7 +1100,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   const [showCatPick,setShowCatPick]=useState(false);
-  const catEmoji=(item.category||guessCat(item.name)).split(" ")[0];
+  const catEmoji=(item.category||getCat(item.name)).split(" ")[0];
   return(
     <div style={{...card,display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",marginBottom:6,opacity:item.checked?.5:1,background:item.checked?CREAM2:SURF}}>
       <div onClick={()=>onToggle(item.id)} style={{width:24,height:24,borderRadius:8,border:item.checked?"none":`2.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,marginTop:1,boxShadow:item.checked?`0 2px 8px rgba(184,112,58,.35)`:"none"}}>
@@ -1154,7 +1264,7 @@ function PageRecettes({db,setDb,showToast}){
     recipe.ingredients.forEach((ing,i)=>{
       if(haveIdxs.has(i))return;
       const qN=ing.qty?roundQ(parseFloat(ing.qty)*scale):1,uv=ing.unit||"",n=ing.name;
-      const ct=ph[n]?.category||guessCat(n);
+      const ct=ph[n]?.category||getCat(n);
       ni=mergeItem(ni,n,qN,uv,recipe.name,ct);
       if(!ph[n])ph[n]={count:0,category:ct,lastUnit:uv};ph[n].count++;added++;
     });
@@ -1501,7 +1611,8 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
         const name=(m[`strIngredient${i}`]||"").trim();
         const measure=(m[`strMeasure${i}`]||"").trim();
         if(!name)continue;
-        ings.push({name:name.toLowerCase(),...parseMealDBMeasure(measure)});
+        const normalized = normalizeIngredient(name);
+        ings.push({name:normalized.nom,...parseMealDBMeasure(measure),category:normalized.categorie});
       }
       // Nettoyage des étapes : supprimer les "STEP 1", "Step 1:", etc. parasites
       const rawSteps=(m.strInstructions||"").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>3);
@@ -2489,7 +2600,7 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
     if(missing?.trim()){
       const missingItems=missing.split(",").map(s=>s.trim()).filter(Boolean);
       let items=[...nd.items];
-      missingItems.forEach(name=>{items=mergeItem(items,name,1,"","manuel",guessCat(name));});
+      missingItems.forEach(name=>{items=mergeItem(items,name,1,"","manuel",getCat(name));});
       nd.items=items;
     }
     setDb(nd);saveDB(nd);setCooking(false);
@@ -2755,8 +2866,8 @@ function PageHistorique({db,setDb,showToast,goToListe}){
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {filtered.map(([name,d])=>(
               <div key={name} style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:20,padding:"5px 12px",fontSize:12,color:TXT2,cursor:"pointer",display:"flex",alignItems:"center",gap:5,fontWeight:600}}
-                onClick={()=>setQprod({name,category:d.category||guessCat(name),lastUnit:d.lastUnit||"",count:d.count})}>
-                <span style={{fontSize:14}}>{(d.category||guessCat(name)).split(" ")[0]}</span>
+                onClick={()=>setQprod({name,category:d.category||getCat(name),lastUnit:d.lastUnit||"",count:d.count})}>
+                <span style={{fontSize:14}}>{(d.category||getCat(name)).split(" ")[0]}</span>
                 <span style={{color:TXT}}>{name}</span>
                 <span style={{fontSize:10,color:TXT3}}>{d.count}×</span>
                 <span style={{color:CARAMEL2,fontSize:15,fontWeight:700}}>+</span>
@@ -3101,7 +3212,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
       const key=item.genericName.toLowerCase().trim();
       if(!newPriceDB[key])newPriceDB[key]={shops:{}};
       const ref=pricePerKg(item.price,item.qty,item.unit);
-      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",priceRef:ref,updatedAt:now,originalName:item.originalName,category:guessCat(key)};
+      newPriceDB[key].shops[shop]={price:item.price,qty:item.qty||"",unit:item.unit||"",priceRef:ref,updatedAt:now,originalName:item.originalName,category:getCat(key)};
     });
     const total=selected.reduce((s,i)=>s+i.price,0);
     const sessions=[{date:new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long"}),shop,total:Math.round(total*100)/100,count:selected.length,ts:now,items:selected.map(i=>i.genericName)},...(db.budget?.sessions||[])].slice(0,50);
@@ -3156,7 +3267,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
   const byCat={};
   filteredEntries.forEach(([name,data])=>{
     const shops=Object.entries(data.shops||{});if(!shops.length)return;
-    const cat=shops[0]?.[1]?.category||guessCat(name)||"❓ Autre";
+    const cat=shops[0]?.[1]?.category||getCat(name)||"❓ Autre";
     if(!byCat[cat])byCat[cat]=[];
     byCat[cat].push([name,data]);
   });
@@ -3241,7 +3352,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                   const isLow=item.confidence==="low"||item.failed;
                   const isMed=item.confidence==="medium";
                   const needsOk=isLow&&!item.confirmed;
-                  const catEmoji=item.genericName?guessCat(item.genericName).split(" ")[0]:"❓";
+                  const catEmoji=item.genericName?getCat(item.genericName).split(" ")[0]:"❓";
                   return(
                     <div key={i} style={{padding:"8px 0",borderBottom:i<scanResult.length-1?`1px solid ${BDR}`:"none",background:needsOk?"rgba(200,96,58,.05)":isMed&&!item.confirmed?"rgba(200,160,58,.04)":"transparent",borderRadius:6}}>
                       {item.originalName&&<div style={{fontSize:9,color:TXT3,marginBottom:2,fontStyle:"italic",paddingLeft:30}}>{item.originalName}</div>}
@@ -3340,7 +3451,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                   {(byCat[cat]||[]).map(([name,data])=>{
                     const shops=Object.entries(data.shops||{});if(!shops.length)return null;
                     const best=shops.sort((a,b)=>(a[1].priceRef?.value??a[1].price)-(b[1].priceRef?.value??b[1].price))[0];
-                    const catEmoji=(Object.values(data.shops||{})[0]?.category||guessCat(name)).split(" ")[0];
+                    const catEmoji=(Object.values(data.shops||{})[0]?.category||getCat(name)).split(" ")[0];
                     return(
                       <PriceItemCard key={name} name={name} data={data} best={best} catEmoji={catEmoji}
                         onDelete={()=>deletePriceItem(name)}
@@ -3479,7 +3590,7 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
     const nd={...db,pantry:pantry.map(i=>i.id===id?{...i,signal}:i)};setDb(nd);
   }
   function addToListe(item){
-    const ni=mergeItem(db.items,item.name,1,"","manuel",item.category||guessCat(item.name));
+    const ni=mergeItem(db.items,item.name,1,"","manuel",item.category||getCat(item.name));
     const nd={...db,items:ni};setDb(nd);showToast(`✅ ${item.name} ajouté à la liste`);goToListe();
   }
 
@@ -3492,7 +3603,7 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
   }
 
   const filtered=filterSignal==="tous"?pantry:pantry.filter(i=>i.signal===filterSignal);
-  const byCat={};filtered.forEach(item=>{const c=item.category||guessCat(item.name);if(!byCat[c])byCat[c]=[];byCat[c].push(item);});
+  const byCat={};filtered.forEach(item=>{const c=item.category||getCat(item.name);if(!byCat[c])byCat[c]=[];byCat[c].push(item);});
 
   // Recettes triées par score faisabilité
   const recipesWithScore=(db.recipes||[]).map(r=>({...r,score:recipeScore(r)})).filter(r=>r.score&&r.score.matched>0).sort((a,b)=>b.score.pct-a.score.pct);
@@ -3656,7 +3767,7 @@ function PantryItem({item,onDel,onSignal,onAddToListe}){
   return(
     <div style={{...card,marginBottom:6,padding:"10px 13px",background:"rgba(255,255,255,.92)",border:`1.5px solid ${sig.color}33`}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:22,flexShrink:0}}>{(item.category||guessCat(item.name)).split(" ")[0]}</span>
+        <span style={{fontSize:22,flexShrink:0}}>{(item.category||getCat(item.name)).split(" ")[0]}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.name}</div>
           {item.quantity&&<div style={{fontSize:11,color:TXT3}}>{item.quantity}</div>}
@@ -3707,7 +3818,7 @@ function AddPantryItemModal({onClose,onSave,showToast}){
 
   function save(){
     if(!name.trim()){showToast("⚠️ Entrez un nom");return;}
-    onSave({name:name.trim(),quantity:quantity.trim(),signal,category:guessCat(name.trim()),addedAt:Date.now()});
+    onSave({name:name.trim(),quantity:quantity.trim(),signal,category:getCat(name.trim()),addedAt:Date.now()});
   }
 
   return(
@@ -3780,7 +3891,7 @@ Exemples de noms génériques : "lait", "œufs", "beurre", "carottes", "yaourt n
       let text=(data.content||[]).map(c=>c.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       const p=JSON.parse(text);
-      const items=(p.items||[]).map(i=>({...i,category:guessCat(i.name),addedAt:Date.now()}));
+      const items=(p.items||[]).map(i=>({...i,category:getCat(i.name),addedAt:Date.now()}));
       setResult(items);
       setScanMsg(`✅ ${items.length} produit${items.length>1?"s":""} détecté${items.length>1?"s":""}`);
     }catch(err){setScanMsg("❌ "+err.message);}
@@ -3823,7 +3934,7 @@ Exemples de noms génériques : "lait", "œufs", "beurre", "carottes", "yaourt n
               const sig=getSignal(item.signal||"green");
               return(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:i<result.length-1?`1px solid ${BDR}`:"none"}}>
-                  <span style={{fontSize:20,flexShrink:0}}>{(item.category||guessCat(item.name)).split(" ")[0]}</span>
+                  <span style={{fontSize:20,flexShrink:0}}>{(item.category||getCat(item.name)).split(" ")[0]}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <input style={{width:"100%",background:"transparent",border:"none",borderBottom:`1px solid ${BDR}`,color:TXT,fontFamily:"inherit",fontSize:13,fontWeight:700,outline:"none",padding:"2px 0"}} value={item.name} onChange={e=>editItem(i,"name",e.target.value)}/>
                     {item.quantity&&<div style={{fontSize:10,color:TXT3}}>{item.quantity}</div>}
@@ -3935,7 +4046,7 @@ function BudgetSessionCard({session,onDelete}){
           <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
             {session.items.map((name,i)=>(
               <span key={i} style={{fontSize:11,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:16,padding:"3px 9px",color:TXT2,fontWeight:600}}>
-                {guessCat(name).split(" ")[0]} {name}
+                {getCat(name).split(" ")[0]} {name}
               </span>
             ))}
           </div>
@@ -4043,7 +4154,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     (recipe.ingredients||[]).forEach((ing,i)=>{
       if(haveIdxs.has(i))return;
       const qN=ing.qty?roundQ(parseFloat(ing.qty)*scale):1;
-      ni=mergeItem(ni,ing.name,qN,ing.unit||"","recette",guessCat(ing.name));
+      ni=mergeItem(ni,ing.name,qN,ing.unit||"","recette",getCat(ing.name));
     });
     return ni;
   }
@@ -4190,7 +4301,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                           style={{padding:"4px 10px",borderRadius:16,fontSize:11,fontWeight:600,cursor:"pointer",
                             background:isSel?CARAMEL2:"rgba(255,255,255,.8)",color:isSel?"white":TXT2,
                             border:`1.5px solid ${isSel?CARAMEL2:BDR}`}}>
-                          {guessCat(item.name).split(" ")[0]} {item.name}
+                          {getCat(item.name).split(" ")[0]} {item.name}
                         </div>
                       );
                     })}
@@ -4617,6 +4728,7 @@ function PageParametres({db,setDb,showToast,pseudo,setPseudo,docId,onLogout,setS
 // ═══════════════════════════════════════════════════════════════
 function App(){
   const [page,setPage]=useState("liste");
+  const [showSettings,setShowSettings]=useState(false);
   const [db,setDb]=useState(EMPTY_DB);
   const [toast,setToast]=useState("");
   const [pseudo,setPseudo]=useState(()=>localStorage.getItem("ws_pseudo")||"");
@@ -4628,6 +4740,7 @@ function App(){
 
   // Attendre que Firebase soit prêt (fallback 3s)
   useEffect(()=>{
+    loadProductsCatalog();
     if(window._firebaseReady){setFbReady(true);return;}
     const h=()=>setFbReady(true);
     window.addEventListener("firebaseReady",h);
@@ -4727,14 +4840,7 @@ function App(){
             :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 10px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:10,cursor:"pointer"}} title="Clé API Anthropic"
-              onClick={()=>setShowApiKeyGlobal(true)}>🔑</button>
-            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 10px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:10,cursor:"pointer"}}
-              onClick={()=>{
-                const fid=localStorage.getItem("ws_foyerid");
-                if(fid){const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));}
-              }}>🔗</button>
-            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"7px 12px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:11,cursor:"pointer"}} onClick={handleLogout}>🔒 Déco.</button>
+            <button style={{background:"rgba(255,255,255,.2)",border:"1.5px solid rgba(255,255,255,.35)",color:"white",borderRadius:12,padding:"8px 12px",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:700,fontSize:14,cursor:"pointer"}} title="Parametres" onClick={()=>setShowSettings(true)}>&#9881;&#65039;</button>
           </div>
         </div>
         {/* NAV TABS — bottom, 4 onglets */}
@@ -4750,55 +4856,120 @@ function App(){
         {page==="parametres"&&<PageParametres db={db} setDb={setDbSync} showToast={showToast} pseudo={pseudo} setPseudo={setPseudo} docId={docId} setShowApiKeyGlobal={setShowApiKeyGlobal} onLogout={()=>{["ws_docid","ws_r1","ws_foyerid","ws_pwd_saved"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}/>}
         {page==="maison"&&(
           <div style={{padding:14,paddingBottom:90}}>
-            {/* Stats rapides */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
-              {[["Recettes",(db.recipes||[]).length,"🍽️"],["Budget",`${((db.budget?.sessions||[]).reduce((s,x)=>s+(x.total||0),0)).toFixed(0)}€`,"💰"],["Planifiés",(()=>{const t=new Date();t.setHours(0,0,0,0);return Object.entries(db.calendar||{}).filter(([dk])=>new Date(dk)>=t).reduce((s,[,sl])=>s+(sl.midi?1:0)+(sl.soir?1:0),0);})(),"📅"]].map(([label,val,ico])=>(
-                <div key={label} style={{background:"rgba(255,255,255,.88)",border:`1px solid ${BDR}`,borderRadius:14,padding:"12px 8px",textAlign:"center"}}>
-                  <div style={{fontSize:18,marginBottom:4}}>{ico}</div>
-                  <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:CARAMEL,lineHeight:1}}>{val}</div>
-                  <div style={{fontSize:9,color:TXT3,fontWeight:700,textTransform:"uppercase",letterSpacing:.3,marginTop:3}}>{label}</div>
-                </div>
-              ))}
-            </div>
-            {/* Hub grid */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-              {[
-                {id:"prix",ico:"🧾",title:"Prix & Tickets",sub:"Scanner & base de prix",badge:`${Object.keys(db.priceDB||{}).length} prix`},
-                {id:"placard",ico:"📦",title:"Placard",sub:"Inventaire & anti-gaspi",badge:(db.pantry||[]).filter(i=>i.signal==="red").length>0?`${(db.pantry||[]).filter(i=>i.signal==="red").length} 🔴`:"OK"},
-                {id:"historique",ico:"🕐",title:"Historique",sub:"Courses passées",badge:`${(db.shoppingHistory||[]).length} sessions`},
-                {id:"parametres",ico:"⚙️",title:"Paramètres",sub:"Profil, API, données",badge:"Compte"},
-              ].map(h=>(
-                <div key={h.id} onClick={()=>setPage(h.id)} style={{background:"rgba(255,255,255,.88)",border:`1px solid ${BDR}`,borderRadius:16,padding:"16px 14px",cursor:"pointer",display:"flex",flexDirection:"column",gap:8}}>
-                  <div style={{fontSize:28}}>{h.ico}</div>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:700,color:TXT}}>{h.title}</div>
-                    <div style={{fontSize:11,color:TXT3,lineHeight:1.4,marginTop:2}}>{h.sub}</div>
+            {(()=>{
+              const sessions=db.budget?.sessions||[];
+              const monthly=db.budget?.monthly||0;
+              const spent=sessions.reduce((s,x)=>s+(x.total||0),0);
+              const pct=monthly>0?Math.min(100,Math.round(spent/monthly*100)):0;
+              const remaining=monthly>0?monthly-spent:null;
+              return(
+                <div>
+                  <div style={{...card,marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,fontWeight:700}}>Budget du mois</div>
+                      {monthly>0&&<div style={{fontSize:12,fontWeight:700,color:remaining>=0?SUC:DNG}}>{remaining>=0?remaining.toFixed(2)+"&#8364; restants":"-"+Math.abs(remaining).toFixed(2)+"&#8364;"}</div>}
+                    </div>
+                    {monthly>0?(
+                      <>
+                        <div style={{background:CREAM2,borderRadius:20,height:10,marginBottom:6,overflow:"hidden"}}>
+                          <div style={{width:`${pct}%`,height:"100%",borderRadius:20,background:pct>90?DNG:pct>70?CARAMEL:SUC,transition:"width .4s"}}/>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:TXT3}}>
+                          <span>{spent.toFixed(2)}&#8364; depenses</span>
+                          <span>sur {monthly}&#8364;</span>
+                        </div>
+                      </>
+                    ):(
+                      <div style={{fontSize:12,color:TXT3,textAlign:"center",padding:"8px 0"}}>Aucun budget defini - configurez-le dans Parametres</div>
+                    )}
                   </div>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:10,fontWeight:700,background:CREAM2,color:TXT2,padding:"2px 8px",borderRadius:10}}>{h.badge}</span>
-                    <span style={{fontSize:16,color:CARAMEL}}>›</span>
+                  <div style={{marginBottom:14}}>
+                    <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,fontWeight:700,marginBottom:10}}>Tickets de caisse</div>
+                    <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:13,padding:"12px"}} onClick={()=>setPage("prix")}>Scanner un ticket</button>
                   </div>
+                  {sessions.length>0&&(
+                    <div style={{...card,padding:0,overflow:"hidden"}}>
+                      <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`,fontWeight:700,fontSize:13,color:TXT}}>Derniers tickets</div>
+                      {sessions.slice(-5).reverse().map((s,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:i<Math.min(4,sessions.length-1)?`1px solid ${BDR}`:"none"}}>
+                          <div style={{fontSize:18}}>&#x1F9FE;</div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:600,color:TXT}}>{s.shop||"Magasin"}</div>
+                            <div style={{fontSize:11,color:TXT3}}>{s.date||""}</div>
+                          </div>
+                          <div style={{fontSize:14,fontWeight:700,color:CARAMEL}}>{(s.total||0).toFixed(2)}&#8364;</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-            {/* Lien invitation */}
-            <div style={{background:`rgba(184,112,58,.06)`,border:`1.5px dashed rgba(184,112,58,.25)`,borderRadius:14,padding:"14px",display:"flex",alignItems:"center",gap:12}}>
-              <span style={{fontSize:24}}>🔗</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:TXT,marginBottom:2}}>Inviter votre partenaire</div>
-                <div style={{fontSize:11,color:TXT3}}>Partagez votre foyer en 1 clic</div>
-              </div>
-              <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={()=>{const fid=localStorage.getItem("ws_foyerid");if(fid){const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));}}}>Copier</button>
-            </div>
+              );
+            })()}
           </div>
         )}
       </div>
+      
+      {showSettings&&(
+        <Modal open onClose={()=>setShowSettings(false)}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT,marginBottom:16}}>Parametres</div>
+          <div style={{fontSize:11,fontWeight:800,color:TXT3,letterSpacing:.8,textTransform:"uppercase",marginBottom:6}}>Profil</div>
+          <div style={{...card,padding:0,overflow:"hidden",marginBottom:14}}>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <div style={{fontSize:11,color:TXT3,marginBottom:5}}>Pseudo</div>
+              <div style={{display:"flex",gap:8}}>
+                <input style={{...inp,flex:1,marginBottom:0}} defaultValue={pseudo} onBlur={e=>{if(e.target.value.trim()){setPseudo(e.target.value.trim());localStorage.setItem("ws_pseudo",e.target.value.trim());showToast("Pseudo mis a jour");}}}/>
+              </div>
+            </div>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <div style={{fontSize:11,color:TXT3,marginBottom:4}}>ID Foyer</div>
+              <div style={{fontFamily:"monospace",fontSize:11,color:TXT2,background:CREAM2,padding:"6px 10px",borderRadius:8}}>{localStorage.getItem("ws_foyerid")||"Non defini"}</div>
+            </div>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{const fid=localStorage.getItem("ws_foyerid");const pwd=localStorage.getItem("ws_pwd_saved");if(!fid||!pwd){showToast("Reconnectez-vous");return;}const link=`${window.location.origin}${window.location.pathname}?foyer=${fid}&pwd=${btoa(pwd)}`;navigator.clipboard.writeText(link).then(()=>showToast("Lien copie"));}}>Partager le foyer</button>
+            </div>
+            <div style={{padding:"12px 14px"}}>
+              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowApiKeyGlobal(true);setShowSettings(false);}}>Cle API Anthropic</button>
+            </div>
+          </div>
+          <div style={{fontSize:11,fontWeight:800,color:TXT3,letterSpacing:.8,textTransform:"uppercase",marginBottom:6}}>Preferences</div>
+          <div style={{...card,padding:0,overflow:"hidden",marginBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <span style={{fontSize:18}}>💰</span>
+              <div style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>Afficher les prix</div>
+              <div style={{width:40,height:22,borderRadius:11,background:localStorage.getItem("ws_prices_visible")!=="false"?SUC:BDR,cursor:"pointer",position:"relative",flexShrink:0}} onClick={()=>{const v=localStorage.getItem("ws_prices_visible")!=="false";localStorage.setItem("ws_prices_visible",String(!v));showToast(!v?"Prix visibles":"Prix masques");}}>
+                <div style={{position:"absolute",top:3,left:localStorage.getItem("ws_prices_visible")!=="false"?20:3,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s"}}/>
+              </div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px"}}>
+              <span style={{fontSize:18}}>👥</span>
+              <div style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>Personnes par defaut</div>
+              <select style={{...sel,width:60,marginBottom:0}} defaultValue={localStorage.getItem("ws_default_persons")||"2"} onChange={e=>{localStorage.setItem("ws_default_persons",e.target.value);showToast("Mis a jour");}}>
+                {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{fontSize:11,fontWeight:800,color:TXT3,letterSpacing:.8,textTransform:"uppercase",marginBottom:6}}>Donnees</div>
+          <div style={{...card,padding:0,overflow:"hidden",marginBottom:14}}>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowSettings(false);setPage("historique");}}>Historique des courses</button>
+            </div>
+            <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
+              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`wisely-export-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);showToast("Export telecharge");}}>Exporter mes donnees</button>
+            </div>
+            <div style={{padding:"12px 14px"}}>
+              <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{if(window.confirm("Se deconnecter ?")){localStorage.clear();window.location.reload();}}}>Deconnexion</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* BOTTOM NAV — 4 onglets */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:20,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
           {id:"calendrier",icon:"📅", label:"Planning"},
+          {id:"placard",   icon:"📦", label:"Placard"},
           {id:"maison",    icon:"🏠", label:"Maison"},
         ].map(t=>(
           <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
