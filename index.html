@@ -50,6 +50,48 @@ const {useState,useEffect,useRef}=React;
 
 // ─── CONSTANTES ───────────────────────────────────────────────
 const CATEGORIES=["🍎 Fruits","🥦 Légumes","🥩 Viande","🐟 Poisson","🥛 Laitiers","🧀 Fromage","🥚 Oeufs","🍞 Boulangerie","🥫 Épicerie sèche","🫙 Conserves","🧊 Surgelés","🍷 Boissons","🧴 Hygiène","🧹 Entretien","🍬 Confiseries","❓ Autre"];
+
+// Normalise n'importe quelle catégorie (granulaire ou non) vers les 16 catégories standard
+function normalizeCat(cat){
+  if(!cat) return "❓ Autre";
+  if(CATEGORIES.includes(cat)) return cat; // déjà une catégorie standard
+  const c=cat.toLowerCase();
+  // Fruits
+  if(/fruit|pomme|poire|banane|orange|citron|raisin|fraise|framboise|cerise|pêche|abricot|prune|melon|mangue|ananas|kiwi|avocat|figue|noix de coco|grenade|litchi|papaye/i.test(c)) return "🍎 Fruits";
+  // Légumes
+  if(/légume|tomate|carotte|courgette|poivron|oignon|ail|poireau|champignon|épinard|brocoli|chou|salade|laitue|mâche|roquette|concombre|aubergine|céleri|fenouil|radis|betterave|artichaut|asperge|navet|panais|patate douce|butternut|potiron|courge|maïs|petit pois|haricot vert/i.test(c)) return "🥦 Légumes";
+  // Féculents → Épicerie sèche
+  if(/féculent|pomme de terre|riz|pâte|spaghetti|macaroni|tagliatelle|lasagne|ravioli|gnocchi|quinoa|boulgour|semoule|couscous|polenta|céréale|flocon|granola|muesli/i.test(c)) return "🥫 Épicerie sèche";
+  // Légumineuses → Épicerie sèche
+  if(/légumineuse|lentille|pois chiche|haricot blanc|haricot rouge|fève|tofu|tempeh|soja/i.test(c)) return "🥫 Épicerie sèche";
+  // Viande
+  if(/viande|bœuf|boeuf|veau|porc|agneau|lapin|gibier|charcuterie|lardons|bacon|saucisse|jambon|chorizo|merguez|salami|rosette|saucisson|mortadelle|pancetta|rillettes|volaille|poulet|dinde|canard|pintade|magret/i.test(c)) return "🥩 Viande";
+  // Poisson
+  if(/poisson|saumon|thon|cabillaud|dorade|lotte|bar|sole|flétan|maquereau|sardine|anchois|truite|hareng|fruit de mer|crevette|moule|huître|homard|langoustine|seiche|poulpe|calmar|saint-jacques/i.test(c)) return "🐟 Poisson";
+  // Laitiers
+  if(/lait(?!ier)|crème|yaourt|beurre|margarine|petit-suisse|fromage blanc|kéfir|boisson végétale|amande|avoine|soja|coco.*lait/i.test(c)) return "🥛 Laitiers";
+  // Fromage
+  if(/fromage|mozzarella|parmesan|gruyère|emmental|comté|beaufort|reblochon|raclette|brie|camembert|roquefort|chèvre|feta|ricotta|mascarpone|cheddar/i.test(c)) return "🧀 Fromage";
+  // Oeufs
+  if(/oeuf|œuf/i.test(c)) return "🥚 Oeufs";
+  // Boulangerie
+  if(/boulangerie|pain|baguette|brioche|croissant|viennoiserie|madeleine|toast|wrap|tortilla|pâtisserie|gâteau|cake|tarte|biscuit/i.test(c)) return "🍞 Boulangerie";
+  // Conserves
+  if(/conserve|bocal|boîte en|olive|concentré|sauce tomate|tomate concassée|tomate pelée/i.test(c)) return "🫙 Conserves";
+  // Surgelés
+  if(/surgelé|congelé|glace|sorbet/i.test(c)) return "🧊 Surgelés";
+  // Boissons (toutes)
+  if(/boisson|jus|soda|bière|vin|café|thé|infusion|tisane|eau|cola|limonade|champagne|prosecco|nectar|sirop.*boisson/i.test(c)) return "🍷 Boissons";
+  // Hygiène
+  if(/hygiène|hygiene|shampo|savon|dentifrice|gel douche|déodorant|rasoir|coton|serviette hygiénique|tampon|brosse à dents/i.test(c)) return "🧴 Hygiène";
+  // Entretien
+  if(/entretien|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin/i.test(c)) return "🧹 Entretien";
+  // Confiseries
+  if(/confiserie|bonbon|chocolat|caramel|confiture|miel|nutella|pâte à tartiner|sirop d'érable|sucre glace|farine|levure|épice|herbe|huile|vinaigre|moutarde|ketchup|mayo|sauce|pesto|tahini|noix|amande|noisette|pistache|cajou|graine/i.test(c)) return "🍬 Confiseries";
+  // Épicerie sèche (fallback pour tout ce qui est sec)
+  if(/épicerie|sel|poivre|farine|sucre|huile|vinaigre|épice|herbe|condiment|sauce/i.test(c)) return "🥫 Épicerie sèche";
+  return "❓ Autre";
+}
 const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte","bouteille","paquet","tranche","botte"];
 const UL={"":"pcs","g":"g","kg":"kg","ml":"ml","cl":"cl","L":"L","càs":"càs","càc":"càc","pincée":"pincée","sachet":"sachet","boîte":"boîte","bouteille":"bouteille","paquet":"paquet","tranche":"tranche","botte":"botte"};
 const RECIPE_DIFFICULTY=[{id:"",label:"Toutes"},{id:"easy",label:"😊 Facile"},{id:"medium",label:"👨‍🍳 Intermédiaire"},{id:"hard",label:"🎓 Expert"}];
@@ -787,7 +829,17 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   const unc=db.items.filter(i=>!i.checked),chk=db.items.filter(i=>i.checked);
   const total=db.items.length,cc=chk.length,pct=total?Math.round(cc/total*100):0;
   const allChecked=total>0&&total===cc;
-  const cats={};unc.forEach(item=>{const c=item.category||"❓ Autre";if(!cats[c])cats[c]=[];cats[c].push(item);});
+  // Groupement normalisé : toutes les catégories granulaires ramenées aux 16 standards
+  const cats={};
+  unc.forEach(item=>{
+    const c=normalizeCat(item.category||getCat(item.name));
+    if(!cats[c])cats[c]=[];
+    cats[c].push(item);
+  });
+  // Tri dans l'ordre de CATEGORIES
+  const catsSorted=Object.fromEntries(
+    CATEGORIES.filter(c=>cats[c]).map(c=>[c,cats[c]])
+  );
 
   return(
     <div style={{padding:14,paddingBottom:90}}>
@@ -941,7 +993,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           {/* Vue liste ou grille */}
           {listView==="liste"?(
             <>
-              {Object.entries(cats).map(([c,items])=>(
+              {Object.entries(catsSorted).map(([c,items])=>(
                 <div key={c}><SecTitle>{c}</SecTitle>
                   {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem}/>)}
                 </div>
@@ -951,7 +1003,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           ):(
             /* Vue grille 2 colonnes */
             <>
-              {Object.entries(cats).map(([c,items])=>(
+              {Object.entries(catsSorted).map(([c,items])=>(
                 <div key={c}>
                   <SecTitle>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
