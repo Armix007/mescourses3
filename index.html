@@ -4800,9 +4800,9 @@ function PageParametres({db,setDb,showToast,pseudo,setPseudo,docId,onLogout,setS
     a.click();URL.revokeObjectURL(url);showToast("📦 Export téléchargé !");
   }
   function copyInviteLink(){
-    const fid=localStorage.getItem("ws_foyerid");const pwd=localStorage.getItem("ws_pwd_saved");
-    if(!fid||!pwd){showToast("⚠️ Reconnectez-vous d'abord");return;}
-    const link=`${window.location.origin}${window.location.pathname}?foyer=${fid}&pwd=${btoa(pwd)}`;
+    const fid=localStorage.getItem("ws_foyerid");
+    if(!fid){showToast("⚠️ Reconnectez-vous d'abord");return;}
+    const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;
     navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));
   }
 
@@ -5098,7 +5098,7 @@ function App(){
               <div style={{fontFamily:"monospace",fontSize:11,color:TXT2,background:CREAM2,padding:"6px 10px",borderRadius:8}}>{localStorage.getItem("ws_foyerid")||"Non defini"}</div>
             </div>
             <div style={{padding:"12px 14px",borderBottom:`1px solid ${BDR}`}}>
-              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{const fid=localStorage.getItem("ws_foyerid");const pwd=localStorage.getItem("ws_pwd_saved");if(!fid||!pwd){showToast("Reconnectez-vous");return;}const link=`${window.location.origin}${window.location.pathname}?foyer=${fid}&pwd=${btoa(pwd)}`;navigator.clipboard.writeText(link).then(()=>showToast("Lien copie"));}}>Partager le foyer</button>
+              <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{const fid=localStorage.getItem("ws_foyerid");if(!fid){showToast("Reconnectez-vous");return;}const link=`${window.location.origin}${window.location.pathname}?invite=${fid}`;navigator.clipboard.writeText(link).then(()=>showToast("🔗 Lien copié !"));}}>Partager le foyer</button>
             </div>
             <div style={{padding:"12px 14px"}}>
               <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowApiKeyGlobal(true);setShowSettings(false);}}>Cle API Anthropic</button>
