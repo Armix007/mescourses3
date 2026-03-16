@@ -350,7 +350,7 @@ function getCat(name){
     );
     if(found) return found.categorie;
   }
-  return getCat(name);
+  return guessCat(name);
 }
 
 
@@ -625,10 +625,9 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   const [sugg,setSugg]=useState([]);
   const [eqty,setEqty]=useState(null);
   const [confirmClear,setConfirmClear]=useState(false);
+  const [listView,setListView]=useState(()=>localStorage.getItem("ws_list_view")||"liste");
+  const [showSavedLists,setShowSavedLists]=useState(false);
   const showPriceVisible=localStorage.getItem("ws_prices_visible")!=="false";
-  // Widget haut de liste
-  const [widgetTab,setWidgetTab]=useState(()=>localStorage.getItem("ws_widget_tab")||"planning");
-  const [selectedDay,setSelectedDay]=useState(null);
   // Vocal
   const [vocalActive,setVocalActive]=useState(false);
   const [vocalPending,setVocalPending]=useState([]);
@@ -637,6 +636,10 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   useEffect(()=>{
     if(!name.trim()){setSugg([]);return;}
     const q=name.toLowerCase();
+    // Auto-catégorie depuis catalogue
+    const autoInfo=normalizeIngredient(name);
+    if(autoInfo&&autoInfo.categorie)setCat(autoInfo.categorie);
+    if(autoInfo&&autoInfo.unite)setUnit(autoInfo.unite);
     // Fusionner l'historique utilisateur + base PRODUCTS_DB
     const histEntries=Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count);
     const histNames=new Set(histEntries.map(([n])=>n.toLowerCase()));
@@ -664,15 +667,18 @@ function PageListe({db,setDb,showToast,goToPlanning}){
         const unitMap={g:"g",kg:"kg",l:"L",litre:"L",litres:"L",ml:"ml",cl:"cl"};
         const uv=unitMap[rawUnit]||"";
         const n=m[3].trim();
-        return{name:n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv,category:getCat(n)};
+        const info=normalizeIngredient(n);
+        return{name:info.nom||n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv||info.unite||"",category:info.categorie||getCat(n)};
       }
       // pattern "Œuf 5" or "Oeufs 3"
       const m2=s.match(/^(.+?)\s+(\d+)$/i);
       if(m2){
-        return{name:m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:"",category:getCat(m2[1])};
+        const info2=normalizeIngredient(m2[1].trim());
+        return{name:info2.nom||m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:info2.unite||"",category:info2.categorie||getCat(m2[1])};
       }
       // Just a name
-      return{name:s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:"",category:getCat(s)};
+      const info3=normalizeIngredient(s);
+      return{name:info3.nom||s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:info3.unite||"",category:info3.categorie||getCat(s)};
     });
   }
 
@@ -680,17 +686,17 @@ function PageListe({db,setDb,showToast,goToPlanning}){
     const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SpeechRec){showToast("⚠️ Reconnaissance vocale non supportée");return;}
     const rec=new SpeechRec();
-    rec.lang="fr-FR";rec.continuous=false;rec.interimResults=false;
+    rec.lang="fr-FR";rec.continuous=true;rec.interimResults=false;
     recognitionRef.current=rec;
     setVocalActive(true);
     rec.onresult=e=>{
-      const transcript=e.results[0][0].transcript;
-      setVocalActive(false);
+      const transcript=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(" ").trim();
+      if(!transcript)return;
       const items=parseVocalText(transcript);
-      setVocalPending(items);
+      setVocalPending(prev=>[...prev,...items]);
     };
-    rec.onerror=()=>{setVocalActive(false);showToast("❌ Erreur vocale");};
-    rec.onend=()=>setVocalActive(false);
+    rec.onerror=(err)=>{if(err.error!=="aborted"){setVocalActive(false);showToast("❌ Erreur vocale");}};
+    rec.onend=()=>{/* Ne pas stopper automatiquement — géré par stopVocal() */};
     rec.start();
   }
   function stopVocal(){
@@ -764,48 +770,6 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   }
 
   // ─── helpers widget ───────────────────────────────────
-  function switchTab(t){setWidgetTab(t);localStorage.setItem("ws_widget_tab",t);setSelectedDay(null);}
-  function getWeekDays(){
-    const days=[];
-    // Lundi de la semaine courante
-    const now=new Date();
-    const monday=new Date(now);
-    monday.setDate(now.getDate()-((now.getDay()+6)%7));
-    for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);days.push(d);}
-    return days;
-  }
-  const weekDays=getWeekDays();
-  const calendar=db.calendar||{};
-  const todayKey=dateKey(new Date());
-  const DAY_SHORT=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
-
-  // Estimation coût liste courante
-  const estimatedTotal=(()=>{
-    let t=0;
-    db.items.filter(i=>!i.checked).forEach(item=>{
-      const bp=getBestPrice(db.priceDB,item.name);
-      if(bp){
-        const qty=(item.quantities||[]).reduce((s,q)=>{
-          const n=parseFloat(q.qty)||0;
-          const u=q.unit||"";
-          if(u==="kg"||u==="L")return s+n*bp.price;
-          if(u==="g"||u==="ml")return s+(n/1000)*bp.price;
-          return s+n*bp.price;
-        },0);
-        t+=qty;
-      }
-    });
-    return t>0?t.toFixed(2):null;
-  })();
-
-  // Budget info
-  const budget=db.budget||{};
-  const monthly=budget.monthly||0;
-  const sessions=budget.sessions||[];
-  const monthKey=new Date().toISOString().slice(0,7);
-  const thisMonthSessions=sessions.filter(s=>s.date&&s.date.includes(new Date().getFullYear()));
-  const spent=thisMonthSessions.reduce((s,sess)=>s+(sess.total||0),0);
-  const pctBudget=monthly>0?Math.min(100,Math.round((spent/monthly)*100)):0;
 
   const unc=db.items.filter(i=>!i.checked),chk=db.items.filter(i=>i.checked);
   const total=db.items.length,cc=chk.length,pct=total?Math.round(cc/total*100):0;
@@ -815,177 +779,22 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   return(
     <div style={{padding:14,paddingBottom:90}}>
 
-      {/* ═══ WIDGET TABS ═══════════════════════════════ */}
-      <div style={{display:"flex",gap:3,background:"rgba(0,0,0,.05)",borderRadius:10,padding:3,marginBottom:10}}>
-        <div style={{flex:1,textAlign:"center",padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,background:widgetTab==="planning"?SURF:"transparent",color:widgetTab==="planning"?CARAMEL:TXT3,boxShadow:widgetTab==="planning"?"0 2px 8px rgba(0,0,0,.08)":"none",cursor:"pointer",transition:"all .2s"}} onClick={()=>switchTab("planning")}>📅 Planning</div>
-        <div style={{flex:1,textAlign:"center",padding:"7px 4px",fontSize:11,fontWeight:700,borderRadius:8,background:widgetTab==="budget"?SURF:"transparent",color:widgetTab==="budget"?CARAMEL:TXT3,boxShadow:widgetTab==="budget"?"0 2px 8px rgba(0,0,0,.08)":"none",cursor:"pointer",transition:"all .2s"}} onClick={()=>switchTab("budget")}>💰 Budget</div>
+      {/* ═══ TOGGLE VUE LISTE / GRILLE ═══════════════════ */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:TXT}}>
+          🛒 {total>0?`${unc.length} article${unc.length>1?"s":""}`:""}{pct>0?` · ${pct}%`:""}
+        </div>
+        <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:3}}>
+          <div onClick={()=>{setListView("liste");localStorage.setItem("ws_list_view","liste");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="liste"?SURF:"transparent",boxShadow:listView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>☰</div>
+          <div onClick={()=>{setListView("grille");localStorage.setItem("ws_list_view","grille");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="grille"?SURF:"transparent",boxShadow:listView==="grille"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>⊞</div>
+        </div>
       </div>
-
-      {/* ═══ WIDGET PLANNING ═══════════════════════════ */}
-      {widgetTab==="planning"&&(
-        <div style={{...card,background:"rgba(255,255,255,.93)",marginBottom:12,overflow:"hidden"}}>
-          {/* Semaine strip */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,padding:"10px 10px 6px"}}>
-            {weekDays.map((d,i)=>{
-              const dk=dateKey(d);
-              const isToday=dk===todayKey;
-              const isSel=selectedDay===dk;
-              const hasMidi=!!(calendar[dk]?.midi);
-              const hasSoir=!!(calendar[dk]?.soir);
-              return(
-                <div key={dk} onClick={()=>setSelectedDay(isSel?null:dk)}
-                  style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"6px 2px",borderRadius:9,cursor:"pointer",background:isSel?"rgba(184,112,58,.15)":isToday?"rgba(184,112,58,.08)":"transparent",outline:isSel?`1.5px solid ${CARAMEL}`:"none",transition:"all .15s"}}>
-                  <div style={{fontSize:8,fontWeight:800,color:isToday?CARAMEL:TXT3,textTransform:"uppercase",letterSpacing:.3}}>{DAY_SHORT[i]}</div>
-                  <div style={{fontSize:13,fontWeight:900,color:isToday?CARAMEL:TXT,lineHeight:1}}>{d.getDate()}</div>
-                  <div style={{display:"flex",gap:2,height:8,alignItems:"center"}}>
-                    <div style={{width:5,height:5,borderRadius:"50%",background:hasMidi?CARAMEL2:BDR,transition:"background .2s"}}/>
-                    <div style={{width:5,height:5,borderRadius:"50%",background:hasSoir?CARAMEL:"transparent",border:hasSoir?"none":`1px solid ${BDR}`,transition:"background .2s"}}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {/* Légende dots */}
-          <div style={{display:"flex",gap:12,justifyContent:"center",padding:"0 10px 6px",fontSize:9,color:TXT3,fontWeight:600}}>
-            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:CARAMEL2}}/> Midi</div>
-            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:CARAMEL}}/> Soir</div>
-            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:"50%",background:BDR}}/> Libre</div>
-          </div>
-
-          {/* Détail jour sélectionné */}
-          {selectedDay&&(()=>{
-            const d=new Date(selectedDay);
-            const isToday=selectedDay===todayKey;
-            const dayLabel=isToday?"Aujourd'hui":d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
-            const midiId=calendar[selectedDay]?.midi;
-            const soirId=calendar[selectedDay]?.soir;
-            const midiR=midiId?(db.recipes||[]).find(r=>String(r.id)===String(midiId)):null;
-            const soirR=soirId?(db.recipes||[]).find(r=>String(r.id)===String(soirId)):null;
-            function addMealToList(recipe){
-              if(!recipe)return;
-              let ni=[...db.items],ph={...db.productHistory},added=0;
-              (recipe.ingredients||[]).forEach(ing=>{
-                if(!ing.name?.trim())return;
-                const ct=ph[ing.name]?.category||getCat(ing.name);
-                ni=mergeItem(ni,ing.name,parseFloat(ing.qty)||1,ing.unit||"","recette",ct);
-                if(!ph[ing.name])ph[ing.name]={count:0,category:ct,lastUnit:ing.unit||""};
-                ph[ing.name].count++;added++;
-              });
-              const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
-              showToast(`🛒 ${added} ingrédients de ${recipe.name} ajoutés`);
-            }
-            return(
-              <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 12px 12px",background:CREAM}}>
-                <div style={{fontSize:11,fontWeight:700,color:CARAMEL,marginBottom:8}}>📍 {dayLabel.charAt(0).toUpperCase()+dayLabel.slice(1)}</div>
-                {[{slot:"🌅 Midi",recipe:midiR},{slot:"🌙 Soir",recipe:soirR}].map(({slot,recipe})=>(
-                  <div key={slot} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"rgba(255,255,255,.9)",borderRadius:9,border:`1px solid ${BDR}`,marginBottom:5}}>
-                    <div style={{fontSize:10,fontWeight:800,color:TXT3,width:34,flexShrink:0}}>{slot}</div>
-                    {recipe
-                      ?<div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:700,color:TXT,marginBottom:3}}>{guessRecipeEmoji(recipe.name)} {recipe.name}</div>
-                          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                            {recipe.persons&&<span style={{fontSize:9,background:CREAM2,padding:"1px 6px",borderRadius:10,color:TXT2,fontWeight:600}}>👥 {recipe.persons}</span>}
-                            {recipe.duration&&<span style={{fontSize:9,background:CREAM2,padding:"1px 6px",borderRadius:10,color:TXT2,fontWeight:600}}>⏱️ {recipe.duration}</span>}
-                            {(()=>{const c=estimateRecipeCost(recipe,db.priceDB,recipe.persons);return c?<span style={{fontSize:9,background:"rgba(90,138,58,.1)",padding:"1px 6px",borderRadius:10,color:SUC,fontWeight:700}}>~{c.total.toFixed(2)}€</span>:null;})()}
-                          </div>
-                        </div>
-                      :<div style={{flex:1,fontSize:11,color:TXT3,fontStyle:"italic",cursor:"pointer"}} onClick={goToPlanning}>+ Planifier un repas →</div>
-                    }
-                    {recipe&&(
-                      <button onClick={()=>addMealToList(recipe)}
-                        style={{background:"none",border:`1px solid ${BDR}`,borderRadius:8,padding:"4px 8px",fontSize:10,color:CARAMEL,fontWeight:700,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
-                        🛒 Ajouter
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-
-          {/* Bouton générer liste */}
-          <div onClick={goToPlanning} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:`linear-gradient(135deg,rgba(184,112,58,.08),rgba(200,132,90,.05))`,borderTop:`1px solid rgba(184,112,58,.12)`,cursor:"pointer"}}>
-            <span style={{fontSize:12,fontWeight:700,color:CARAMEL}}>🛒 Générer la liste de courses</span>
-            <span style={{fontSize:16,color:CARAMEL2}}>›</span>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ WIDGET BUDGET ════════════════════════════ */}
-      {widgetTab==="budget"&&(
-        <div style={{marginBottom:12}}>
-          {/* Hero caramel */}
-          <div style={{background:`linear-gradient(135deg,${CARAMEL} 0%,${CARAMEL2} 100%)`,borderRadius:16,padding:16,marginBottom:8,position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,background:"rgba(255,255,255,.07)",borderRadius:"50%"}}/>
-            <div style={{position:"absolute",bottom:-30,right:20,width:80,height:80,background:"rgba(255,255,255,.05)",borderRadius:"50%"}}/>
-            <div style={{position:"relative",zIndex:1}}>
-              <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.65)",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Budget ce mois</div>
-              <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:12}}>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:900,color:"white",lineHeight:1}}>{spent.toFixed(2)} €</div>
-                {monthly>0&&<div style={{fontSize:12,color:"rgba(255,255,255,.6)"}}>/ {monthly} €</div>}
-              </div>
-              {monthly>0&&(
-                <>
-                  <div style={{height:6,background:"rgba(255,255,255,.2)",borderRadius:3,overflow:"hidden",marginBottom:8}}>
-                    <div style={{width:pctBudget+"%",height:"100%",background:"white",borderRadius:3,transition:"width .6s"}}/>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"rgba(255,255,255,.65)"}}>
-                    <span>{(monthly-spent).toFixed(2)} € restants</span>
-                    <span>{thisMonthSessions.length} session{thisMonthSessions.length!==1?"s":""}</span>
-                  </div>
-                </>
-              )}
-              {/* Historique mini */}
-              {thisMonthSessions.length>0&&(
-                <div style={{borderTop:"1px solid rgba(255,255,255,.15)",marginTop:10,paddingTop:10}}>
-                  <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,.55)",letterSpacing:.8,textTransform:"uppercase",marginBottom:6}}>Dernières sessions</div>
-                  {thisMonthSessions.slice(-3).reverse().map((sess,i)=>{
-                    const maxT=Math.max(...thisMonthSessions.map(s=>s.total||0),1);
-                    const pct=Math.round(((sess.total||0)/maxT)*100);
-                    return(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <div style={{fontSize:10,color:"rgba(255,255,255,.7)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sess.date}</div>
-                        <div style={{fontSize:11,fontWeight:700,color:"white",flexShrink:0}}>{(sess.total||0).toFixed(2)} €</div>
-                        <div style={{width:44,height:4,background:"rgba(255,255,255,.15)",borderRadius:2,overflow:"hidden",flexShrink:0}}>
-                          <div style={{width:pct+"%",height:"100%",background:"rgba(255,255,255,.55)",borderRadius:2}}/>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Estimation liste courante */}
-          {estimatedTotal&&(
-            <div style={{...card,background:"rgba(255,255,255,.92)",padding:"12px 14px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-                <div style={{fontSize:12,fontWeight:700,color:TXT}}>🛒 Estimation liste en cours</div>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:900,color:CARAMEL}}>~{estimatedTotal} €</div>
-              </div>
-              {monthly>0&&(()=>{
-                const newSpent=spent+parseFloat(estimatedTotal);
-                const newPct=Math.min(100,Math.round((newSpent/monthly)*100));
-                return(
-                  <>
-                    <div style={{height:5,background:CREAM2,borderRadius:3,overflow:"hidden",marginBottom:5}}>
-                      <div style={{width:newPct+"%",height:"100%",background:newPct>80?DNG:newPct>60?CARAMEL2:SUC,borderRadius:3,transition:"width .5s"}}/>
-                    </div>
-                    <div style={{fontSize:10,color:TXT3}}>Budget après cette session : {(monthly-newSpent).toFixed(2)} € restants</div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Add form */}
       <div style={{...card,background:"rgba(255,255,255,.9)"}}>
         <div style={{display:"flex",gap:8,marginBottom:8}}>
           <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
-          <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal} title="Ajout vocal">
+          <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal} title={vocalActive?"Arrêter la reconnaissance vocale":"Démarrer la reconnaissance vocale"}>
             {vocalActive?"⏹️":"🎤"}
           </button>
           <button style={{...btn("acc"),fontSize:18,padding:"10px 16px"}} onClick={addItem}>+</button>
@@ -994,7 +803,8 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.5)",borderRadius:10,padding:"10px 13px",marginBottom:8,display:"flex",flexDirection:"column",gap:6}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:10,height:10,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite",flexShrink:0}}/>
-              <span style={{fontSize:13,color:DNG,fontWeight:800}}>🎤 En écoute…</span>
+              <span style={{fontSize:13,color:DNG,fontWeight:800}}>🎤 En écoute continue…</span>
+              <span style={{fontSize:11,color:TXT3,marginLeft:"auto"}}>Appuyez ⏹️ pour arrêter</span>
             </div>
             <div style={{background:"rgba(212,96,74,.12)",borderRadius:8,padding:"7px 10px",fontSize:12,color:DNG,fontWeight:700,textAlign:"center",lineHeight:1.5}}>
               Dites vos articles puis <span style={{background:DNG,color:"white",borderRadius:5,padding:"1px 6px",fontWeight:900}}>« virgule »</span> entre chaque
@@ -1004,16 +814,29 @@ function PageListe({db,setDb,showToast,goToPlanning}){
         )}
         {sugg.length>0&&(
           <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
-            {sugg.slice(0,5).map(([n,d])=>(
-              <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT}}
-                onClick={()=>{setName(n);if(d.category)setCat(d.category);if(d.lastUnit!==undefined)setUnit(d.lastUnit);setSugg([]);}}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:14}}>{(d.category||getCat(n)).split(" ")[0]}</span>
-                  <span style={{fontWeight:600}}>{n}</span>
+            {sugg.slice(0,6).map(([n,d])=>{
+              const catInfo=normalizeIngredient(n);
+              const catDisplay=(d.category||catInfo.categorie||getCat(n)).split(" ")[0];
+              const unitDisplay=d.lastUnit||catInfo.unite||"";
+              return(
+                <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT}}
+                  onClick={()=>{
+                    setName(n);
+                    const info=normalizeIngredient(n);
+                    if(info.categorie)setCat(info.categorie);
+                    else if(d.category)setCat(d.category);
+                    if(info.unite)setUnit(info.unite);
+                    else if(d.lastUnit!==undefined)setUnit(d.lastUnit);
+                    setSugg([]);
+                  }}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:14}}>{catDisplay}</span>
+                    <span style={{fontWeight:600}}>{n}</span>
+                  </div>
+                  <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{d.count>0?`${d.count}× · `:""}{UL[unitDisplay]||"pcs"}</span>
                 </div>
-                <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{d.count}× · {UL[d.lastUnit]||"pcs"}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1021,6 +844,35 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
           <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
         </div>
+
+        {/* ─── Suggestions d'articles populaires ─── */}
+        {!name&&(()=>{
+          const freq=Object.entries(db.productHistory).sort((a,b)=>b[1].count-a[1].count).slice(0,8).map(([n,d])=>({name:n,...d}));
+          const popular=freq.length>=4?freq:PRODUCTS_DB.slice(0,8-freq.length).filter(p=>!freq.find(f=>f.name.toLowerCase()===p.toLowerCase())).map(p=>({name:p,count:0,category:getCat(p),lastUnit:""})).concat(freq).slice(0,8);
+          if(!popular.length)return null;
+          return(
+            <div style={{marginTop:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:TXT3,letterSpacing:.8,textTransform:"uppercase",marginBottom:5}}>Suggestions</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {popular.map((p,i)=>{
+                  const info=normalizeIngredient(p.name);
+                  const em=(info.categorie||getCat(p.name)).split(" ")[0];
+                  return(
+                    <div key={i} onClick={()=>{
+                      setName(p.name);
+                      const catV=info.categorie||p.category||getCat(p.name);
+                      const unitV=info.unite||p.lastUnit||"";
+                      setCat(catV);setUnit(unitV);setSugg([]);
+                    }} style={{display:"flex",alignItems:"center",gap:4,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,flexShrink:0}}>
+                      <span style={{fontSize:13}}>{em}</span>
+                      <span>{p.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Validation vocale en attente */}
@@ -1035,7 +887,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               <span style={{fontSize:18}}>{item.category.split(" ")[0]}</span>
               <div style={{flex:1}}>
                 <input style={{...inp,padding:"6px 10px",fontSize:13,marginBottom:4}} value={item.name}
-                  onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,name:e.target.value,category:getCat(e.target.value)}:it))}/>
+                  onChange={e=>{const info=normalizeIngredient(e.target.value);setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,name:e.target.value,category:info.categorie||getCat(e.target.value)}:it));}}/>
                 <div style={{display:"flex",gap:4}}>
                   <input type="number" style={{...inp,padding:"4px 8px",fontSize:12,width:60}} value={item.qty}
                     onChange={e=>setVocalPending(prev=>prev.map((it,j)=>j===i?{...it,qty:parseFloat(e.target.value)||1}:it))}/>
@@ -1072,17 +924,50 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               </button>
             )}
           </div>
-          {Object.entries(cats).map(([c,items])=>(
-            <div key={c}><SecTitle>{c}</SecTitle>
-              {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat}/>)}
-            </div>
-          ))}
-          {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat}/>)}</div>}
+
+          {/* Vue liste ou grille */}
+          {listView==="liste"?(
+            <>
+              {Object.entries(cats).map(([c,items])=>(
+                <div key={c}><SecTitle>{c}</SecTitle>
+                  {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat}/>)}
+                </div>
+              ))}
+              {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat}/>)}</div>}
+            </>
+          ):(
+            /* Vue grille 2 colonnes */
+            <>
+              {Object.entries(cats).map(([c,items])=>(
+                <div key={c}>
+                  <SecTitle>{c}</SecTitle>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
+                    {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible}/>)}
+                  </div>
+                </div>
+              ))}
+              {chk.length>0&&(
+                <>
+                  <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
+                    {chk.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible}/>)}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
           <div style={{display:"flex",gap:8,marginTop:10}}>
             <button style={{...btn("out"),flex:2,fontSize:12,justifyContent:"center"}} onClick={saveHist}>💾 Sauvegarder les courses</button>
+            <button style={{...btn("gh"),fontSize:12,justifyContent:"center",padding:"10px 14px"}} onClick={()=>setShowSavedLists(true)}>📋 Listes</button>
             <button style={{...btn("gh"),flex:1,fontSize:11,justifyContent:"center",color:DNG,border:`1px solid rgba(212,96,74,.25)`}} onClick={()=>setConfirmClear(true)}>🗑️ Vider</button>
           </div>
         </>
+      )}
+      {db.items.length===0&&(
+        <div style={{display:"flex",justifyContent:"center",marginTop:12}}>
+          <button style={{...btn("out"),fontSize:12,justifyContent:"center"}} onClick={()=>setShowSavedLists(true)}>📋 Listes sauvegardées</button>
+        </div>
       )}
       <EqtyModal open={!!eqty} item={eqty?db.items.find(i=>i.id===eqty.itemId):null} qi={eqty?.qi} onClose={()=>setEqty(null)} onConf={confEqty} onDel={delQty}/>
       <Modal open={confirmClear} onClose={()=>setConfirmClear(false)}>
@@ -1093,6 +978,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <button style={{...btn("dng"),flex:1}} onClick={()=>{const nd={...db,items:[]};setDb(nd);saveDB(nd);setConfirmClear(false);showToast("🗑️ Liste vidée");}}>Vider</button>
         </div>
       </Modal>
+      {showSavedLists&&<SavedListsModal db={db} setDb={setDb} showToast={showToast} onClose={()=>setShowSavedLists(false)}/>}
     </div>
   );
 }
@@ -1128,6 +1014,167 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange})
         </div>
       </div>
       <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:2}} onClick={()=>onDel(item.id)}>🗑️</button>
+    </div>
+  );
+}
+
+// ─── ITEM CARD (vue grille 2 colonnes) ───────────────────────
+function ItemCard({item,onToggle,onDel,priceDB,showPrice}){
+  const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
+  const catEmoji=(item.category||getCat(item.name)).split(" ")[0];
+  return(
+    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${BDR}`,borderRadius:14,padding:"10px 11px",boxShadow:"0 2px 8px rgba(160,90,40,.06)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",gap:6,position:"relative",minWidth:0}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div onClick={()=>onToggle(item.id)} style={{width:22,height:22,borderRadius:7,border:item.checked?"none":`2px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,boxShadow:item.checked?`0 2px 6px rgba(184,112,58,.35)`:"none"}}>
+          {item.checked&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+        </div>
+        <span style={{fontSize:20}}>{catEmoji}</span>
+        <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,padding:2,opacity:.6}} onClick={()=>onDel(item.id)}>🗑️</button>
+      </div>
+      <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none",lineHeight:1.3,wordBreak:"break-word"}}>{item.name}</div>
+      <div style={{fontSize:11,color:TXT3,fontWeight:600}}>
+        {(item.quantities||[]).map((q,i)=>fmtQ(q.qty,q.unit)).join(" + ")}
+      </div>
+      {bestPrice&&<div style={{fontSize:10,color:TXT3}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€</div>}
+    </div>
+  );
+}
+
+// ─── MODAL LISTES SAUVEGARDÉES ───────────────────────────────
+function SavedListsModal({db,setDb,showToast,onClose}){
+  const hist=db.shoppingHistory||[];
+  const [openSess,setOpenSess]=useState(new Set());
+  // {sessionIdx: Set<itemName>}
+  const [selected,setSelected]=useState({});
+  // {sessionIdx: {itemName: {qty,unit}}}
+  const [qtys,setQtys]=useState({});
+
+  function toggleSess(i){const s=new Set(openSess);s.has(i)?s.delete(i):s.add(i);setOpenSess(s);}
+
+  function toggleItem(si,name,defaultQty,defaultUnit){
+    setSelected(prev=>{
+      const cur=new Set(prev[si]||[]);
+      if(cur.has(name))cur.delete(name);else cur.add(name);
+      return{...prev,[si]:cur};
+    });
+    setQtys(prev=>{
+      if(!prev[si]||!prev[si][name]){
+        const sess=hist[si];
+        const item=(sess.items||[]).find(it=>it.name===name);
+        const q=item?.quantities?.[0]||{qty:1,unit:""};
+        return{...prev,[si]:{...(prev[si]||{}),[name]:{qty:q.qty,unit:q.unit}}};
+      }
+      return prev;
+    });
+  }
+
+  function toggleAll(si){
+    const sess=hist[si];
+    const allNames=(sess.items||[]).map(it=>it.name);
+    const cur=selected[si]||new Set();
+    if(cur.size===allNames.length){
+      setSelected(prev=>({...prev,[si]:new Set()}));
+    } else {
+      const newSel=new Set(allNames);
+      setSelected(prev=>({...prev,[si]:newSel}));
+      setQtys(prev=>{
+        const qMap={};
+        (sess.items||[]).forEach(it=>{const q=it.quantities?.[0]||{qty:1,unit:""};qMap[it.name]={qty:q.qty,unit:q.unit};});
+        return{...prev,[si]:{...(prev[si]||{}),...qMap}};
+      });
+    }
+  }
+
+  function countSelected(){
+    return Object.values(selected).reduce((s,set)=>s+(set?.size||0),0);
+  }
+
+  function addSelected(){
+    let ni=[...db.items],ph={...db.productHistory},added=0;
+    Object.entries(selected).forEach(([siStr,nameSet])=>{
+      const si=parseInt(siStr);
+      const sess=hist[si];
+      nameSet.forEach(name=>{
+        const item=(sess.items||[]).find(it=>it.name===name);
+        const catV=item?.category||getCat(name);
+        const qEntry=qtys[si]?.[name]||{qty:1,unit:""};
+        ni=mergeItem(ni,name,qEntry.qty,qEntry.unit,"historique",catV);
+        if(!ph[name])ph[name]={count:0,category:catV,lastUnit:qEntry.unit};
+        ph[name].count++;added++;
+      });
+    });
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    showToast(`✅ ${added} article${added>1?"s":""} ajouté${added>1?"s":""}`);
+    onClose();
+  }
+
+  const total=countSelected();
+
+  return(
+    <div style={ovl} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{...mdl,paddingBottom:24}}>
+        <div style={{width:36,height:4,background:BDR,borderRadius:2,margin:"0 auto 14px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT}}>📋 Listes sauvegardées</div>
+          <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:TXT3}} onClick={onClose}>✕</button>
+        </div>
+        {hist.length===0?(
+          <div style={{textAlign:"center",padding:"32px 0",color:TXT3,fontSize:13}}>Aucune liste sauvegardée</div>
+        ):(
+          <div style={{maxHeight:"60vh",overflowY:"auto"}}>
+            {hist.map((sess,si)=>{
+              const isOpen=openSess.has(si);
+              const sessSel=selected[si]||new Set();
+              const items=sess.items||[];
+              return(
+                <div key={si} style={{...card,padding:0,overflow:"hidden",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>toggleSess(si)}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:TXT}}>{sess.date}</div>
+                      <div style={{fontSize:10,color:TXT3,marginTop:2}}>{items.length} articles · {sessSel.size} sélectionné{sessSel.size>1?"s":""}</div>
+                    </div>
+                    <button style={{...btn("gh"),fontSize:11,padding:"4px 9px"}} onClick={e=>{e.stopPropagation();toggleAll(si);}}>
+                      {sessSel.size===items.length?"Aucun":"Tout"}
+                    </button>
+                    <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:isOpen?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+                  </div>
+                  {isOpen&&(
+                    <div style={{borderTop:`1px solid ${BDR}`,padding:"8px 13px 10px"}}>
+                      {items.map((item,ii)=>{
+                        const isSel=sessSel.has(item.name);
+                        const qData=qtys[si]?.[item.name]||{qty:(item.quantities?.[0]?.qty||1),unit:(item.quantities?.[0]?.unit||"")};
+                        return(
+                          <div key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 4px",borderBottom:ii<items.length-1?`1px solid ${BDR}`:"none",background:isSel?"rgba(200,132,90,.06)":"transparent",borderRadius:6,cursor:"pointer"}} onClick={()=>toggleItem(si,item.name)}>
+                            <div style={{width:18,height:18,borderRadius:5,border:isSel?"none":`1.5px solid ${BDR}`,background:isSel?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                              {isSel&&<span style={{color:"white",fontSize:9,fontWeight:800}}>✓</span>}
+                            </div>
+                            <span style={{fontSize:12,fontWeight:600,color:TXT,flex:1}}>{(item.category||getCat(item.name)).split(" ")[0]} {item.name}</span>
+                            {isSel&&(
+                              <div style={{display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>
+                                <input type="number" style={{...inp,width:50,padding:"3px 6px",fontSize:11,marginBottom:0}} value={qData.qty}
+                                  onChange={e=>setQtys(prev=>({...prev,[si]:{...(prev[si]||{}),[item.name]:{...qData,qty:parseFloat(e.target.value)||1}}}))}/>
+                                <select style={{...sel,width:60,padding:"3px 5px",fontSize:10,marginBottom:0}} value={qData.unit}
+                                  onChange={e=>setQtys(prev=>({...prev,[si]:{...(prev[si]||{}),[item.name]:{...qData,unit:e.target.value}}}))}>
+                                  {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {total>0&&(
+          <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:14,padding:"13px",marginTop:12}} onClick={addSelected}>
+            🛒 Ajouter {total} article{total>1?"s":""} à la liste
+          </button>
+        )}
+      </div>
     </div>
   );
 }
