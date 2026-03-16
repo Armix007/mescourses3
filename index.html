@@ -307,8 +307,8 @@ function guessCat(name){
   if(/quinoa|boulgour|semoule|couscous|polenta|épeautre|millet|orge/.test(n))return"🌾 Céréales";
   if(/flocons d'avoine|granola|muesli|müesli|corn flakes/.test(n))return"🥣 Céréales";
   if(/shampo|savon|dentifrice|gel douche|déodorant|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin|brosse à dents|rasoir|coton|serviette hygiénique|tampon/.test(n))return"🧴 Hygiène";
-  if(/eau gazeuse|eau plate|eau/.test(n))return"💧 Eau";
-  if(/jus d'orange|jus de pomme|jus de tomate|jus|nectar/.test(n))return"🧃 Jus";
+  if(/eau gazeuse|eau plate|\beau\b/.test(n))return"💧 Eau";
+  if(/jus d'orange|jus de pomme|jus de tomate|jus|nectar/.test(n))return"🧃 Jus";
   if(/soda|cola|limonade|tonic/.test(n))return"🥤 Sodas";
   if(/bière/.test(n))return"🍺 Bière";
   if(/vin|champagne|prosecco|rosé|bordeaux/.test(n))return"🍷 Vin";
@@ -1261,24 +1261,11 @@ function PageRecettes({db,setDb,showToast}){
   const [tab,setTab]=useState("recettes");
   const [search,setSearch]=useState("");
   const [activeFolder,setActiveFolder]=useState(null);
-  const [todayRec,setTodayRec]=useState(null);
   const [showFilters,setShowFilters]=useState(false);
+  const [recipeView,setRecipeView]=useState(()=>localStorage.getItem("ws_recipe_view")||"grille");
   const [mealdbResults,setMealdbResults]=useState([]);
   const [mealdbLoading,setMealdbLoading]=useState(false);
   const mdbTimer=useRef(null);
-
-  useEffect(()=>{
-    if(db.recipes.length>0){
-      const todayCal=(db.calendar||{})[dateKey(new Date())];
-      if(todayCal){
-        const mealId=todayCal.midi||todayCal.soir;
-        if(mealId){const planned=db.recipes.find(r=>String(r.id)===String(mealId));if(planned){setTodayRec(planned);return;}}
-      }
-      const seed=new Date().toDateString();
-      let h=0;for(let i=0;i<seed.length;i++)h=(h*31+seed.charCodeAt(i))%db.recipes.length;
-      setTodayRec(db.recipes[h]);
-    }
-  },[db.recipes.length,db.calendar]);
 
   useEffect(()=>{
     if(!search.trim()||search.length<2){setMealdbResults([]);return;}
@@ -1377,6 +1364,26 @@ function PageRecettes({db,setDb,showToast}){
     const realIdx=db.recipes.indexOf(r);
     const cost=estimateRecipeCost(r,db.priceDB,r.persons);
     const isLiked=likedIds.has(r.id);
+    if(recipeView==="liste"){
+      return(
+        <div style={{...card,padding:"11px 13px",overflow:"hidden",cursor:"pointer",marginBottom:7,background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",gap:10}} onClick={()=>setViewIdx(realIdx)}>
+          <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+            {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<span style={{fontSize:22}}>{guessRecipeEmoji(r.name)}</span>}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:CARAMEL,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+            <div style={{display:"flex",gap:6,marginTop:3,flexWrap:"wrap"}}>
+              {r.duration&&<span style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</span>}
+              {r.persons&&<span style={{fontSize:10,color:TXT3}}>👥 {r.persons}</span>}
+              <span style={{fontSize:10,color:TXT3}}>🥗 {r.ingredients.length}</span>
+              {r.difficulty&&<span style={{fontSize:10,color:TXT3}}>{RECIPE_DIFFICULTY.find(d=>d.id===r.difficulty)?.label}</span>}
+            </div>
+          </div>
+          {isLiked&&<span style={{fontSize:14}}>❤️</span>}
+          <span style={{color:TXT3,fontSize:16,flexShrink:0}}>›</span>
+        </div>
+      );
+    }
     return(
       <div style={{...card,padding:0,overflow:"hidden",cursor:"pointer",marginBottom:12,background:"rgba(255,255,255,.92)"}} onClick={()=>setViewIdx(realIdx)}>
         <div style={{height:130,background:`linear-gradient(135deg,${CREAM2} 0%,${BDR} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
@@ -1389,7 +1396,7 @@ function PageRecettes({db,setDb,showToast}){
           {r.lastCooked&&<div style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,.35)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",backdropFilter:"blur(4px)"}}>📅 {r.lastCooked}</div>}
         </div>
         <div style={{padding:"11px 14px"}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:6,color:TXT}}>{r.name}</div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:6,color:CARAMEL,fontWeight:700}}>{r.name}</div>
           <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
             <span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🥗 {r.ingredients.length} ingr.</span>
             {r.persons&&<span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {r.persons} pers.</span>}
@@ -1407,7 +1414,13 @@ function PageRecettes({db,setDb,showToast}){
     <div style={{padding:14,paddingBottom:90}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT,fontWeight:700}}>Mes recettes</div>
-        <button style={btn("acc")} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Recette</button>
+        <div style={{display:"flex",gap:7,alignItems:"center"}}>
+          <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:2}}>
+            <div onClick={()=>{setRecipeView("liste");localStorage.setItem("ws_recipe_view","liste");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="liste"?SURF:"transparent",boxShadow:recipeView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>☰</div>
+            <div onClick={()=>{setRecipeView("grille");localStorage.setItem("ws_recipe_view","grille");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="grille"?SURF:"transparent",boxShadow:recipeView==="grille"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>⊞</div>
+          </div>
+          <button style={btn("acc")} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Recette</button>
+        </div>
       </div>
       <div style={{position:"relative",marginBottom:8}}>
         <input style={{...inp,paddingLeft:34}} placeholder="Rechercher par nom, ingrédient…" value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -1499,16 +1512,7 @@ function PageRecettes({db,setDb,showToast}){
           </div>
         </div>
       </div>
-      {todayRec&&tab==="recettes"&&!search&&(
-        <div style={{...card,background:`linear-gradient(135deg,${CARAMEL} 0%,${CARAMEL2} 100%)`,marginBottom:10,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10}} onClick={()=>setViewIdx(db.recipes.indexOf(todayRec))}>
-          <div style={{fontSize:30}}>{guessRecipeEmoji(todayRec.name)}</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.7)",marginBottom:2,letterSpacing:.5}}>✨ RECETTE DU JOUR</div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:"white",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{todayRec.name}</div>
-          </div>
-          <div style={{fontSize:18,color:"rgba(255,255,255,.6)"}}>›</div>
-        </div>
-      )}
+
       <div style={{display:"flex",gap:4,background:"rgba(255,255,255,.6)",borderRadius:12,padding:3,marginBottom:10}}>
         {[{id:"recettes",label:"🍽️ Toutes"},{id:"dossiers",label:"🏷️ Thèmes"}].map(t=>(
           <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:12,fontWeight:700,borderRadius:9,background:tab===t.id?"white":CREAM2,color:tab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .2s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
@@ -4104,7 +4108,7 @@ function BudgetSessionCard({session,onDelete}){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PAGE CALENDRIER — Phase 8 — Planning repas
+// PAGE CALENDRIER — Phase 15 — Planning repas multi-recettes
 // ═══════════════════════════════════════════════════════════════
 const MEAL_SLOTS=["midi","soir"];
 const MEAL_LABELS={midi:"☀️ Midi",soir:"🌙 Soir"};
@@ -4119,82 +4123,108 @@ function getWeekDates(offset){
   return Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;});
 }
 
+// Helpers pour calendrier multi-recettes
+// calendar[dk][slot] = string (legacy) ou array of ids
+function getSlotIds(calendar,dk,slot){
+  const v=calendar[dk]?.[slot];
+  if(!v)return[];
+  if(Array.isArray(v))return v;
+  return[String(v)];
+}
+function setSlotIds(calendar,dk,slot,ids){
+  return{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:ids}};
+}
+
 function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [weekOffset,setWeekOffset]=useState(0);
   const [showPicker,setShowPicker]=useState(null); // {dk,slot,mode:"list"|"ai"|"free"}
-  const [showActions,setShowActions]=useState(null);
-  const [pickerConflict,setPickerConflict]=useState(null);
+  const [showActions,setShowActions]=useState(null); // {dk,slot,recipeId}
   const [showWizard,setShowWizard]=useState(false);
   const [wizardQueue,setWizardQueue]=useState([]);
   const [wizardStep,setWizardStep]=useState(0);
   const [wizardItems,setWizardItems]=useState([]);
   const [freeText,setFreeText]=useState("");
+  const [freeAddToRecipes,setFreeAddToRecipes]=useState(false);
   const [calAILoading,setCalAILoading]=useState(false);
   const [aiPantrySelected,setAIPantrySelected]=useState(new Set());
+  const [aiManualIngreds,setAiManualIngreds]=useState("");
   const [aiWish,setAIWish]=useState("");
+  // Filtres picker
+  const [pickerFilterDiet,setPickerFilterDiet]=useState("");
+  const [pickerFilterDiff,setPickerFilterDiff]=useState("");
+  const [pickerFilterType,setPickerFilterType]=useState("");
+  const [pickerFilterTime,setPickerFilterTime]=useState("");
+  const [pickerSearch,setPickerSearch]=useState("");
+
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
   const weekDates=getWeekDates(weekOffset);
   const todayKey=dateKey(new Date());
 
+  function addMealToSlot(dk,slot,recipeId){
+    const ids=getSlotIds(calendar,dk,slot);
+    if(ids.includes(String(recipeId)))return;
+    const newCal=setSlotIds(calendar,dk,slot,[...ids,String(recipeId)]);
+    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);setShowPicker(null);
+    showToast("📅 Repas planifié");
+  }
+  function removeMealFromSlot(dk,slot,recipeId){
+    const ids=getSlotIds(calendar,dk,slot).filter(id=>id!==String(recipeId));
+    const newCal=setSlotIds(calendar,dk,slot,ids);
+    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);setShowActions(null);
+    showToast("🗑️ Repas retiré");
+  }
   async function addFreeTextMeal(dk,slot,name){
     if(!name.trim())return;
     const fakeRecipe={id:"free_"+Date.now(),name:name.trim(),source:"libre",ingredients:[],steps:[]};
-    const nd={...db,recipes:[...db.recipes,fakeRecipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:fakeRecipe.id}}};
-    setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");
-    showToast("✅ "+name.trim()+" planifié");
+    // Si case cochée : enregistre comme vraie recette (sans ingrédients), sinon recette "libre" temporaire
+    if(freeAddToRecipes) fakeRecipe.source="manual";
+    const newRecipes=[...db.recipes,fakeRecipe];
+    const ids=getSlotIds(calendar,dk,slot);
+    const newCal=setSlotIds(calendar,dk,slot,[...ids,String(fakeRecipe.id)]);
+    const nd={...db,recipes:newRecipes,calendar:newCal};
+    setDb(nd);saveDB(nd);setShowPicker(null);setFreeText("");setFreeAddToRecipes(false);
+    showToast("✅ "+name.trim()+" planifié"+(freeAddToRecipes?" et ajouté aux recettes":""));
   }
-  async function generateAIMeal(dk,slot,pantryItems,wish){
+  async function generateAIMeal(dk,slot,pantryItems,manualIngreds,wish){
     const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}
     setCalAILoading(true);
-    const pantryContext=pantryItems?.length?`\nIngrédients disponibles dans le placard (à utiliser en priorité) : ${pantryItems.join(", ")}`:"";    const wishContext=wish?.trim()?`\nIngédients ou type de plat souhaité par l'utilisateur : ${wish}`:"";
+    const allIngreds=[...pantryItems,...(manualIngreds.trim().split(/[,;]+/).map(s=>s.trim()).filter(Boolean))];
+    const pantryContext=allIngreds.length?`\nIngrédients disponibles (à utiliser en priorité) : ${allIngreds.join(", ")}`:"";
+    const wishContext=wish?.trim()?`\nSouhait / type de plat : ${wish}`:"";
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre.${pantryContext}${wishContext}\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})})
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre.${pantryContext}${wishContext}\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})});
       const data=await resp.json();const text=data.content?.[0]?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const recipe=JSON.parse(clean);
       recipe.id=Date.now();recipe.source="ai";recipe.date=new Date().toLocaleDateString("fr-FR");
-      const nd={...db,recipes:[...db.recipes,recipe],calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipe.id}}};
-      setDb(nd);saveDB(nd);setShowPicker(null);
+      const ids=getSlotIds(calendar,dk,slot);
+      const newCal=setSlotIds(calendar,dk,slot,[...ids,String(recipe.id)]);
+      const nd={...db,recipes:[...db.recipes,recipe],calendar:newCal};
+      setDb(nd);saveDB(nd);setShowPicker(null);setAIWish("");setAiManualIngreds("");setAIPantrySelected(new Set());
       showToast("🤖 "+recipe.name+" créé et planifié !");
     }catch(e){showToast("❌ Erreur IA");}
     setCalAILoading(false);
   }
-
-  function setMeal(dk,slot,recipeId){
-    const nd={...db,calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:recipeId}}};
-    setDb(nd);saveDB(nd);setShowPicker(null);
-    showToast("📅 Repas planifié");
-  }
-  function removeMeal(dk,slot){
-    const nd={...db,calendar:{...calendar,[dk]:{...(calendar[dk]||{}),[slot]:null}}};
-    setDb(nd);saveDB(nd);setShowActions(null);
-    showToast("🗑️ Repas retiré");
-  }
   function generateShoppingList(){
-    // Flux guidé : collecter les recettes à venir et lancer le wizard
     const todayD=new Date();todayD.setHours(0,0,0,0);
     const upcoming=[];
     Object.entries(calendar).forEach(([dk,slots])=>{
       const d=new Date(dk);d.setHours(0,0,0,0);
       if(d<todayD)return;
       MEAL_SLOTS.forEach(slot=>{
-        const recipeId=slots[slot];
-        if(!recipeId)return;
-        const recipe=(db.recipes||[]).find(r=>String(r.id)===String(recipeId));
-        if(recipe)upcoming.push({dk,slot,recipe});
+        const ids=getSlotIds(calendar,dk,slot);
+        ids.forEach(recipeId=>{
+          const recipe=(db.recipes||[]).find(r=>String(r.id)===String(recipeId));
+          if(recipe)upcoming.push({dk,slot,recipe});
+        });
       });
     });
     if(!upcoming.length){showToast("⚠️ Aucun repas planifié à venir");return;}
-    // Trier par date
     upcoming.sort((a,b)=>a.dk.localeCompare(b.dk)||MEAL_SLOTS.indexOf(a.slot)-MEAL_SLOTS.indexOf(b.slot));
-    setWizardQueue(upcoming);
-    setWizardStep(0);
-    setWizardItems([...db.items]);
-    setShowWizard(true);
+    setWizardQueue(upcoming);setWizardStep(0);setWizardItems([...db.items]);setShowWizard(true);
   }
-
   function finishWizardStep(recipe,vp,haveIdxs,items){
     const base=recipe.persons||1,scale=vp/base;
     let ni=[...items];
@@ -4212,12 +4242,42 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   }
   const suggestions=antiGaspiSuggestions();
 
+  // Filtres picker appliqués aux recettes
+  function applyPickerFilters(recipes){
+    let list=recipes.filter(r=>r.source!=="libre");
+    if(pickerSearch.trim()){
+      const q=pickerSearch.toLowerCase();
+      list=list.filter(r=>r.name.toLowerCase().includes(q)||(r.ingredients||[]).some(i=>i.name.toLowerCase().includes(q)));
+    }
+    if(pickerFilterDiet){
+      const ings=(r)=>(r.ingredients||[]).map(i=>i.name.toLowerCase()).join(" ");
+      list=list.filter(r=>{
+        const ig=ings(r);
+        if(pickerFilterDiet==="veg")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|thon|saumon|crevette|moule/.test(ig);
+        if(pickerFilterDiet==="vegan")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|thon|saumon|crevette|moule|lait|oeuf|beurre|crème|fromage|yaourt|miel/.test(ig);
+        if(pickerFilterDiet==="gf")return!/farine|pain|pâte|blé|seigle|orge/.test(ig);
+        if(pickerFilterDiet==="lf")return!/lait|beurre|crème|fromage|yaourt/.test(ig);
+        if(pickerFilterDiet==="fish")return/poisson|saumon|thon|cabillaud|dorade|crevette|moule/.test(ig);
+        if(pickerFilterDiet==="meat")return/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard/.test(ig);
+        return true;
+      });
+    }
+    if(pickerFilterDiff)list=list.filter(r=>r.difficulty===pickerFilterDiff);
+    if(pickerFilterType)list=list.filter(r=>r.mealType===pickerFilterType);
+    if(pickerFilterTime){
+      list=list.filter(r=>{const d=parseInt(r.duration);if(isNaN(d))return pickerFilterTime==="any";
+        if(pickerFilterTime==="fast")return d<=30;if(pickerFilterTime==="mid")return d>30&&d<=60;if(pickerFilterTime==="slow")return d>60;return true;});
+    }
+    return list;
+  }
+  const hasPickerFilters=!!(pickerFilterDiet||pickerFilterDiff||pickerFilterType||pickerFilterTime);
+
   return(
     <div style={{padding:14,paddingBottom:90}}>
       <div style={{...card,background:"rgba(255,255,255,.88)",padding:"14px 16px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT}}>📅 Planning repas</div>
-          <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={generateShoppingList}>🛒 Générer la liste</button>
+          <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={generateShoppingList}>🛒 Ajouter à la liste</button>
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
@@ -4242,11 +4302,12 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                 for(const d of weekDates){
                   for(const slot of MEAL_SLOTS){
                     const dk=dateKey(d);
-                    if(!(calendar[dk]?.[slot])){setMeal(dk,slot,r.id);placed=true;break;}
+                    const ids=getSlotIds(calendar,dk,slot);
+                    if(ids.length===0){addMealToSlot(dk,slot,r.id);placed=true;break;}
                   }
                   if(placed)break;
                 }
-                if(!placed)showToast("⚠️ Semaine complète");
+                if(!placed)showToast("⚠️ Toutes les cases ont déjà des recettes");
               }}>{guessRecipeEmoji(r.name)} {r.name}</div>
             ))}
           </div>
@@ -4268,19 +4329,19 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             </div>
             <div style={{display:"flex",gap:6}}>
               {MEAL_SLOTS.map(slot=>{
-                const recipeId=calendar[dk]?.[slot];
-                const recipe=recipeId?(db.recipes||[]).find(r=>String(r.id)===String(recipeId)):null;
+                const recipeIds=getSlotIds(calendar,dk,slot);
+                const recipes=recipeIds.map(id=>(db.recipes||[]).find(r=>String(r.id)===String(id))).filter(Boolean);
                 return(
-                  <div key={slot} style={{flex:1,borderRadius:10,border:`1.5px ${recipe?"solid":"dashed"} ${recipe?CARAMEL2:BDR}`,background:recipe?"rgba(200,132,90,.06)":CREAM,padding:"7px 8px",cursor:"pointer",minHeight:54,display:"flex",flexDirection:"column",justifyContent:"center"}} onClick={()=>recipe?setShowActions({dk,slot,recipe}):setShowPicker({dk,slot})}>
-                    <div style={{fontSize:9,fontWeight:700,color:TXT3,marginBottom:3}}>{MEAL_LABELS[slot]}</div>
-                    {recipe?(
-                      <div style={{display:"flex",alignItems:"center",gap:5}}>
-                        <span style={{fontSize:14,flexShrink:0}}>{guessRecipeEmoji(recipe.name)}</span>
-                        <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2}}>{recipe.name}</div>
+                  <div key={slot} style={{flex:1,borderRadius:10,border:`1.5px ${recipes.length?"solid":"dashed"} ${recipes.length?CARAMEL2:BDR}`,background:recipes.length?"rgba(200,132,90,.06)":CREAM,padding:"7px 8px",minHeight:54,display:"flex",flexDirection:"column"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:TXT3,marginBottom:4}}>{MEAL_LABELS[slot]}</div>
+                    {recipes.map(recipe=>(
+                      <div key={recipe.id} style={{display:"flex",alignItems:"center",gap:4,marginBottom:4,background:"rgba(255,255,255,.7)",borderRadius:7,padding:"4px 6px",cursor:"pointer"}} onClick={()=>setShowActions({dk,slot,recipe,recipeId:recipe.id})}>
+                        <span style={{fontSize:13,flexShrink:0}}>{guessRecipeEmoji(recipe.name)}</span>
+                        <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{recipe.name}</div>
+                        <span style={{fontSize:10,color:TXT3,flexShrink:0,cursor:"pointer"}} onClick={e=>{e.stopPropagation();removeMealFromSlot(dk,slot,recipe.id);}}>✕</span>
                       </div>
-                    ):(
-                      <div style={{fontSize:10,color:TXT3,textAlign:"center"}}>+ Ajouter</div>
-                    )}
+                    ))}
+                    <div style={{marginTop:2,fontSize:10,color:CARAMEL2,cursor:"pointer",textAlign:"center",padding:"3px 0",borderRadius:6,border:`1px dashed ${CARAMEL2}`,background:"rgba(200,132,90,.04)"}} onClick={()=>setShowPicker({dk,slot,mode:"list"})}>+ Ajouter</div>
                   </div>
                 );
               })}
@@ -4288,33 +4349,69 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
           </div>
         );
       })}
-      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Appuyez sur un créneau pour assigner une recette</div>
+      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Plusieurs recettes possibles par créneau — appuyez sur + pour en ajouter</div>
 
       {showPicker&&(
-        <Modal open onClose={()=>{setShowPicker(null);setFreeText("");}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Que planifier ?</div>
-          <div style={{fontSize:11,color:TXT3,marginBottom:12}}>
+        <Modal open onClose={()=>{setShowPicker(null);setFreeText("");setAIWish("");setAiManualIngreds("");setAIPantrySelected(new Set());setPickerSearch("");setPickerFilterDiet("");setPickerFilterDiff("");setPickerFilterType("");setPickerFilterTime("");}}>          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Que planifier ?</div>
+          <div style={{fontSize:11,color:TXT3,marginBottom:10}}>
             {DAY_NAMES_FULL[new Date(showPicker.dk).getDay()===0?6:new Date(showPicker.dk).getDay()-1]} · {MEAL_LABELS[showPicker.slot]}
           </div>
+
+          {/* ── FILTRES + RECHERCHE EN AMONT DES 3 MODES ── */}
+          <div style={{marginBottom:10}}>
+            <div style={{position:"relative",marginBottom:7}}>
+              <input style={{...inp,paddingLeft:30,fontSize:12,padding:"9px 9px 9px 30px"}} placeholder="Chercher par nom ou ingrédient…" value={pickerSearch} onChange={e=>setPickerSearch(e.target.value)}/>
+              <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12,pointerEvents:"none"}}>🔍</span>
+              {pickerSearch&&<span style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",fontSize:12,cursor:"pointer",color:TXT3}} onClick={()=>setPickerSearch("")}>✕</span>}
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>
+              {[{id:"",label:"Tous régimes"},{id:"veg",label:"🌱 Végé"},{id:"vegan",label:"🌿 Vegan"},{id:"gf",label:"🚫🌾 Sans gluten"},{id:"lf",label:"🥛 Sans lactose"},{id:"fish",label:"🐟 Poisson"},{id:"meat",label:"🥩 Viande"}].map(f=>(
+                <span key={f.id} style={{fontSize:10,padding:"3px 7px",borderRadius:12,cursor:"pointer",fontWeight:600,background:pickerFilterDiet===f.id?CARAMEL:CREAM2,color:pickerFilterDiet===f.id?"white":TXT3,border:`1px solid ${pickerFilterDiet===f.id?CARAMEL:BDR}`}} onClick={()=>setPickerFilterDiet(pickerFilterDiet===f.id?"":f.id)}>{f.label}</span>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>
+              {[{id:"",label:"Difficulté"},{id:"easy",label:"😊 Facile"},{id:"medium",label:"👨‍🍳 Moyen"},{id:"hard",label:"🎓 Expert"}].map(f=>(
+                <span key={f.id} style={{fontSize:10,padding:"3px 7px",borderRadius:12,cursor:"pointer",fontWeight:600,background:pickerFilterDiff===f.id?CARAMEL:CREAM2,color:pickerFilterDiff===f.id?"white":TXT3,border:`1px solid ${pickerFilterDiff===f.id?CARAMEL:BDR}`}} onClick={()=>setPickerFilterDiff(pickerFilterDiff===f.id?"":f.id)}>{f.label}</span>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>
+              {[{id:"",label:"Type"},{id:"breakfast",label:"🌅 Petit-déj"},{id:"starter",label:"🥗 Entrée"},{id:"main",label:"🍽️ Plat"},{id:"dessert",label:"🍰 Dessert"},{id:"snack",label:"🫐 Snack"}].map(f=>(
+                <span key={f.id} style={{fontSize:10,padding:"3px 7px",borderRadius:12,cursor:"pointer",fontWeight:600,background:pickerFilterType===f.id?CARAMEL:CREAM2,color:pickerFilterType===f.id?"white":TXT3,border:`1px solid ${pickerFilterType===f.id?CARAMEL:BDR}`}} onClick={()=>setPickerFilterType(pickerFilterType===f.id?"":f.id)}>{f.label}</span>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {[{id:"",label:"Durée"},{id:"fast",label:"⚡ <30min"},{id:"mid",label:"🕐 30-60min"},{id:"slow",label:"🐢 >1h"}].map(f=>(
+                <span key={f.id} style={{fontSize:10,padding:"3px 7px",borderRadius:12,cursor:"pointer",fontWeight:600,background:pickerFilterTime===f.id?CARAMEL:CREAM2,color:pickerFilterTime===f.id?"white":TXT3,border:`1px solid ${pickerFilterTime===f.id?CARAMEL:BDR}`}} onClick={()=>setPickerFilterTime(pickerFilterTime===f.id?"":f.id)}>{f.label}</span>
+              ))}
+            </div>
+          </div>
+
           {/* Tabs 3 modes */}
-          <div style={{display:"flex",gap:6,marginBottom:12}}>
+          <div style={{display:"flex",gap:5,marginBottom:12}}>
             {[{id:"list",label:"📖 Mes recettes"},{id:"ai",label:"🤖 Créer via IA"},{id:"free",label:"✏️ Nom libre"}].map(m=>(
               <div key={m.id} style={{flex:1,textAlign:"center",padding:"7px 4px",borderRadius:10,fontSize:10,fontWeight:700,cursor:"pointer",background:(showPicker.mode||"list")===m.id?CARAMEL:CREAM2,color:(showPicker.mode||"list")===m.id?"white":TXT2,border:`1px solid ${(showPicker.mode||"list")===m.id?CARAMEL:BDR}`}} onClick={()=>setShowPicker(p=>({...p,mode:m.id}))}>{m.label}</div>
             ))}
           </div>
-          {(showPicker.mode||"list")==="list"&&(
-            !(db.recipes||[]).length?(
-              <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
-                Aucune recette — créez d'abord vos recettes
-                <button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={()=>{setShowPicker(null);goToRecettes();}}>→ Aller aux recettes</button>
-              </div>
-            ):(
-              <div style={{maxHeight:360,overflowY:"auto"}}>
-                {suggestions.length>0&&(
+
+          {/* MODE LISTE */}
+          {(showPicker.mode||"list")==="list"&&(()=>{
+            const filtered=applyPickerFilters(db.recipes||[]);
+            if(!(db.recipes||[]).filter(r=>r.source!=="libre").length){
+              return(
+                <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
+                  Aucune recette — créez d'abord vos recettes
+                  <button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={()=>{setShowPicker(null);goToRecettes();}}>→ Aller aux recettes</button>
+                </div>
+              );
+            }
+            return(
+              <div style={{maxHeight:300,overflowY:"auto"}}>
+                {hasPickerFilters&&filtered.length===0&&<div style={{textAlign:"center",padding:12,color:TXT3,fontSize:12}}>Aucune recette ne correspond aux filtres</div>}
+                {suggestions.length>0&&!hasPickerFilters&&(
                   <div style={{marginBottom:8}}>
-                    <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Utilise des produits à finir :</div>
+                    <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Anti-gaspi :</div>
                     {suggestions.map(r=>(
-                      <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
+                      <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>addMealToSlot(showPicker.dk,showPicker.slot,r.id)}>
                         <span style={{fontSize:20}}>{guessRecipeEmoji(r.name)}</span>
                         <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>{r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}</div>
                       </div>
@@ -4322,8 +4419,8 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                     <div style={{borderBottom:`1px solid ${BDR}`,marginBottom:8}}/>
                   </div>
                 )}
-                {(db.recipes||[]).filter(r=>r.source!=="libre").map(r=>(
-                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>setMeal(showPicker.dk,showPicker.slot,r.id)}>
+                {filtered.map(r=>(
+                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>addMealToSlot(showPicker.dk,showPicker.slot,r.id)}>
                     <span style={{fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
@@ -4333,14 +4430,16 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                   </div>
                 ))}
               </div>
-            )
-          )}
+            );
+          })()}
+
+          {/* MODE IA */}
           {(showPicker.mode)==="ai"&&(
             <div>
               {pantry.length>0&&(
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>🏠 Utiliser depuis mon placard :</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5,maxHeight:100,overflowY:"auto"}}>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>🏠 Depuis mon placard (cliquez pour sélectionner) :</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5,maxHeight:90,overflowY:"auto"}}>
                     {pantry.map(item=>{
                       const isSel=aiPantrySelected.has(item.id);
                       return(
@@ -4355,25 +4454,36 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                   </div>
                 </div>
               )}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:4}}>✍️ Ingrédients supplémentaires (optionnel) :</div>
+                <input style={{...inp,fontSize:12}} placeholder="Ex: courgettes, riz, tomates…" value={aiManualIngreds} onChange={e=>setAiManualIngreds(e.target.value)}/>
+              </div>
               <div style={{marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>✨ Souhait / type de plat (optionnel) :</div>
-                <input style={{...inp,fontSize:12}} placeholder="Ex: pâtes, plat rapide, végétarien…" value={aiWish} onChange={e=>setAIWish(e.target.value)}/>
+                <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:4}}>✨ Remarques libres (optionnel) :</div>
+                <textarea style={{...inp,resize:"none",minHeight:52,fontSize:12}} placeholder="Ex: Lasagne végétarienne, plat rapide, sans lactose…" value={aiWish} onChange={e=>setAIWish(e.target.value)}/>
               </div>
               {calAILoading?(
                 <div style={{textAlign:"center",padding:"12px 0",fontSize:13,color:TXT3}}>⏳ Génération en cours…</div>
               ):(
                 <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={()=>{
                   const pantryNames=pantry.filter(i=>aiPantrySelected.has(i.id)).map(i=>i.name);
-                  generateAIMeal(showPicker.dk,showPicker.slot,pantryNames,aiWish);
+                  generateAIMeal(showPicker.dk,showPicker.slot,pantryNames,aiManualIngreds,aiWish);
                 }}>🤖 Générer la recette</button>
               )}
             </div>
           )}
-          
+
+          {/* MODE NOM LIBRE */}
           {(showPicker.mode)==="free"&&(
             <div>
-              <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Entrez simplement le nom du repas, sans ingrédients :</div>
-              <input style={{...inp,marginBottom:12}} placeholder="Ex: Raclette, Sushi maison, Pizza…" value={freeText} onChange={e=>setFreeText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&freeText.trim()&&addFreeTextMeal(showPicker.dk,showPicker.slot,freeText)} autoFocus/>
+              <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Entrez simplement le nom du repas :</div>
+              <input style={{...inp,marginBottom:10}} placeholder="Ex: Raclette, Sushi maison, Pizza…" value={freeText} onChange={e=>setFreeText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&freeText.trim()&&addFreeTextMeal(showPicker.dk,showPicker.slot,freeText)} autoFocus/>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer",padding:"8px 10px",background:CREAM2,borderRadius:10,border:`1px solid ${BDR}`}} onClick={()=>setFreeAddToRecipes(!freeAddToRecipes)}>
+                <div style={{width:18,height:18,borderRadius:5,border:freeAddToRecipes?"none":`1.5px solid ${BDR}`,background:freeAddToRecipes?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {freeAddToRecipes&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
+                </div>
+                <span style={{fontSize:12,color:TXT2,fontWeight:500}}>Ajouter aussi aux Recettes</span>
+              </div>
               <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} disabled={!freeText.trim()} onClick={()=>addFreeTextMeal(showPicker.dk,showPicker.slot,freeText)}>✅ Planifier "{freeText||"…"}"</button>
             </div>
           )}
@@ -4390,45 +4500,19 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowPicker({dk:showActions.dk,slot:showActions.slot,mode:"list"});setShowActions(null);}}>🔄 Changer la recette</button>
-            <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>removeMeal(showActions.dk,showActions.slot)}>🗑️ Retirer ce repas</button>
+            <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{setShowPicker({dk:showActions.dk,slot:showActions.slot,mode:"list"});setShowActions(null);}}>+ Ajouter une autre recette à ce créneau</button>
+            <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>removeMealFromSlot(showActions.dk,showActions.slot,showActions.recipeId)}>🗑️ Retirer ce repas</button>
             <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setShowActions(null)}>Fermer</button>
           </div>
         </Modal>
       )}
 
-      {/* Picker conflit */}
-      {pickerConflict&&(
-        <Modal open onClose={()=>setPickerConflict(null)}>
-          <div style={{textAlign:"center",marginBottom:12}}>
-            <div style={{fontSize:32,marginBottom:6}}>😊</div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:17,color:TXT,marginBottom:6}}>Ce créneau est déjà pris !</div>
-            <div style={{fontSize:12,color:TXT2,lineHeight:1.6}}>
-              <strong>{MEAL_LABELS[pickerConflict.slot]}</strong> est occupé par<br/>
-              <strong style={{color:CARAMEL}}>{pickerConflict.existing?.name||"une recette"}</strong>
-            </div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            <button style={{...btn("dng"),width:"100%",justifyContent:"center"}} onClick={()=>{setMeal(pickerConflict.dk,pickerConflict.slot,pickerConflict.newId);setPickerConflict(null);}}>🔄 Remplacer quand même</button>
-            <button style={{...btn("gh"),width:"100%",justifyContent:"center"}} onClick={()=>setPickerConflict(null)}>Annuler</button>
-          </div>
-        </Modal>
-      )}
-
-      {/* Wizard Générer la liste */}
+      {/* Wizard Ajouter à la liste */}
       {showWizard&&wizardQueue.length>0&&(()=>{
         const current=wizardQueue[wizardStep];
-        // Guard : si wizardStep hors limites (ex: skip sur dernière étape mal calculée), fermer proprement
-        if(!current){
-          setTimeout(()=>{setShowWizard(false);goToListe();},0);
-          return null;
-        }
+        if(!current){setTimeout(()=>{setShowWizard(false);goToListe();},0);return null;}
         const recipe=current.recipe;
-        // Guard : recette corrompue ou supprimée
-        if(!recipe||!recipe.name){
-          setTimeout(()=>{setWizardStep(s=>s+1);},0);
-          return null;
-        }
+        if(!recipe||!recipe.name){setTimeout(()=>{setWizardStep(s=>s+1);},0);return null;}
         const isLast=wizardStep>=wizardQueue.length-1;
         const dayLabel=new Date(current.dk).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"short"});
         return(
@@ -4445,24 +4529,18 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               if(isLast){
                 const nd={...db,items:newItems};setDb(nd);saveDB(nd);
                 setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
-                goToListe();
-                showToast("✅ Liste générée ! Bon shopping 🛒");
-              } else {
-                setWizardItems(newItems);
-                setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));
-              }
+                goToListe();showToast("✅ Liste générée ! Bon shopping 🛒");
+              } else {setWizardItems(newItems);setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));}
             }}
+            onPrev={wizardStep>0?()=>setWizardStep(s=>s-1):null}
             onSkip={()=>{
               if(isLast){
                 const nd={...db,items:wizardItems};setDb(nd);saveDB(nd);
                 setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
-                goToListe();
-                showToast("✅ Liste générée !");
-              } else {
-                setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));
-              }
+                goToListe();showToast("✅ Liste générée !");
+              } else {setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));}
             }}
-            onCancel={()=>{setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);}}
+            onCancel={()=>{setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);showToast("❌ Wizard annulé");}}
           />
         );
       })()}
@@ -4470,8 +4548,8 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   );
 }
 
-// ─── WIZARD STEP (flux guidé Générer la liste) ────────────────
-function WizardStep({recipe,dayLabel,slot,stepNum,totalSteps,isLast,priceDB,onNext,onSkip,onCancel}){
+// ─── WIZARD STEP (flux guidé Ajouter à la liste) ────────────────
+function WizardStep({recipe,dayLabel,slot,stepNum,totalSteps,isLast,priceDB,onNext,onPrev,onSkip,onCancel}){
   const [vp,setVp]=useState(recipe.persons||2);
   const [have,setHave]=useState(new Set());
   const base=recipe.persons||1;
@@ -4518,128 +4596,19 @@ function WizardStep({recipe,dayLabel,slot,stepNum,totalSteps,isLast,priceDB,onNe
           ))}
         </div>
         {cost&&<div style={{fontSize:11,color:SUC,textAlign:"center",marginBottom:12,fontWeight:700}}>~{cost.total.toFixed(2)}€ estimé · {cost.matched}/{cost.outOf} prix connus</div>}
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
+          {onPrev&&<button style={{...btn("gh"),padding:"10px 14px",fontSize:13}} onClick={onPrev}>← Retour</button>}
           <button style={{...btn("gh"),flex:1}} onClick={onSkip}>Passer →</button>
           <button style={{...btn(isLast?"suc":"acc"),flex:2}} onClick={()=>onNext(vp,have)}>
-            {isLast?"✅ Générer la liste":"Recette suivante →"}
+            {isLast?"✅ Ajouter à la liste":"Recette suivante →"}
           </button>
         </div>
+        <button style={{...btn("dng"),width:"100%",justifyContent:"center",fontSize:12}} onClick={onCancel}>✕ Annuler le wizard</button>
       </div>
     </div>
   );
 }
 
-// ─── PICKER RECETTES (Calendrier) ─────────────────────────────
-function PickerRecettes({db,suggestions,onSelect,onImport,goToRecettes,showToast}){
-  const [pickerSearch,setPickerSearch]=useState("");
-  const [pickerDiff,setPickerDiff]=useState("");
-  const [pickerType,setPickerType]=useState("");
-  const [mdbResults,setMdbResults]=useState([]);
-  const [mdbLoading,setMdbLoading]=useState(false);
-  const timerRef=useRef(null);
-
-  useEffect(()=>{
-    if(!pickerSearch.trim()||pickerSearch.length<2){setMdbResults([]);return;}
-    clearTimeout(timerRef.current);
-    timerRef.current=setTimeout(async()=>{
-      setMdbLoading(true);
-      try{
-        const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(pickerSearch)}`);
-        const d=await r.json();
-        setMdbResults((d.meals||[]).slice(0,4).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,source:"mealdb"})));
-      }catch{setMdbResults([]);}
-      setMdbLoading(false);
-    },600);
-  },[pickerSearch]);
-
-  async function importAndSelect(mealdbId){
-    showToast("⏳ Import…");
-    try{
-      const r=await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealdbId}`);
-      const d=await r.json();const m=d.meals?.[0];if(!m)return;
-      const ings=[];
-      for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
-      const recipe={id:Date.now(),name:m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")};
-      onImport(recipe);
-    }catch{showToast("❌ Erreur import");}
-  }
-
-  const myRecipes=(db.recipes||[]).filter(r=>{
-    if(pickerSearch.trim()&&!r.name.toLowerCase().includes(pickerSearch.toLowerCase())&&!(r.ingredients||[]).some(i=>i.name.toLowerCase().includes(pickerSearch.toLowerCase())))return false;
-    if(pickerDiff&&r.difficulty!==pickerDiff)return false;
-    if(pickerType&&r.mealType!==pickerType)return false;
-    return true;
-  });
-
-  return(
-    <div style={{maxHeight:500,display:"flex",flexDirection:"column"}}>
-      <div style={{position:"relative",marginBottom:7}}>
-        <input style={{...inp,paddingLeft:30}} placeholder="Rechercher…" value={pickerSearch} onChange={e=>setPickerSearch(e.target.value)}/>
-        <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:12}}>🔍</span>
-      </div>
-      <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
-        {RECIPE_DIFFICULTY.filter(d=>d.id).map(d=>(
-          <span key={d.id} style={{fontSize:11,padding:"3px 8px",borderRadius:12,background:pickerDiff===d.id?CARAMEL2:CREAM2,color:pickerDiff===d.id?"white":TXT2,border:`1px solid ${pickerDiff===d.id?CARAMEL2:BDR}`,cursor:"pointer"}} onClick={()=>setPickerDiff(pickerDiff===d.id?"":d.id)}>{d.label}</span>
-        ))}
-        {RECIPE_MEAL_TYPE.filter(t=>t.id).map(t=>(
-          <span key={t.id} style={{fontSize:11,padding:"3px 8px",borderRadius:12,background:pickerType===t.id?CARAMEL2:CREAM2,color:pickerType===t.id?"white":TXT2,border:`1px solid ${pickerType===t.id?CARAMEL2:BDR}`,cursor:"pointer"}} onClick={()=>setPickerType(pickerType===t.id?"":t.id)}>{t.label}</span>
-        ))}
-      </div>
-      <div style={{overflowY:"auto",flex:1}}>
-        {suggestions.length>0&&!pickerSearch&&(
-          <div style={{marginBottom:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Anti-gaspi :</div>
-            {suggestions.map(r=>(
-              <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:4}} onClick={()=>onSelect(r.id)}>
-                <span style={{fontSize:18}}>{guessRecipeEmoji(r.name)}</span>
-                <div style={{flex:1,fontSize:12,fontWeight:700,color:TXT}}>{r.name}</div>
-              </div>
-            ))}
-            <div style={{borderBottom:`1px solid ${BDR}`,margin:"8px 0"}}/>
-          </div>
-        )}
-        {myRecipes.length>0&&(
-          <div>
-            <div style={{fontSize:10,fontWeight:700,color:TXT3,marginBottom:5}}>MES RECETTES ({myRecipes.length})</div>
-            {myRecipes.map(r=>(
-              <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>onSelect(r.id)}>
-                <span style={{fontSize:18,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                  <div style={{fontSize:10,color:TXT3}}>
-                    {r.duration&&<span style={{marginRight:5}}>⏱️ {r.duration}</span>}
-                    {r.difficulty&&<span>{RECIPE_DIFFICULTY.find(d=>d.id===r.difficulty)?.label}</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {pickerSearch.length>=2&&(mdbResults.length>0||mdbLoading)&&(
-          <div style={{marginTop:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:CARAMEL,marginBottom:5}}>🌐 THEMEALDB {mdbLoading?"…":""}</div>
-            {mdbResults.map(r=>(
-              <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>importAndSelect(r.mealdbId)}>
-                <img src={r.photo+"/preview"} alt="" style={{width:34,height:34,objectFit:"cover",borderRadius:6,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                  <div style={{fontSize:10,color:TXT3}}>{r.category}</div>
-                </div>
-                <div style={{fontSize:9,color:CARAMEL2,fontWeight:700,flexShrink:0}}>+ Import</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {!myRecipes.length&&!mdbResults.length&&!mdbLoading&&(
-          <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
-            {pickerSearch?"Aucun résultat pour « "+pickerSearch+" »":"Aucune recette — créez-en une d'abord"}
-            {!pickerSearch&&<button style={{...btn("out"),width:"100%",justifyContent:"center",marginTop:10,fontSize:11}} onClick={goToRecettes}>→ Aller aux recettes</button>}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════
 // PAGE PARAMÈTRES — Phase 9
@@ -4882,7 +4851,7 @@ function App(){
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 60%)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 10</span></div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 15</span></div>
             {pseudo?<div style={{fontSize:11,color:"rgba(255,255,255,.75)",marginTop:2,fontWeight:600}}>Bonjour {pseudo} 👋</div>
             :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
