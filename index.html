@@ -168,6 +168,80 @@ async function loadProductsCatalog(){
   }
 }
 
+// ─── BASE MEALDB LOCALE (chargée depuis recipes_mealdb_fr.json) ──────────────
+// Structure attendue : { recipes: [ { id, name, nameEN, category, area, tags, diets, duration, photo, ingredients:[{name,qty,unit}], steps:[str] } ] }
+let MEALDB_LOCAL = []; // tableau de recettes traduites, rempli au démarrage
+
+async function loadLocalMealDB(){
+  try{
+    const r = await fetch('/recipes_mealdb_fr.json');
+    if(!r.ok) return;
+    const d = await r.json();
+    MEALDB_LOCAL = d.recipes || d || [];
+    console.info(`✅ MealDB local : ${MEALDB_LOCAL.length} recettes chargées`);
+  } catch(e){
+    // Fichier absent → mode en ligne uniquement
+    MEALDB_LOCAL = [];
+  }
+}
+
+// Recherche dans la base locale : retourne jusqu'à maxResults résultats
+// correspondant au terme (nom FR, nom EN, catégorie, origine, tags)
+function searchLocalMealDB(term, maxResults=10){
+  if(!term || !MEALDB_LOCAL.length) return [];
+  const q = term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  return MEALDB_LOCAL.filter(m=>{
+    const haystack = [m.name, m.nameEN, m.category, m.area, ...(m.tags||[])].join(' ')
+      .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return haystack.includes(q);
+  }).slice(0, maxResults);
+}
+
+// Filtre la base locale selon catégorie EN (strCategory TheMealDB)
+function filterLocalByCategory(categoryEN, maxResults=100){
+  if(!MEALDB_LOCAL.length) return [];
+  return MEALDB_LOCAL.filter(m=>
+    (m.categoryEN||m.category||"").toLowerCase() === categoryEN.toLowerCase()
+    || (m.category||"").toLowerCase().includes(categoryEN.toLowerCase())
+  ).slice(0, maxResults);
+}
+
+// Filtre la base locale selon origine EN (strArea TheMealDB)
+function filterLocalByArea(areaEN, maxResults=100){
+  if(!MEALDB_LOCAL.length) return [];
+  return MEALDB_LOCAL.filter(m=>
+    (m.areaEN||m.area||"").toLowerCase() === areaEN.toLowerCase()
+    || (m.area||"").toLowerCase().includes(areaEN.toLowerCase())
+  ).slice(0, maxResults);
+}
+
+// Convertit une recette du cache local au format interne Wisely
+function localMealToWisely(m){
+  return {
+    id: Date.now() + Math.random(),
+    name: m.name || m.nameEN || "",
+    nameEN: m.nameEN || "",
+    source: "mealdb",
+    mealdbId: m.id || m.mealdbId || null,
+    photo: m.photo || null,
+    category: m.category || "",
+    area: m.area || "",
+    duration: m.duration || null,
+    persons: m.persons || null,
+    diets: m.diets || [],
+    tags: m.tags || [],
+    ingredients: (m.ingredients||[]).map(ing=>({
+      name: ing.name || "",
+      qty: ing.qty || "",
+      unit: ing.unit || "",
+      category: ing.category || getCat(ing.name||"")
+    })),
+    steps: m.steps || [],
+    date: new Date().toLocaleDateString("fr-FR"),
+    _fromLocal: true
+  };
+}
+
 // Normalise un nom d'ingrédient (souvent généré par IA ou importé en anglais)
 // vers le nom canonique de la base + récupère emoji et catégorie
 function normalizeIngredient(rawName){
@@ -1411,6 +1485,7 @@ function PageRecettes({db,setDb,showToast}){
   const [diffFilters,setDiffFilters]=useState(new Set());
   const [typeFilters,setTypeFilters]=useState(new Set());
   const [timeFilters,setTimeFilters]=useState(new Set());
+  const [areaFilter,setAreaFilter]=useState("");
   function toggleFilter(setter,val){setter(prev=>{const s=new Set(prev);if(s.has(val))s.delete(val);else s.add(val);return s;});}
   const [showMealDB,setShowMealDB]=useState(false);
   const [showAI,setShowAI]=useState(false);
@@ -1430,13 +1505,31 @@ function PageRecettes({db,setDb,showToast}){
     mdbTimer.current=setTimeout(async()=>{
       setMealdbLoading(true);
       try{
+        // 1. Recherche dans la base locale en priorité
+        const localHits = searchLocalMealDB(search, 5);
+        if(localHits.length > 0){
+          setMealdbResults(localHits.map(m=>({
+            id:"mdb_"+(m.id||m.mealdbId||Math.random()),
+            mealdbId:m.id||m.mealdbId||null,
+            name:m.name||m.nameEN||"",
+            nameEN:m.nameEN||"",
+            photo:m.photo||null,
+            category:m.category||"",
+            area:m.area||"",
+            source:"mealdb",
+            _localData:m
+          })));
+          setMealdbLoading(false);
+          return;
+        }
+        // 2. Fallback : appel API en ligne si base locale vide ou aucun résultat
         const searchEN=translateSearchToEN(search);
         const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(searchEN)}`);
         const d=await r.json();
         setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:translateMealName(m.strMeal),nameEN:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
       }catch{setMealdbResults([]);}
       setMealdbLoading(false);
-    },600);
+    },300);
   },[search]);
 
   function saveRecipe(recipe){
@@ -1469,6 +1562,13 @@ function PageRecettes({db,setDb,showToast}){
   async function importMealDBById(mealdbId){
     showToast("⏳ Import…");
     try{
+      // 1. Vérifier si la recette est dans le cache local
+      const localMatch = MEALDB_LOCAL.find(m=>(m.id||m.mealdbId)==mealdbId||(m.id||m.mealdbId)==String(mealdbId));
+      if(localMatch){
+        importRecipe(localMealToWisely(localMatch));
+        return;
+      }
+      // 2. Fallback API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealdbId}`);
       const d=await r.json();const m=d.meals?.[0];if(!m){showToast("❌ Introuvable");return;}
       const ings=[];
@@ -1482,7 +1582,19 @@ function PageRecettes({db,setDb,showToast}){
   function matchDiet(r){
     if(dietFilters.size===0)return true;
     const ings=(r.ingredients||[]).map(i=>i.name.toLowerCase()).join(" ");
+    // Si la recette a des régimes pré-calculés depuis le JSON local, on les utilise en priorité
+    const precomputed = r.diets || [];
     return [...dietFilters].some(f=>{
+      if(precomputed.length>0){
+        if(f==="🌱 Végétarien")return precomputed.includes("vegetarian")||precomputed.includes("végétarien");
+        if(f==="🌿 Vegan")return precomputed.includes("vegan");
+        if(f==="🚫🌾 Sans gluten")return precomputed.includes("gluten-free")||precomputed.includes("sans gluten");
+        if(f==="🥛 Sans lactose")return precomputed.includes("dairy-free")||precomputed.includes("sans lactose");
+        if(f==="🐟 Poisson")return precomputed.includes("fish")||precomputed.includes("seafood")||precomputed.includes("poisson");
+        if(f==="🥩 Viande")return precomputed.includes("meat")||precomputed.includes("viande");
+        if(f==="⚡ Rapide"){const d=parseInt(r.duration);return!isNaN(d)&&d<=30;}
+      }
+      // Fallback : détection par regex sur les ingrédients
       if(f==="🌱 Végétarien")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|crevette|moule/.test(ings);
       if(f==="🌿 Vegan")return!/viande|boeuf|poulet|porc|veau|agneau|saucisse|jambon|lard|lardon|thon|saumon|crevette|moule|lait|oeuf|beurre|crème|fromage|yaourt|miel/.test(ings);
       if(f==="🚫🌾 Sans gluten")return!/farine|pain|pâte|blé|seigle|orge|brioche|biscuit/.test(ings);
@@ -1496,7 +1608,7 @@ function PageRecettes({db,setDb,showToast}){
 
   const likedIds=new Set(db.likedRecipes||[]);
   const folders=db.folders||[];
-  const activeFiltersCount=[...diffFilters,...typeFilters,...timeFilters,...dietFilters].length;
+  const activeFiltersCount=[...diffFilters,...typeFilters,...timeFilters,...dietFilters].length+(areaFilter?1:0);
 
   function getFiltered(){
     let list=db.recipes;
@@ -1513,6 +1625,7 @@ function PageRecettes({db,setDb,showToast}){
     if(diffFilters.size) list=list.filter(r=>diffFilters.has(r.difficulty));
     if(typeFilters.size) list=list.filter(r=>typeFilters.has(r.mealType));
     if(timeFilters.size) list=list.filter(r=>timeFilters.has(getTimeLabel(r)));
+    if(areaFilter) list=list.filter(r=>(r.area||"").toLowerCase().includes(areaFilter.toLowerCase()));
     return list.filter(matchDiet);
   }
   const filtered=getFiltered();
@@ -1586,7 +1699,7 @@ function PageRecettes({db,setDb,showToast}){
       </div>
       <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
         <button style={{...btn(activeFiltersCount>0?"acc":"gh"),fontSize:11,padding:"7px 12px"}} onClick={()=>setShowFilters(!showFilters)}>🎚️ Filtres{activeFiltersCount>0?` (${activeFiltersCount})`:""}</button>
-        {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"5px 10px",color:DNG}} onClick={()=>{setDiffFilters(new Set());setTypeFilters(new Set());setTimeFilters(new Set());setDietFilters(new Set());}}>✕ Effacer</button>}
+        {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"5px 10px",color:DNG}} onClick={()=>{setDiffFilters(new Set());setTypeFilters(new Set());setTimeFilters(new Set());setDietFilters(new Set());setAreaFilter("");}}>✕ Effacer</button>}
       </div>
       {showFilters&&(
         <div style={{...card,background:"rgba(255,255,255,.92)",marginBottom:10,padding:"12px 14px"}}>
@@ -1622,23 +1735,50 @@ function PageRecettes({db,setDb,showToast}){
               ))}
             </div>
           </div>
+          {/* Filtre origine : affiché seulement si des recettes importées ont un champ area */}
+          {db.recipes.some(r=>r.area)&&(
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Origine</div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {["",...[...new Set(db.recipes.map(r=>r.area).filter(Boolean))].sort()].map(a=>(
+                  <span key={a||"__all"} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:areaFilter===a&&a?CARAMEL2:CREAM2,color:areaFilter===a&&a?"white":TXT2,border:`1px solid ${areaFilter===a&&a?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setAreaFilter(a)}>{a||"Tous"}{areaFilter===a&&a&&" ✓"}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {search.trim().length>=2&&(mealdbResults.length>0||mealdbLoading)&&(
         <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:10,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
             <span style={{fontSize:14}}>🌐</span>
-            <div style={{fontSize:12,fontWeight:700,color:CARAMEL}}>TheMealDB</div>
+            <div style={{fontSize:12,fontWeight:700,color:CARAMEL}}>{mealdbResults.some(r=>r._localData)?"📦 Base locale":"TheMealDB"}</div>
             {mealdbLoading&&<div style={{fontSize:10,color:TXT3}}>Recherche…</div>}
           </div>
           {mealdbResults.map(r=>(
-            <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>setShowMealDB(r)}>
-              <img src={r.photo+"/preview"} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:7,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+            <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
+              if(r._localData){
+                // Recette locale → pré-rempli, pas d'appel réseau
+                const wrecipe = localMealToWisely(r._localData);
+                setShowMealDB({...r, _preloaded: wrecipe});
+              } else {
+                setShowMealDB(r);
+              }
+            }}>
+              {r.photo
+                ? <img src={r.photo+"/preview"} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:7,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+                : <div style={{width:40,height:40,borderRadius:7,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name||"")}</div>
+              }
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                 <div style={{fontSize:10,color:TXT3}}>{r.category}{r.area?" · "+r.area:""}</div>
               </div>
-              <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();setShowMealDB(r);}}>👁️ Voir & importer</button>
+              <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();
+                if(r._localData){
+                  const wrecipe = localMealToWisely(r._localData);
+                  setShowMealDB({...r, _preloaded: wrecipe});
+                } else { setShowMealDB(r); }
+              }}>👁️ Voir & importer</button>
             </div>
           ))}
         </div>
@@ -1776,12 +1916,32 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
   },[]);
 
   useEffect(()=>{
-    if(initialMeal?.mealdbId)loadDetail(initialMeal.mealdbId);
+    if(!initialMeal) return;
+    if(initialMeal._preloaded){
+      // Recette locale pré-chargée → afficher directement
+      setDetail(initialMeal._preloaded);
+      setView("detail");
+    } else if(initialMeal?.mealdbId){
+      loadDetail(initialMeal.mealdbId);
+    }
   },[initialMeal]);
 
   async function browseCategory(cat){
     setSelectedCat(cat);setLoading(true);setResults([]);setView("list");
     try{
+      // 1. Cache local en priorité
+      const localHits = filterLocalByCategory(cat, 200);
+      if(localHits.length > 0){
+        setResults(localHits.map(m=>({
+          idMeal: m.id||m.mealdbId||"",
+          strMeal: m.name||m.nameEN||"",
+          strCategory: cat,
+          _localData: m
+        })));
+        setLoading(false);
+        return;
+      }
+      // 2. API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${encodeURIComponent(cat)}`);
       const d=await r.json();setResults(d.meals||[]);
     }catch{showToast("❌ Erreur de connexion");}
@@ -1792,6 +1952,19 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
     if(!query.trim())return;
     setLoading(true);setResults([]);setView("list");setSelectedCat("");
     try{
+      // 1. Cache local en priorité
+      const localHits = searchLocalMealDB(query, 50);
+      if(localHits.length > 0){
+        setResults(localHits.map(m=>({
+          idMeal: m.id||m.mealdbId||"",
+          strMeal: m.name||m.nameEN||"",
+          strCategory: m.categoryEN||m.category||"",
+          _localData: m
+        })));
+        setLoading(false);
+        return;
+      }
+      // 2. API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
       const d=await r.json();setResults(d.meals||[]);
       if(!d.meals?.length)showToast("Aucune recette trouvée");
@@ -1802,6 +1975,19 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
   async function browseArea(area){
     setSelectedCat("__area__"+area);setLoading(true);setResults([]);setView("list");
     try{
+      // 1. Cache local en priorité
+      const localHits = filterLocalByArea(area, 200);
+      if(localHits.length > 0){
+        setResults(localHits.map(m=>({
+          idMeal: m.id||m.mealdbId||"",
+          strMeal: m.name||m.nameEN||"",
+          strCategory: m.categoryEN||m.category||"",
+          _localData: m
+        })));
+        setLoading(false);
+        return;
+      }
+      // 2. API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${encodeURIComponent(area)}`);
       const d=await r.json();setResults(d.meals||[]);
     }catch{showToast("❌ Erreur de connexion");}
@@ -1811,6 +1997,17 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
   async function loadDetail(id){
     setLoading(true);setDetail(null);setView("detail");
     try{
+      // 1. Chercher dans le cache local (id numérique ou string)
+      const localMatch = MEALDB_LOCAL.find(m=>
+        String(m.id||m.mealdbId) === String(id)
+      );
+      if(localMatch){
+        // Déjà traduit → afficher directement, pas besoin d'IA
+        setDetail(localMealToWisely(localMatch));
+        setLoading(false);
+        return;
+      }
+      // 2. Fallback : API en ligne + traduction IA si clé dispo
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`);
       const d=await r.json();
       const m=d.meals?.[0];if(!m){showToast("❌ Introuvable");setView("list");setLoading(false);return;}
@@ -1884,14 +2081,17 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
     <Modal open onClose={onClose}>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:2,color:TXT}}>🌐 Parcourir TheMealDB</div>
       <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>
-        Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA
+        {MEALDB_LOCAL.length>0
+          ? <span>📦 <b style={{color:SUC}}>{MEALDB_LOCAL.length} recettes</b> disponibles hors-ligne · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — CC BY-SA</span>
+          : <span>Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA</span>
+        }
       </div>
 
       {/* VUE CATÉGORIES */}
       {view==="categories"&&(
         <>
           <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input style={{...inp,flex:1}} placeholder="Rechercher (en anglais)…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
+            <input style={{...inp,flex:1}} placeholder={MEALDB_LOCAL.length>0?"Rechercher en français…":"Rechercher (en anglais)…"} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
             <button style={{...btn("acc"),padding:"10px 14px"}} onClick={search} disabled={loading}>{loading?"⏳":"🔍"}</button>
           </div>
           {/* Sous-onglets catégorie / origine — bien visibles */}
@@ -1946,13 +2146,22 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
           {loading&&<div style={{textAlign:"center",padding:20,color:TXT3}}>⏳ Chargement…</div>}
           <div style={{maxHeight:380,overflowY:"auto"}}>
             {results.map(m=>(
-              <div key={m.idMeal} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>loadDetail(m.idMeal)}>
-                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
-                  {guessRecipeEmoji(m.strMeal)}
+              <div key={m.idMeal||m._localData?.id||Math.random()} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
+                if(m._localData){
+                  // Données locales complètes → affichage direct sans appel réseau
+                  setDetail(localMealToWisely(m._localData));
+                  setView("detail");
+                } else {
+                  loadDetail(m.idMeal);
+                }
+              }}>
+                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,overflow:"hidden"}}>
+                  {(m._localData?.photo)?<img src={m._localData.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:guessRecipeEmoji(m._localData?.name||m.strMeal||"")}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.strMeal}</div>
-                  {m.strCategory&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{CAT_FR[m.strCategory]||m.strCategory}</div>}
+                  <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m._localData?.name||m.strMeal||""}</div>
+                  {(m._localData?.category||m.strCategory)&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{m._localData?.category||(CAT_FR[m.strCategory]||m.strCategory)}{m._localData?.area?` · ${m._localData.area}`:""}</div>}
+                  {m._localData?.duration&&<div style={{fontSize:9,color:TXT3}}>⏱️ {m._localData.duration}</div>}
                 </div>
                 <div style={{fontSize:18,color:TXT3,flexShrink:0}}>›</div>
               </div>
@@ -4914,6 +5123,7 @@ function App(){
   // Attendre que Firebase soit prêt (fallback 3s)
   useEffect(()=>{
     loadProductsCatalog();
+    loadLocalMealDB();
     if(window._firebaseReady){setFbReady(true);return;}
     const h=()=>setFbReady(true);
     window.addEventListener("firebaseReady",h);
