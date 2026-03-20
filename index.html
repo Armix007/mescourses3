@@ -1916,6 +1916,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
   const [results,setResults]=useState([]);
   const [loading,setLoading]=useState(false);
   const [detail,setDetail]=useState(null);
+  const detailRef=useRef(null);
   const [translating,setTranslating]=useState(false);
   const [selectedCat,setSelectedCat]=useState("");
 
@@ -1928,6 +1929,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
     if(!initialMeal) return;
     if(initialMeal._preloaded){
       // Recette locale pré-chargée → afficher directement
+      detailRef.current=initialMeal._preloaded;
       setDetail(initialMeal._preloaded);
       setView("detail");
     } else if(initialMeal?.mealdbId){
@@ -2079,6 +2081,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
         }catch(e){console.warn("Traduction échouée:",e);}
         setTranslating(false);
       }
+      detailRef.current={...raw};
       setDetail({...raw});
     }catch(e){showToast("❌ "+e.message);setView("list");}
     setLoading(false);setTranslating(false);
@@ -2158,7 +2161,9 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
               <div key={m.idMeal||m._localData?.id||Math.random()} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
                 if(m._localData){
                   // Données locales complètes → affichage direct sans appel réseau
-                  setDetail(localMealToWisely(m._localData));
+                  const ld=localMealToWisely(m._localData);
+                  detailRef.current=ld;
+                  setDetail(ld);
                   setView("detail");
                 } else {
                   loadDetail(m.idMeal);
@@ -2232,7 +2237,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button style={{...btn("gh"),flex:1}} onClick={()=>{setDetail(null);setView("list");}}>Annuler</button>
-                <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(detail)}>✅ Importer</button>
+                <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(detailRef.current||detail)}>✅ Importer</button>
               </div>
             </>
           )}
