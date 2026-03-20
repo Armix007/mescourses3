@@ -1,6 +1,6 @@
 {
   "version": "2.2",
-  "total": 1102,
+  "total": 1409,
   "produits": [
     {
       "nom": "Tomate",
@@ -22847,6 +22847,6273 @@
       "regimes": {
         "vegetarien": true,
         "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Haricots verts surgelés",
+      "cle": "haricots verts surgeles",
+      "aliases": [
+        "haricot vert surgelé",
+        "haricots verts congelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Petits pois carottes surgelés",
+      "cle": "petits pois carottes surgeles",
+      "aliases": [
+        "pois carottes surgelés",
+        "petits pois et carottes surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Mélange de légumes surgelés",
+      "cle": "melange legumes surgeles",
+      "aliases": [
+        "légumes mélangés surgelés",
+        "mix légumes surgelés",
+        "mélange surgelé légumes"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Courgettes surgelées",
+      "cle": "courgettes surgeles",
+      "aliases": [
+        "courgette surgelée",
+        "courgettes congelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Champignons surgelés",
+      "cle": "champignons surgeles",
+      "aliases": [
+        "champignon surgelé",
+        "champignons congelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Poivrons surgelés",
+      "cle": "poivrons surgeles",
+      "aliases": [
+        "poivron surgelé",
+        "poivrons congelés",
+        "lanières de poivrons surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Oignons émincés surgelés",
+      "cle": "oignons emince surgeles",
+      "aliases": [
+        "oignon émincé surgelé",
+        "oignons surgelés",
+        "oignons hachés surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pommes de terre surgelées",
+      "cle": "pommes de terre surgeles",
+      "aliases": [
+        "patates surgelées",
+        "pomme de terre surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chou-fleur surgelé",
+      "cle": "chou fleur surgele",
+      "aliases": [
+        "choufleur surgelé",
+        "chou fleur congelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Artichaut surgelé",
+      "cle": "artichaut surgele",
+      "aliases": [
+        "artichauts surgelés",
+        "fonds d'artichauts surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Soupe de légumes surgelée",
+      "cle": "soupe legumes surgele",
+      "aliases": [
+        "soupe surgelée légumes",
+        "potage surgelé légumes"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Soupe de tomates surgelée",
+      "cle": "soupe tomates surgele",
+      "aliases": [
+        "potage tomates surgelé",
+        "velouté tomate surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Herbes aromatiques surgelées",
+      "cle": "herbes aromatiques surgeles",
+      "aliases": [
+        "herbes surgelées",
+        "fines herbes surgelées",
+        "persil surgelé",
+        "ciboulette surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Purée de pommes de terre surgelée",
+      "cle": "puree pommes de terre surgele",
+      "aliases": [
+        "purée surgelée",
+        "mousseline surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Croquettes de pommes de terre",
+      "cle": "croquettes pommes de terre",
+      "aliases": [
+        "croquettes surgelées",
+        "kroket",
+        "croquettes belges surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Potatoes surgelées",
+      "cle": "potatoes surgeles",
+      "aliases": [
+        "potatoes au four surgelées",
+        "wedges surgelés",
+        "pommes de terre wedges"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Rösti surgelé",
+      "cle": "rosti surgele",
+      "aliases": [
+        "rosti surgelés",
+        "galettes de pommes de terre surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Filets de cabillaud surgelés",
+      "cle": "filets cabillaud surgeles",
+      "aliases": [
+        "filet de cabillaud surgelé",
+        "dos de cabillaud surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Filets de tilapia surgelés",
+      "cle": "filets tilapia surgeles",
+      "aliases": [
+        "tilapia surgelé",
+        "filet tilapia surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Filets de pangasius surgelés",
+      "cle": "filets pangasius surgeles",
+      "aliases": [
+        "pangasius surgelé",
+        "filet pangasius surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Crevettes grises surgelées",
+      "cle": "crevettes grises surgeles",
+      "aliases": [
+        "crevettes grises congelées",
+        "garnaal surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Moules surgelées",
+      "cle": "moules surgeles",
+      "aliases": [
+        "moule surgelée",
+        "moules congelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Calamars surgelés",
+      "cle": "calamars surgeles",
+      "aliases": [
+        "calamar surgelé",
+        "encornets surgelés",
+        "anneaux de calamars surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Fruits de mer surgelés",
+      "cle": "fruits de mer surgeles",
+      "aliases": [
+        "mélange fruits de mer surgelés",
+        "cocktail fruits de mer surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Thon surgelé",
+      "cle": "thon surgele",
+      "aliases": [
+        "thon congelé",
+        "steak de thon surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lieu noir surgelé",
+      "cle": "lieu noir surgele",
+      "aliases": [
+        "filet de lieu noir surgelé",
+        "lieu noir congelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Filets de merlu surgelés",
+      "cle": "filets merlu surgeles",
+      "aliases": [
+        "merlu surgelé",
+        "filet de merlu surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nuggets de poisson surgelés",
+      "cle": "nuggets poisson surgeles",
+      "aliases": [
+        "nuggets fish surgelés",
+        "bites de poisson surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Boulettes surgelées",
+      "cle": "boulettes surgeles",
+      "aliases": [
+        "boulette surgelée",
+        "boulettes de viande surgelées",
+        "gehaktbal surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cordon bleu surgelé",
+      "cle": "cordon bleu surgele",
+      "aliases": [
+        "cordons bleus surgelés",
+        "cordon bleu poulet surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Chicken wings surgelés",
+      "cle": "chicken wings surgeles",
+      "aliases": [
+        "ailes de poulet surgelées",
+        "wings surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lasagnes surgelées",
+      "cle": "lasagnes surgeles",
+      "aliases": [
+        "lasagne surgelée",
+        "lasagnes bolognaise surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Moussaka surgelée",
+      "cle": "moussaka surgele",
+      "aliases": [
+        "moussaka congelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Vol-au-vent surgelé",
+      "cle": "vol au vent surgele",
+      "aliases": [
+        "vol au vent congelé",
+        "garniture vol-au-vent surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Waterzooi surgelé",
+      "cle": "waterzooi surgele",
+      "aliases": [
+        "waterzooi de poulet surgelé",
+        "waterzooi congelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Carbonnade flamande surgelée",
+      "cle": "carbonnade flamande surgele",
+      "aliases": [
+        "carbonnade surgelée",
+        "stoofvlees surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chili con carne surgelé",
+      "cle": "chili con carne surgele",
+      "aliases": [
+        "chili surgelé",
+        "chili con carne congelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Curry de poulet surgelé",
+      "cle": "curry poulet surgele",
+      "aliases": [
+        "poulet curry surgelé",
+        "curry chicken surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Riz cantonais surgelé",
+      "cle": "riz cantonais surgele",
+      "aliases": [
+        "riz sauté surgelé",
+        "riz cantonnais congelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pizza margherita surgelée",
+      "cle": "pizza margherita surgele",
+      "aliases": [
+        "pizza marguerita surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pizza jambon fromage surgelée",
+      "cle": "pizza jambon fromage surgele",
+      "aliases": [
+        "pizza jambon surgelée",
+        "pizza 4 saisons surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pizza végétarienne surgelée",
+      "cle": "pizza vegetarienne surgele",
+      "aliases": [
+        "pizza végé surgelée",
+        "pizza aux légumes surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Mini pizzas surgelées",
+      "cle": "mini pizzas surgeles",
+      "aliases": [
+        "pizzette surgelées",
+        "mini pizza surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Tarte flambée surgelée",
+      "cle": "tarte flambee surgele",
+      "aliases": [
+        "flammekueche surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Crêpes sucrées surgelées",
+      "cle": "crepes sucrees surgeles",
+      "aliases": [
+        "crêpes surgelées",
+        "crêpe sucrée surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Gaufres surgelées",
+      "cle": "gaufres surgeles",
+      "aliases": [
+        "gaufre surgelée",
+        "gaufres belges surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pain au chocolat surgelé",
+      "cle": "pain au chocolat surgele",
+      "aliases": [
+        "pains au chocolat surgelés",
+        "chocolatine surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Croissants surgelés",
+      "cle": "croissants surgeles",
+      "aliases": [
+        "croissant surgelé",
+        "croissants à cuire surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pain à hamburger surgelé",
+      "cle": "pain hamburger surgele",
+      "aliases": [
+        "buns surgelés",
+        "pain burger surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Baguette précuite surgelée",
+      "cle": "baguette precuite surgele",
+      "aliases": [
+        "baguette surgelée",
+        "baguette à cuire surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Glace à la fraise",
+      "cle": "glace fraise",
+      "aliases": [
+        "glace fraise",
+        "ice cream fraise"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Glace au caramel",
+      "cle": "glace caramel",
+      "aliases": [
+        "crème glacée caramel",
+        "ice cream caramel"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Bâtonnet glacé",
+      "cle": "batonnet glace",
+      "aliases": [
+        "bâtonnets glacés",
+        "glace à l'eau",
+        "esquimau"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cornet de glace",
+      "cle": "cornet glace",
+      "aliases": [
+        "cornets glacés",
+        "glace en cornet"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Sorbet mangue",
+      "cle": "sorbet mangue",
+      "aliases": [
+        "sorbet à la mangue",
+        "glace mangue"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sorbet citron vert",
+      "cle": "sorbet citron vert",
+      "aliases": [
+        "sorbet lime",
+        "sorbet au citron vert"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🍦",
+      "rayon": "Surgelés",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Fruits rouges surgelés",
+      "cle": "fruits rouges surgeles",
+      "aliases": [
+        "mélange fruits rouges surgelés",
+        "fruits rouges congelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Framboises surgelées",
+      "cle": "framboises surgeles",
+      "aliases": [
+        "framboise surgelée",
+        "framboises congelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Myrtilles surgelées",
+      "cle": "myrtilles surgeles",
+      "aliases": [
+        "myrtille surgelée",
+        "bleuets surgelés",
+        "myrtilles congelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cerises surgelées",
+      "cle": "cerises surgeles",
+      "aliases": [
+        "cerise surgelée",
+        "cerises congelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Mangue surgelée",
+      "cle": "mangue surgele",
+      "aliases": [
+        "mangue congelée",
+        "cubes de mangue surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Ananas surgelé",
+      "cle": "ananas surgele",
+      "aliases": [
+        "ananas congelé",
+        "cubes d'ananas surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Mix smoothie surgelé",
+      "cle": "mix smoothie surgele",
+      "aliases": [
+        "smoothie mix surgelé",
+        "mélange smoothie surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Feuilletés apéritifs surgelés",
+      "cle": "feuilletes aperitifs surgeles",
+      "aliases": [
+        "feuilleté apéritif surgelé",
+        "snacks feuilletés surgelés",
+        "mini feuilletés surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Mini quiches surgelées",
+      "cle": "mini quiches surgeles",
+      "aliases": [
+        "mini quiche surgelée",
+        "tartelettes apéritives surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Canapés surgelés",
+      "cle": "canapes surgeles",
+      "aliases": [
+        "canapé surgelé",
+        "toasts garnis surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Spring rolls surgelés",
+      "cle": "spring rolls surgeles",
+      "aliases": [
+        "rouleaux de printemps surgelés",
+        "rouleau impérial surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Gyoza surgelés",
+      "cle": "gyoza surgeles",
+      "aliases": [
+        "gyozas surgelés",
+        "raviolis japonais surgelés",
+        "dumpling surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Falafel surgelé",
+      "cle": "falafel surgele",
+      "aliases": [
+        "falafels surgelés",
+        "boulettes de pois chiches surgelées"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Galettes végétariennes surgelées",
+      "cle": "galettes vegetariennes surgeles",
+      "aliases": [
+        "burger végétarien surgelé",
+        "steak végétal surgelé",
+        "galette végétale surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Burger de soja surgelé",
+      "cle": "burger soja surgele",
+      "aliases": [
+        "burger végétalien surgelé",
+        "steak de soja surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tarte aux poireaux surgelée",
+      "cle": "tarte poireaux surgele",
+      "aliases": [
+        "quiche poireaux surgelée",
+        "tarte poireaux congelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Profiteroles surgelées",
+      "cle": "profiteroles surgeles",
+      "aliases": [
+        "profiterole surgelée",
+        "choux au chocolat surgelés"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Fondant au chocolat surgelé",
+      "cle": "fondant chocolat surgele",
+      "aliases": [
+        "moelleux au chocolat surgelé",
+        "coulant au chocolat surgelé"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Tarte aux fruits surgelée",
+      "cle": "tarte fruits surgele",
+      "aliases": [
+        "tarte aux pommes surgelée",
+        "tarte fraises surgelée"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Mousse au chocolat surgelée",
+      "cle": "mousse chocolat surgele",
+      "aliases": [
+        "mousse surgelée chocolat"
+      ],
+      "categorie": "🧊 Surgelés",
+      "emoji": "🧊",
+      "rayon": "Surgelés",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pain blanc",
+      "cle": "pain blanc",
+      "aliases": [
+        "pain de mie blanc",
+        "pain sandwich blanc"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Demi-baguette",
+      "cle": "demi baguette",
+      "aliases": [
+        "petit pain baguette"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🥖",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pain au levain",
+      "cle": "pain au levain",
+      "aliases": [
+        "pain levain",
+        "zuurdesembrood"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pain pita",
+      "cle": "pain pita",
+      "aliases": [
+        "pita",
+        "pitta",
+        "pain plat pita"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🥙",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pain naan",
+      "cle": "pain naan",
+      "aliases": [
+        "naan",
+        "pain indien naan"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Tortillas de blé",
+      "cle": "tortillas ble",
+      "aliases": [
+        "wraps",
+        "tortilla blé",
+        "galette de blé"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🫓",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Ciabatta",
+      "cle": "ciabatta",
+      "aliases": [
+        "pain ciabatta",
+        "ciabattas"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pain hot-dog",
+      "cle": "pain hot dog",
+      "aliases": [
+        "pain à hot-dog",
+        "hot dog bun"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🌭",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Petit pain",
+      "cle": "petit pain",
+      "aliases": [
+        "pistolet",
+        "pistolet belge",
+        "broodje"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pain aux raisins",
+      "cle": "pain aux raisins",
+      "aliases": [
+        "pain raisin",
+        "krentenbol",
+        "rozijnenbrood"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Couque au beurre",
+      "cle": "couque au beurre",
+      "aliases": [
+        "couque beurre",
+        "botercouque"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🥐",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Couque au sucre",
+      "cle": "couque au sucre",
+      "aliases": [
+        "couque sucre",
+        "suikercouque"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🥐",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Tarte au riz",
+      "cle": "tarte au riz",
+      "aliases": [
+        "rijsttaart",
+        "tarte belge riz"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🎂",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Tarte au sucre",
+      "cle": "tarte au sucre",
+      "aliases": [
+        "suikertaart",
+        "tarte liégeoise"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🎂",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Gaufre de Liège",
+      "cle": "gaufre de liege",
+      "aliases": [
+        "gaufre liégeoise",
+        "luikse wafel"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🧇",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Gaufre de Bruxelles",
+      "cle": "gaufre de bruxelles",
+      "aliases": [
+        "gaufre bruxelloise",
+        "brusselse wafel"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🧇",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Cramique",
+      "cle": "cramique",
+      "aliases": [
+        "crammique",
+        "pain cramique"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Pain d'épices",
+      "cle": "pain d epices",
+      "aliases": [
+        "peperkoek",
+        "pain épicé"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍞",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Quatre-quarts",
+      "cle": "quatre quarts",
+      "aliases": [
+        "quatre-quart",
+        "weekendkoek"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🎂",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Chouquettes",
+      "cle": "chouquettes",
+      "aliases": [
+        "chouquette",
+        "soesjes"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍮",
+      "rayon": "Boulangerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Eclair au chocolat",
+      "cle": "eclair au chocolat",
+      "aliases": [
+        "éclair chocolat",
+        "éclair"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🍮",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Chausson aux pommes",
+      "cle": "chausson aux pommes",
+      "aliases": [
+        "chaussons aux pommes",
+        "appelpunt"
+      ],
+      "categorie": "🍞 Boulangerie",
+      "emoji": "🥐",
+      "rayon": "Boulangerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Eau minérale plate",
+      "cle": "eau minerale plate",
+      "aliases": [
+        "eau plate",
+        "eau naturelle"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "💧",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Eau minérale gazeuse",
+      "cle": "eau minerale gazeuse",
+      "aliases": [
+        "eau gazeuse",
+        "eau pétillante",
+        "spuitwater"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "💧",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Jus d'orange",
+      "cle": "jus d orange",
+      "aliases": [
+        "jus orange",
+        "sinaasappelsap"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🍊",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coca-Cola",
+      "cle": "coca cola",
+      "aliases": [
+        "coca",
+        "coke",
+        "cola"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coca-Cola Zero",
+      "cle": "coca cola zero",
+      "aliases": [
+        "coke zero",
+        "coca zero"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pepsi",
+      "cle": "pepsi",
+      "aliases": [
+        "pepsi cola",
+        "pepsi max"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Fanta",
+      "cle": "fanta",
+      "aliases": [
+        "fanta orange",
+        "fanta citron"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sprite",
+      "cle": "sprite",
+      "aliases": [
+        "sprite citron",
+        "sprite zero"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Ice tea",
+      "cle": "ice tea",
+      "aliases": [
+        "iced tea",
+        "thé glacé",
+        "lipton ice tea"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🧋",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sirop de grenadine",
+      "cle": "sirop grenadine",
+      "aliases": [
+        "grenadine",
+        "sirop rouge"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥤",
+      "rayon": "Boissons",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sirop de citron",
+      "cle": "sirop citron",
+      "aliases": [
+        "sirop citronnade"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🍋",
+      "rayon": "Boissons",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sirop de menthe",
+      "cle": "sirop menthe",
+      "aliases": [
+        "menthe à l'eau",
+        "sirop vert"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🌿",
+      "rayon": "Boissons",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lait d'avoine",
+      "cle": "lait d avoine",
+      "aliases": [
+        "boisson avoine",
+        "oat milk",
+        "havermelk"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥛",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lait d'amande",
+      "cle": "lait d amande",
+      "aliases": [
+        "boisson amande",
+        "almond milk"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥛",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Capsules café",
+      "cle": "capsules cafe",
+      "aliases": [
+        "dosettes café",
+        "koffiecapsules",
+        "nespresso"
+      ],
+      "categorie": "☕ Boissons",
+      "emoji": "☕",
+      "rayon": "Boissons",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chocolat chaud en poudre",
+      "cle": "chocolat chaud poudre",
+      "aliases": [
+        "cacao soluble",
+        "chocolat soluble",
+        "chocomel"
+      ],
+      "categorie": "☕ Boissons",
+      "emoji": "☕",
+      "rayon": "Boissons",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Bière blanche",
+      "cle": "biere blanche",
+      "aliases": [
+        "witbier",
+        "bière de blé",
+        "white beer"
+      ],
+      "categorie": "🍺 Boissons",
+      "emoji": "🍺",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Bière trappiste",
+      "cle": "biere trappiste",
+      "aliases": [
+        "trappist",
+        "chimay",
+        "orval",
+        "westmalle"
+      ],
+      "categorie": "🍺 Boissons",
+      "emoji": "🍺",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Prosecco",
+      "cle": "prosecco",
+      "aliases": [
+        "vin mousseux italien"
+      ],
+      "categorie": "🍷 Boissons",
+      "emoji": "🍾",
+      "rayon": "Boissons",
+      "unite_defaut": "L",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Eau de coco",
+      "cle": "eau de coco",
+      "aliases": [
+        "coconut water",
+        "kokosnootwater"
+      ],
+      "categorie": "🥤 Boissons",
+      "emoji": "🥥",
+      "rayon": "Boissons",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lait demi-écrémé",
+      "cle": "lait demi ecreme",
+      "aliases": [
+        "lait frais demi",
+        "halfvolle melk"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "L",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Lait sans lactose",
+      "cle": "lait sans lactose",
+      "aliases": [
+        "lait lactose-free",
+        "lactosevrije melk"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "L",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lait concentré sucré",
+      "cle": "lait concentre sucre",
+      "aliases": [
+        "lait condensé",
+        "gecondenseerde melk"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Lait en poudre",
+      "cle": "lait en poudre",
+      "aliases": [
+        "lait poudre",
+        "melkpoeder"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Beurre demi-sel",
+      "cle": "beurre demi sel",
+      "aliases": [
+        "beurre salé",
+        "gezouten boter"
+      ],
+      "categorie": "🧈 Crémerie",
+      "emoji": "🧈",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Beurre allégé",
+      "cle": "beurre allege",
+      "aliases": [
+        "beurre light",
+        "halvarine",
+        "margarine légère"
+      ],
+      "categorie": "🧈 Crémerie",
+      "emoji": "🧈",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Crème fraîche légère",
+      "cle": "creme fraiche legere",
+      "aliases": [
+        "crème légère",
+        "crème light",
+        "lichte room"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Yaourt à boire",
+      "cle": "yaourt a boire",
+      "aliases": [
+        "kéfir lait",
+        "drinkable yogurt",
+        "yakult",
+        "actimel"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Yaourt soja",
+      "cle": "yaourt soja",
+      "aliases": [
+        "yaourt végétal soja",
+        "soja yoghurt"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Yaourt coco",
+      "cle": "yaourt coco",
+      "aliases": [
+        "yaourt noix de coco",
+        "yaourt végétal coco"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥥",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Emmental",
+      "cle": "emmental",
+      "aliases": [
+        "fromage emmental",
+        "emmental râpé",
+        "emmentaler"
+      ],
+      "categorie": "🧀 Crémerie",
+      "emoji": "🧀",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Fromage à tartiner",
+      "cle": "fromage a tartiner",
+      "aliases": [
+        "Philadelphia",
+        "fromage frais tartiner",
+        "smeerkaas",
+        "kiri"
+      ],
+      "categorie": "🧀 Crémerie",
+      "emoji": "🧀",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Fromage de chèvre",
+      "cle": "fromage de chevre",
+      "aliases": [
+        "chèvre frais",
+        "bûche de chèvre",
+        "geitenkaas"
+      ],
+      "categorie": "🧀 Crémerie",
+      "emoji": "🧀",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Fromage râpé mélange",
+      "cle": "fromage rape melange",
+      "aliases": [
+        "gratin cheese",
+        "mélange fromages râpés",
+        "4 fromages râpés"
+      ],
+      "categorie": "🧀 Crémerie",
+      "emoji": "🧀",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Œufs bio",
+      "cle": "oeufs bio",
+      "aliases": [
+        "œuf bio",
+        "bio-eieren"
+      ],
+      "categorie": "🥚 Crémerie",
+      "emoji": "🥚",
+      "rayon": "Crémerie",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tiramisu",
+      "cle": "tiramisu",
+      "aliases": [
+        "tiramisu frais",
+        "tiramisu pot"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🍮",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Panna cotta",
+      "cle": "panna cotta",
+      "aliases": [
+        "pannacotta",
+        "panna cotta fraise"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🍮",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Fromage blanc aux fruits",
+      "cle": "fromage blanc aux fruits",
+      "aliases": [
+        "kwark aux fruits",
+        "fromage frais fruit"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Crème chantilly",
+      "cle": "creme chantilly",
+      "aliases": [
+        "chantilly",
+        "slagroom spuit",
+        "whipped cream"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Crème aigre",
+      "cle": "creme aigre",
+      "aliases": [
+        "sour cream",
+        "zure room",
+        "crème sure"
+      ],
+      "categorie": "🥛 Crémerie",
+      "emoji": "🥛",
+      "rayon": "Crémerie",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Jambon cuit",
+      "cle": "jambon cuit",
+      "aliases": [
+        "jambon blanc",
+        "jambon cuit tranché",
+        "gekookte ham"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🥩",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Jambon d'Ardenne",
+      "cle": "jambon d ardenne",
+      "aliases": [
+        "jambon ardennais",
+        "Ardennenham"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🥩",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Salami",
+      "cle": "salami",
+      "aliases": [
+        "salami tranché",
+        "salami milano"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🌭",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Filet américain",
+      "cle": "filet americain",
+      "aliases": [
+        "américain préparé",
+        "filet américain belge",
+        "preparé"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🥩",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Saucisse de Francfort",
+      "cle": "saucisse de francfort",
+      "aliases": [
+        "saucisses cocktail",
+        "frankfurter",
+        "knakworst"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🌭",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Saucisse de Strasbourg",
+      "cle": "saucisse de strasbourg",
+      "aliases": [
+        "saucisse rouge",
+        "straatsburgerworst"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🌭",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Saucisse chipolata",
+      "cle": "saucisse chipolata",
+      "aliases": [
+        "chipolatas",
+        "chipolata"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🌭",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Viande des Grisons",
+      "cle": "viande des grisons",
+      "aliases": [
+        "bündnerfleisch",
+        "viande séchée suisse"
+      ],
+      "categorie": "🥩 Charcuterie",
+      "emoji": "🥩",
+      "rayon": "Charcuterie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Escalope de poulet",
+      "cle": "escalope de poulet",
+      "aliases": [
+        "filet de poulet",
+        "blanc de poulet",
+        "kipfilet"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cuisses de poulet",
+      "cle": "cuisses de poulet",
+      "aliases": [
+        "cuisse poulet",
+        "kippendij",
+        "pilon poulet"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Ailes de poulet",
+      "cle": "ailes de poulet",
+      "aliases": [
+        "aile poulet",
+        "kippenvleugel"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Blanc de dinde",
+      "cle": "blanc de dinde",
+      "aliases": [
+        "escalope dinde",
+        "kalkoenfilet",
+        "filet dinde"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Canard",
+      "cle": "canard",
+      "aliases": [
+        "magret de canard",
+        "confit de canard",
+        "eend"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Steak de bœuf",
+      "cle": "steak de boeuf",
+      "aliases": [
+        "entrecôte",
+        "steak",
+        "biefstuk",
+        "bœuf grillé"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Rosbif",
+      "cle": "rosbif",
+      "aliases": [
+        "roastbeef",
+        "rosbief",
+        "rôti de bœuf"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Bœuf bourguignon",
+      "cle": "boeuf bourguignon",
+      "aliases": [
+        "bœuf à braiser",
+        "stoofvlees rund"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Côtelette de porc",
+      "cle": "cotelette de porc",
+      "aliases": [
+        "côte de porc",
+        "varkenskoteletten"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Épaule d'agneau",
+      "cle": "epaule d agneau",
+      "aliases": [
+        "agneau épaule",
+        "lamsschouder"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Gigot d'agneau",
+      "cle": "gigot d agneau",
+      "aliases": [
+        "gigot agneau",
+        "lamsfilet"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Côtelette d'agneau",
+      "cle": "cotelette d agneau",
+      "aliases": [
+        "côte d'agneau",
+        "lamskotelet"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Veau",
+      "cle": "veau",
+      "aliases": [
+        "escalope de veau",
+        "rôti de veau",
+        "kalfsvlees"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Saucisse de porc",
+      "cle": "saucisse de porc",
+      "aliases": [
+        "saucisse fraîche",
+        "verse worst",
+        "saucisse à griller"
+      ],
+      "categorie": "🌭 Boucherie",
+      "emoji": "🌭",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Hamburger de bœuf",
+      "cle": "hamburger de boeuf",
+      "aliases": [
+        "steak burger",
+        "burger bœuf",
+        "rundsburger"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🍔",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Carpaccio de bœuf",
+      "cle": "carpaccio de boeuf",
+      "aliases": [
+        "carpaccio bœuf",
+        "rundscarpaccio"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cabillaud frais",
+      "cle": "cabillaud frais",
+      "aliases": [
+        "filet de cabillaud",
+        "kabeljauw",
+        "morue fraîche"
+      ],
+      "categorie": "🐟 Poissonnerie",
+      "emoji": "🐟",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Daurade",
+      "cle": "daurade",
+      "aliases": [
+        "dorade royale",
+        "zeebrasem"
+      ],
+      "categorie": "🐟 Poissonnerie",
+      "emoji": "🐟",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Moules fraîches",
+      "cle": "moules fraiches",
+      "aliases": [
+        "moules de bouchot",
+        "mosselen"
+      ],
+      "categorie": "🦐 Poissonnerie",
+      "emoji": "🦪",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Huîtres",
+      "cle": "huitres",
+      "aliases": [
+        "huître fraîche",
+        "oesters"
+      ],
+      "categorie": "🦐 Poissonnerie",
+      "emoji": "🦪",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Crevettes roses",
+      "cle": "crevettes roses",
+      "aliases": [
+        "crevettes cuites",
+        "roze garnalen",
+        "gambas"
+      ],
+      "categorie": "🦐 Poissonnerie",
+      "emoji": "🦐",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Langoustines",
+      "cle": "langoustines",
+      "aliases": [
+        "langoustine",
+        "scampi fraîches",
+        "langostino"
+      ],
+      "categorie": "🦐 Poissonnerie",
+      "emoji": "🦐",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Noix de Saint-Jacques",
+      "cle": "noix de saint jacques",
+      "aliases": [
+        "coquilles Saint-Jacques",
+        "Sint-Jakobsschelpen"
+      ],
+      "categorie": "🦐 Poissonnerie",
+      "emoji": "🦪",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Anchois",
+      "cle": "anchois",
+      "aliases": [
+        "filets d'anchois",
+        "ansjovis"
+      ],
+      "categorie": "🐟 Poissonnerie",
+      "emoji": "🐟",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sardines fraîches",
+      "cle": "sardines fraiches",
+      "aliases": [
+        "sardine fraîche",
+        "verse sardines"
+      ],
+      "categorie": "🐟 Poissonnerie",
+      "emoji": "🐟",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lieu jaune",
+      "cle": "lieu jaune",
+      "aliases": [
+        "filet de lieu jaune",
+        "pollak"
+      ],
+      "categorie": "🐟 Poissonnerie",
+      "emoji": "🐟",
+      "rayon": "Poissonnerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Après-shampooing",
+      "cle": "apres shampooing",
+      "aliases": [
+        "conditionneur",
+        "après-shampoo",
+        "haarbalsem"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Savon solide",
+      "cle": "savon solide",
+      "aliases": [
+        "pain de savon",
+        "zeep",
+        "savon main"
+      ],
+      "categorie": "🧼 Hygiène",
+      "emoji": "🧼",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coton-tiges",
+      "cle": "coton tiges",
+      "aliases": [
+        "cotton buds",
+        "wattenstaafjes",
+        "coton tige"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coton démaquillant",
+      "cle": "coton demaquillant",
+      "aliases": [
+        "disques de coton",
+        "wattenschijfjes",
+        "coton à démaquiller"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Mouchoirs en papier",
+      "cle": "mouchoirs en papier",
+      "aliases": [
+        "kleenex",
+        "tissues",
+        "papieren zakdoekjes"
+      ],
+      "categorie": "🧻 Hygiène",
+      "emoji": "🧻",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Protège-slips",
+      "cle": "protege slips",
+      "aliases": [
+        "protège slip",
+        "inlegkruisje"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Serviettes hygiéniques",
+      "cle": "serviettes hygieniques",
+      "aliases": [
+        "serviette périodique",
+        "maandverband",
+        "protection féminine"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tampons",
+      "cle": "tampons",
+      "aliases": [
+        "tampon hygiénique",
+        "tampons"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Démaquillant",
+      "cle": "demaquillant",
+      "aliases": [
+        "lait démaquillant",
+        "eau micellaire",
+        "reinigingsmelk"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Parfum",
+      "cle": "parfum",
+      "aliases": [
+        "eau de toilette",
+        "cologne",
+        "eau de parfum"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Préservatifs",
+      "cle": "preservatifs",
+      "aliases": [
+        "condoms",
+        "condooms",
+        "préservatif"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Médicaments",
+      "cle": "medicaments",
+      "aliases": [
+        "paracétamol",
+        "ibuprofen",
+        "aspirine",
+        "medicijnen"
+      ],
+      "categorie": "💊 Hygiène",
+      "emoji": "💊",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pansements",
+      "cle": "pansements",
+      "aliases": [
+        "bandage",
+        "pleister",
+        "sparadrap"
+      ],
+      "categorie": "🩹 Hygiène",
+      "emoji": "🩹",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Masques faciaux",
+      "cle": "masques faciaux",
+      "aliases": [
+        "masque visage",
+        "gezichtsmasker"
+      ],
+      "categorie": "🧴 Hygiène",
+      "emoji": "🧴",
+      "rayon": "Hygiène",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Capsules lessive",
+      "cle": "capsules lessive",
+      "aliases": [
+        "pods lessive",
+        "capsule lavage",
+        "wascapsules"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pastilles lave-vaisselle",
+      "cle": "pastilles lave vaisselle",
+      "aliases": [
+        "tablettes lave-vaisselle",
+        "vaatwastabletten",
+        "pods vaisselle"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nettoyant multi-surfaces",
+      "cle": "nettoyant multi surfaces",
+      "aliases": [
+        "produit multi-usages",
+        "allesreiniger",
+        "spray nettoyant"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "ml",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nettoyant sol",
+      "cle": "nettoyant sol",
+      "aliases": [
+        "produit nettoyage sol",
+        "vloerreiniger"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Bicarbonate de soude",
+      "cle": "bicarbonate de soude",
+      "aliases": [
+        "bicarbonate ménager",
+        "baking soda",
+        "zuiveringszout"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Désodorisant",
+      "cle": "desodorisant",
+      "aliases": [
+        "air freshener",
+        "luchtverfrisser",
+        "spray désodorisant"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🌸",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sacs poubelle",
+      "cle": "sacs poubelle",
+      "aliases": [
+        "sac ordures",
+        "vuilniszakken",
+        "sac trash"
+      ],
+      "categorie": "🗑️ Entretien",
+      "emoji": "🗑️",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Papier essuie-tout",
+      "cle": "papier essuie tout",
+      "aliases": [
+        "essuie-tout",
+        "keukenrol",
+        "rouleau absorbant"
+      ],
+      "categorie": "🧻 Entretien",
+      "emoji": "🧻",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sacs congélation",
+      "cle": "sacs congelation",
+      "aliases": [
+        "sac ziplock",
+        "vrieszakken",
+        "sacs hermétiques"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Torchons",
+      "cle": "torchons",
+      "aliases": [
+        "torchon cuisine",
+        "vaatdoek",
+        "chiffon"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Piles",
+      "cle": "piles",
+      "aliases": [
+        "batteries AA",
+        "pile AAA",
+        "batterijen"
+      ],
+      "categorie": "🔋 Entretien",
+      "emoji": "🔋",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Ampoules",
+      "cle": "ampoules",
+      "aliases": [
+        "ampoule LED",
+        "gloeilamp",
+        "lightbulb"
+      ],
+      "categorie": "💡 Entretien",
+      "emoji": "💡",
+      "rayon": "Entretien",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Anti-moustiques",
+      "cle": "anti moustiques",
+      "aliases": [
+        "répulsif insectes",
+        "muggenspray",
+        "insecticide"
+      ],
+      "categorie": "🧹 Entretien",
+      "emoji": "🧹",
+      "rayon": "Entretien",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Friandises chien",
+      "cle": "friandises chien",
+      "aliases": [
+        "snacks chien",
+        "hondensnacks",
+        "treats chien"
+      ],
+      "categorie": "🐕 Animalerie",
+      "emoji": "🐕",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Friandises chat",
+      "cle": "friandises chat",
+      "aliases": [
+        "snacks chat",
+        "kattensnacks",
+        "treats chat"
+      ],
+      "categorie": "🐈 Animalerie",
+      "emoji": "🐈",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Litière pour chat",
+      "cle": "litiere pour chat",
+      "aliases": [
+        "litière chat",
+        "kattenbakvulling",
+        "litter"
+      ],
+      "categorie": "🐈 Animalerie",
+      "emoji": "🐈",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nourriture oiseau",
+      "cle": "nourriture oiseau",
+      "aliases": [
+        "graines oiseaux",
+        "zaadmix vogel",
+        "mélange graines"
+      ],
+      "categorie": "🐦 Animalerie",
+      "emoji": "🐦",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Shampoing animaux",
+      "cle": "shampoing animaux",
+      "aliases": [
+        "shampoo chien",
+        "shampoo chat",
+        "dierenshampoo"
+      ],
+      "categorie": "🐕 Animalerie",
+      "emoji": "🐕",
+      "rayon": "Animalerie",
+      "unite_defaut": "ml",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nourriture cochon d'Inde",
+      "cle": "nourriture cochon d inde",
+      "aliases": [
+        "granulés cobaye",
+        "cavia voer"
+      ],
+      "categorie": "🐹 Animalerie",
+      "emoji": "🐹",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nourriture hamster",
+      "cle": "nourriture hamster",
+      "aliases": [
+        "mélange hamster",
+        "hamstervoer"
+      ],
+      "categorie": "🐹 Animalerie",
+      "emoji": "🐹",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sable pour chat",
+      "cle": "sable pour chat",
+      "aliases": [
+        "sable litière",
+        "kattengruis"
+      ],
+      "categorie": "🐈 Animalerie",
+      "emoji": "🐈",
+      "rayon": "Animalerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lait infantile 1er âge",
+      "cle": "lait infantile 1er age",
+      "aliases": [
+        "lait bébé 1",
+        "lait nourrisson",
+        "flessenmelk 1"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Lait infantile 2ème âge",
+      "cle": "lait infantile 2eme age",
+      "aliases": [
+        "lait bébé 2",
+        "lait suite",
+        "opvolgmelk"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Petits pots légumes",
+      "cle": "petits pots legumes",
+      "aliases": [
+        "purée bébé légumes",
+        "petit pot bébé",
+        "pap groenten"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Petits pots viande",
+      "cle": "petits pots viande",
+      "aliases": [
+        "purée bébé viande",
+        "petit pot bébé viande"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Céréales bébé",
+      "cle": "cereales bebe",
+      "aliases": [
+        "bouillie bébé",
+        "pap bébé",
+        "babygranen"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Couches",
+      "cle": "couches",
+      "aliases": [
+        "couches bébé",
+        "luiers",
+        "diapers",
+        "pampers"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lingettes bébé",
+      "cle": "lingettes bebe",
+      "aliases": [
+        "lingettes",
+        "babydoekjes",
+        "wipes"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "pièce",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Crème bébé",
+      "cle": "creme bebe",
+      "aliases": [
+        "crème change",
+        "babycreme",
+        "pommade fesses"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "ml",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Savon bébé",
+      "cle": "savon bebe",
+      "aliases": [
+        "gel lavant bébé",
+        "babyzeep",
+        "shampoo bébé"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "ml",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Biscuits bébé",
+      "cle": "biscuits bebe",
+      "aliases": [
+        "gâteaux bébé",
+        "biscuits nourrisson",
+        "babykoekjes"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Jus de fruits bébé",
+      "cle": "jus de fruits bebe",
+      "aliases": [
+        "jus bébé",
+        "nectar bébé",
+        "babysap"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Eau minérale bébé",
+      "cle": "eau minerale bebe",
+      "aliases": [
+        "eau bébé",
+        "water baby",
+        "eau nourrisson"
+      ],
+      "categorie": "👶 Bébé",
+      "emoji": "👶",
+      "rayon": "Produits bébé",
+      "unite_defaut": "L",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chou blanc",
+      "cle": "chou blanc",
+      "aliases": [
+        "chou pommé blanc",
+        "witte kool"
+      ],
+      "categorie": "🥬 Légumes",
+      "emoji": "🥬",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chou-fleur",
+      "cle": "chou fleur",
+      "aliases": [
+        "choufleur",
+        "bloemkool"
+      ],
+      "categorie": "🥬 Légumes",
+      "emoji": "🥦",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chou frisé",
+      "cle": "chou frise",
+      "aliases": [
+        "kale",
+        "boerenkool"
+      ],
+      "categorie": "🥬 Légumes",
+      "emoji": "🥬",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pousses d'épinards",
+      "cle": "pousses d epinards",
+      "aliases": [
+        "baby spinach",
+        "jonge spinazie",
+        "épinards jeunes pousses"
+      ],
+      "categorie": "🥬 Légumes",
+      "emoji": "🥬",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Piment rouge",
+      "cle": "piment rouge",
+      "aliases": [
+        "piment frais",
+        "rode peper",
+        "chili frais"
+      ],
+      "categorie": "🌶️ Légumes",
+      "emoji": "🌶️",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Piment vert",
+      "cle": "piment vert",
+      "aliases": [
+        "piment vert frais",
+        "groene peper"
+      ],
+      "categorie": "🌶️ Légumes",
+      "emoji": "🌶️",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Figues",
+      "cle": "figues",
+      "aliases": [
+        "figue fraîche",
+        "vijgen"
+      ],
+      "categorie": "🍑 Fruits",
+      "emoji": "🍑",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cerises",
+      "cle": "cerises",
+      "aliases": [
+        "cerise fraîche",
+        "kersen"
+      ],
+      "categorie": "🍒 Fruits",
+      "emoji": "🍒",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Mûres",
+      "cle": "mures",
+      "aliases": [
+        "mûre fraîche",
+        "bramen"
+      ],
+      "categorie": "🫐 Fruits",
+      "emoji": "🫐",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Groseilles",
+      "cle": "groseilles",
+      "aliases": [
+        "groseille rouge",
+        "aalbessen"
+      ],
+      "categorie": "🍇 Fruits",
+      "emoji": "🍇",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cassis",
+      "cle": "cassis",
+      "aliases": [
+        "cassis frais",
+        "zwarte bes"
+      ],
+      "categorie": "🍇 Fruits",
+      "emoji": "🍇",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Noix de coco fraîche",
+      "cle": "noix de coco fraiche",
+      "aliases": [
+        "coco fraîche",
+        "verse kokosnoot"
+      ],
+      "categorie": "🥥 Fruits",
+      "emoji": "🥥",
+      "rayon": "Fruits & Légumes",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Riz à risotto",
+      "cle": "riz a risotto",
+      "aliases": [
+        "riz arborio",
+        "risottorijst",
+        "carnaroli"
+      ],
+      "categorie": "🍚 Épicerie",
+      "emoji": "🍚",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tomates concassées",
+      "cle": "tomates concassees",
+      "aliases": [
+        "pulpe de tomates",
+        "tomatenblokjes",
+        "diced tomatoes"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tomates cerises en boîte",
+      "cle": "tomates cerises en boite",
+      "aliases": [
+        "cherry tomatoes boîte",
+        "tomatenkers blik"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Haricots rouges en boîte",
+      "cle": "haricots rouges en boite",
+      "aliases": [
+        "kidney beans",
+        "rode bonen blik"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pois chiches en boîte",
+      "cle": "pois chiches en boite",
+      "aliases": [
+        "chickpeas boîte",
+        "kikkererwten blik"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sardines en boîte",
+      "cle": "sardines en boite",
+      "aliases": [
+        "sardines à l'huile",
+        "conserve sardines",
+        "sardientjes"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Haricots blancs en boîte",
+      "cle": "haricots blancs en boite",
+      "aliases": [
+        "flageolets en boîte",
+        "witte bonen blik"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Vinaigre de vin rouge",
+      "cle": "vinaigre de vin rouge",
+      "aliases": [
+        "vinaigre rouge",
+        "rode wijnazijn"
+      ],
+      "categorie": "🧴 Épicerie",
+      "emoji": "🧴",
+      "rayon": "Épicerie",
+      "unite_defaut": "ml",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coriandre en poudre",
+      "cle": "coriandre en poudre",
+      "aliases": [
+        "coriandre moulue",
+        "gemalen koriander"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Gingembre en poudre",
+      "cle": "gingembre en poudre",
+      "aliases": [
+        "gingembre moulu",
+        "gemberpoeder"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Chips paprika",
+      "cle": "chips paprika",
+      "aliases": [
+        "chips au paprika",
+        "paprikachips"
+      ],
+      "categorie": "🍿 Épicerie",
+      "emoji": "🍿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Popcorn",
+      "cle": "popcorn",
+      "aliases": [
+        "pop corn",
+        "popcorn nature",
+        "popcorn beurre"
+      ],
+      "categorie": "🍿 Épicerie",
+      "emoji": "🍿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pistaches",
+      "cle": "pistaches",
+      "aliases": [
+        "pistache",
+        "pistache grillée",
+        "pistachenoten"
+      ],
+      "categorie": "🥜 Épicerie",
+      "emoji": "🥜",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Noisettes",
+      "cle": "noisettes",
+      "aliases": [
+        "noisette",
+        "hazelnoten",
+        "noisettes torréfiées"
+      ],
+      "categorie": "🥜 Épicerie",
+      "emoji": "🥜",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Graines de courge",
+      "cle": "graines de courge",
+      "aliases": [
+        "pépites courge",
+        "pompoenpitten",
+        "pepitas"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Graines de tournesol",
+      "cle": "graines de tournesol",
+      "aliases": [
+        "graines tournesol",
+        "zonnebloempitjes"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Graines de lin",
+      "cle": "graines de lin",
+      "aliases": [
+        "lin doré",
+        "vlaszaad",
+        "flaxseed"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Graines de chia",
+      "cle": "graines de chia",
+      "aliases": [
+        "chia seeds",
+        "chiazaad"
+      ],
+      "categorie": "🌿 Épicerie",
+      "emoji": "🌿",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Caramel en pot",
+      "cle": "caramel en pot",
+      "aliases": [
+        "caramel beurre salé",
+        "confiture de lait",
+        "karamel"
+      ],
+      "categorie": "🍯 Épicerie",
+      "emoji": "🍯",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Sucre de canne",
+      "cle": "sucre de canne",
+      "aliases": [
+        "cassonade brune",
+        "rietsuiker",
+        "brown sugar"
+      ],
+      "categorie": "🍬 Épicerie",
+      "emoji": "🍬",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sirop d'érable",
+      "cle": "sirop d erable",
+      "aliases": [
+        "maple syrup",
+        "ahornsiroop"
+      ],
+      "categorie": "🍯 Épicerie",
+      "emoji": "🍯",
+      "rayon": "Épicerie",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sirop d'agave",
+      "cle": "sirop d agave",
+      "aliases": [
+        "agave nectar",
+        "agavesiroop"
+      ],
+      "categorie": "🍯 Épicerie",
+      "emoji": "🍯",
+      "rayon": "Épicerie",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Farine de seigle",
+      "cle": "farine de seigle",
+      "aliases": [
+        "farine seigle",
+        "roggebloem"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Fécule de pomme de terre",
+      "cle": "fecule de pomme de terre",
+      "aliases": [
+        "fécule",
+        "aardappelzetmeel",
+        "potato starch"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Levure sèche",
+      "cle": "levure seche",
+      "aliases": [
+        "levure boulangère sèche",
+        "gist droog",
+        "dry yeast"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Agar-agar",
+      "cle": "agar agar",
+      "aliases": [
+        "agar",
+        "gélifiant végétal"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sauce oyster",
+      "cle": "sauce oyster",
+      "aliases": [
+        "sauce huître",
+        "oestersaus"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "ml",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nouilles ramen",
+      "cle": "nouilles ramen",
+      "aliases": [
+        "ramen secs",
+        "ramennudels",
+        "soupe ramen"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nouilles soba",
+      "cle": "nouilles soba",
+      "aliases": [
+        "soba",
+        "sobanoedels",
+        "sarrasin nouilles"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Nouilles udon",
+      "cle": "nouilles udon",
+      "aliases": [
+        "udon",
+        "udonnoedels"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Vermicelles de riz",
+      "cle": "vermicelles de riz",
+      "aliases": [
+        "bihon",
+        "rice noodles",
+        "rijstnoedels"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Feuilles de riz",
+      "cle": "feuilles de riz",
+      "aliases": [
+        "galettes de riz",
+        "rijstpapier",
+        "rice paper"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Algues nori",
+      "cle": "algues nori",
+      "aliases": [
+        "feuilles nori",
+        "nori",
+        "zeewier nori"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Gingembre mariné",
+      "cle": "gingembre marine",
+      "aliases": [
+        "gari",
+        "pickled ginger",
+        "gemberplakjes"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tofu ferme",
+      "cle": "tofu ferme",
+      "aliases": [
+        "tofu nature",
+        "tofu extra ferme",
+        "stevige tofu"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tofu soyeux",
+      "cle": "tofu soyeux",
+      "aliases": [
+        "tofu silken",
+        "zijden tofu"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pâte de curry jaune",
+      "cle": "pate de curry jaune",
+      "aliases": [
+        "curry jaune thaï",
+        "gele currypasta",
+        "yellow curry paste"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌏",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Feuilles de combava",
+      "cle": "feuilles de combava",
+      "aliases": [
+        "feuilles kaffir lime",
+        "combava",
+        "kaffirlimoenblad"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌿",
+      "rayon": "Produits du monde",
+      "unite_defaut": "pièce",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Couscous",
+      "cle": "couscous",
+      "aliases": [
+        "graine de couscous",
+        "couscous moyen",
+        "couscous fin"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌍",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pois cassés",
+      "cle": "pois casses",
+      "aliases": [
+        "pois cassés jaunes",
+        "spliterwten"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌍",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sauce chipotle",
+      "cle": "sauce chipotle",
+      "aliases": [
+        "chipotle sauce",
+        "piment chipotle"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌎",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Jalapeños",
+      "cle": "jalapenos",
+      "aliases": [
+        "jalapeño",
+        "piment jalapeño",
+        "jalapeños en boîte"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌎",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Enchilada sauce",
+      "cle": "enchilada sauce",
+      "aliases": [
+        "sauce enchilada",
+        "salsa roja"
+      ],
+      "categorie": "🌍 Produits du monde",
+      "emoji": "🌎",
+      "rayon": "Produits du monde",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lentilles vertes",
+      "cle": "lentilles vertes",
+      "aliases": [
+        "lentilles du Puy",
+        "groene linzen"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Lentilles corail",
+      "cle": "lentilles corail",
+      "aliases": [
+        "lentilles rouges",
+        "rode linzen"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Haricots noirs secs",
+      "cle": "haricots noirs secs",
+      "aliases": [
+        "black beans secs",
+        "zwarte bonen droog"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pois chiches secs",
+      "cle": "pois chiches secs",
+      "aliases": [
+        "pois chiche sec",
+        "droge kikkererwten"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Haricots blancs secs",
+      "cle": "haricots blancs secs",
+      "aliases": [
+        "flageolets secs",
+        "droge witte bonen"
+      ],
+      "categorie": "🌾 Épicerie",
+      "emoji": "🌾",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Flocons d'avoine",
+      "cle": "flocons d avoine",
+      "aliases": [
+        "avoine instantanée",
+        "havervlokken",
+        "oatmeal"
+      ],
+      "categorie": "🥣 Épicerie",
+      "emoji": "🥣",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cornflakes",
+      "cle": "cornflakes",
+      "aliases": [
+        "corn flakes",
+        "maïsflakes",
+        "céréales maïs"
+      ],
+      "categorie": "🥣 Épicerie",
+      "emoji": "🥣",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Biscuits petit-déjeuner",
+      "cle": "biscuits petit dejeuner",
+      "aliases": [
+        "biscuits matin",
+        "LU",
+        "belvita"
+      ],
+      "categorie": "🍪 Épicerie",
+      "emoji": "🍪",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Biscuits apéritifs",
+      "cle": "biscuits aperitifs",
+      "aliases": [
+        "crackers apéro",
+        "toastinettes",
+        "biscuits salés"
+      ],
+      "categorie": "🍪 Épicerie",
+      "emoji": "🍪",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Galettes de riz",
+      "cle": "galettes de riz",
+      "aliases": [
+        "cakes de riz",
+        "rijstwafels",
+        "galette soufflée"
+      ],
+      "categorie": "🍪 Épicerie",
+      "emoji": "🍪",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tapenade noire",
+      "cle": "tapenade noire",
+      "aliases": [
+        "tapenade olives",
+        "olivenpaste"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tapenade verte",
+      "cle": "tapenade verte",
+      "aliases": [
+        "tapenade olives vertes"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Sauce napolitaine",
+      "cle": "sauce napolitaine",
+      "aliases": [
+        "sauce tomate basilic",
+        "napolitana",
+        "sugo"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Coulis de tomate",
+      "cle": "coulis de tomate",
+      "aliases": [
+        "passata",
+        "tomatenpassata",
+        "purée de tomates tamisée"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🥫",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 5,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Abricots secs",
+      "cle": "abricots secs",
+      "aliases": [
+        "abricot séché",
+        "gedroogde abrikozen"
+      ],
+      "categorie": "🍎 Épicerie",
+      "emoji": "🍎",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Figues séchées",
+      "cle": "figues sechees",
+      "aliases": [
+        "figues sèches",
+        "gedroogde vijgen"
+      ],
+      "categorie": "🍎 Épicerie",
+      "emoji": "🍎",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Dattes",
+      "cle": "dattes",
+      "aliases": [
+        "datte medjool",
+        "dadels"
+      ],
+      "categorie": "🍎 Épicerie",
+      "emoji": "🍎",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Raisins secs",
+      "cle": "raisins secs",
+      "aliases": [
+        "raisin sec sultane",
+        "rozijnen",
+        "currants"
+      ],
+      "categorie": "🍇 Épicerie",
+      "emoji": "🍇",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cranberries séchées",
+      "cle": "cranberries sechees",
+      "aliases": [
+        "canneberges séchées",
+        "gedroogde cranberry"
+      ],
+      "categorie": "🍎 Épicerie",
+      "emoji": "🍎",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Olives noires",
+      "cle": "olives noires",
+      "aliases": [
+        "olive noire",
+        "zwarte olijven",
+        "olives Kalamata"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Olives vertes",
+      "cle": "olives vertes",
+      "aliases": [
+        "olive verte",
+        "groene olijven",
+        "olives marinées"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cornichons",
+      "cle": "cornichons",
+      "aliases": [
+        "cornichon",
+        "augurken",
+        "pickles"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Tomates séchées",
+      "cle": "tomates sechees",
+      "aliases": [
+        "tomates confites",
+        "gedroogde tomaatjes",
+        "sun-dried tomatoes"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Poivrons en bocal",
+      "cle": "poivrons en bocal",
+      "aliases": [
+        "poivrons grillés bocal",
+        "geroosterde paprika pot"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Soupe en sachet",
+      "cle": "soupe en sachet",
+      "aliases": [
+        "soupe déshydratée",
+        "instant soup",
+        "soep zakje"
+      ],
+      "categorie": "🥫 Épicerie",
+      "emoji": "🥣",
+      "rayon": "Épicerie",
+      "unite_defaut": "pièce",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": false,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Confiture de fraises",
+      "cle": "confiture de fraises",
+      "aliases": [
+        "confiture fraise",
+        "aardbeienjam"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🍓",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Confiture d'abricots",
+      "cle": "confiture d abricots",
+      "aliases": [
+        "confiture abricot",
+        "abrikozenjam"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Confiture de framboises",
+      "cle": "confiture de framboises",
+      "aliases": [
+        "confiture framboise",
+        "frambozenjam"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 3,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Beurre de cacahuètes",
+      "cle": "beurre de cacahuetes",
+      "aliases": [
+        "peanut butter",
+        "pindakaas",
+        "pâte cacahuètes"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🥜",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": true,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Pâte à tartiner noisettes",
+      "cle": "pate a tartiner noisettes",
+      "aliases": [
+        "nutella",
+        "pâte chocolat noisette",
+        "chocoladepasta"
+      ],
+      "categorie": "🫙 Épicerie",
+      "emoji": "🫙",
+      "rayon": "Épicerie",
+      "unite_defaut": "g",
+      "frequence": 4,
+      "saison": null,
+      "regimes": {
+        "vegetarien": true,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": false
+      }
+    },
+    {
+      "nom": "Foie de poulet",
+      "cle": "foie de poulet",
+      "aliases": [
+        "foie volaille",
+        "kippenlever"
+      ],
+      "categorie": "🍗 Boucherie",
+      "emoji": "🍗",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Os à moelle",
+      "cle": "os a moelle",
+      "aliases": [
+        "os moelle bœuf",
+        "mergpijp"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "pièce",
+      "frequence": 1,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
+        "sans_gluten": true,
+        "sans_lactose": true
+      }
+    },
+    {
+      "nom": "Cou de porc",
+      "cle": "cou de porc",
+      "aliases": [
+        "échine de porc",
+        "varkensnek"
+      ],
+      "categorie": "🥩 Boucherie",
+      "emoji": "🥩",
+      "rayon": "Boucherie / Volaille",
+      "unite_defaut": "g",
+      "frequence": 2,
+      "saison": null,
+      "regimes": {
+        "vegetarien": false,
+        "vegan": false,
         "sans_gluten": true,
         "sans_lactose": true
       }
