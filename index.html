@@ -198,7 +198,7 @@ function searchLocalMealDB(term, maxResults=10){
   if(!term || !arr.length) return [];
   const q = term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   return arr.filter(m=>{
-    const haystack = [m.name, m.nameEN, m.category, m.area, ...(m.tags||[])].join(' ')
+    const haystack = [m.nom, m.nomEN, m.categorie, m.origine, ...(m.tags||[])].join(' ')
       .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     return haystack.includes(q);
   }).slice(0, maxResults);
@@ -208,9 +208,10 @@ function searchLocalMealDB(term, maxResults=10){
 function filterLocalByCategory(categoryEN, maxResults=100){
   const arr = _localArray();
   if(!arr.length) return [];
+  const q = categoryEN.toLowerCase();
   return arr.filter(m=>
-    (m.categoryEN||m.category||"").toLowerCase() === categoryEN.toLowerCase()
-    || (m.category||"").toLowerCase().includes(categoryEN.toLowerCase())
+    (m.categorieEN||"").toLowerCase() === q
+    || (m.categorie||"").toLowerCase().includes(q)
   ).slice(0, maxResults);
 }
 
@@ -218,34 +219,57 @@ function filterLocalByCategory(categoryEN, maxResults=100){
 function filterLocalByArea(areaEN, maxResults=100){
   const arr = _localArray();
   if(!arr.length) return [];
+  const q = areaEN.toLowerCase();
   return arr.filter(m=>
-    (m.areaEN||m.area||"").toLowerCase() === areaEN.toLowerCase()
-    || (m.area||"").toLowerCase().includes(areaEN.toLowerCase())
+    (m.origineEN||"").toLowerCase() === q
+    || (m.origine||"").toLowerCase().includes(q)
   ).slice(0, maxResults);
 }
 
 // Convertit une recette du cache local au format interne Wisely
+function parseMeasureLocal(measure){
+  if(!measure) return {qty:"", unit:""};
+  const s = measure.trim();
+  if(/au go[uû]t|à volon|q\.s\.|qs/i.test(s)) return {qty:"", unit:"pincée"};
+  const fracs={"1/2":"0.5","1/3":"0.33","1/4":"0.25","2/3":"0.67","3/4":"0.75"};
+  let n = s;
+  Object.entries(fracs).forEach(([f,v])=>{ n=n.replace(f,v); });
+  const m = n.match(/^(\d+(?:[.,]\d+)?)\s*([a-zà-ÿ]*)\s*/i);
+  if(!m) return {qty:"", unit:""};
+  const unitMap={g:"g",gr:"g",kg:"kg",ml:"ml",cl:"cl",l:"L",L:"L",
+    "càs":"càs","càc":"càc",tbsp:"càs",tsp:"càc",
+    oz:"g",lb:"kg","pincée":"pincée",botte:"botte",
+    gousse:"pièce",gousses:"pièce",tranche:"tranche",tranches:"tranche",
+    "boîte":"boîte",sachet:"sachet",paquet:"paquet",bouteille:"bouteille"};
+  const u = (m[2]||"").toLowerCase().trim();
+  return {qty: m[1].replace(',','.'), unit: unitMap[u]!==undefined ? unitMap[u] : u};
+}
+
 function localMealToWisely(m){
+  const reg = m.regimes || {};
+  const diets = [];
+  if(reg.vegetarien||reg["végétarien"]) diets.push("vegetarian");
+  if(reg.vegan) diets.push("vegan");
+  if(reg.sans_gluten) diets.push("gluten-free");
+  if(reg.sans_lactose) diets.push("dairy-free");
   return {
     id: Date.now() + Math.random(),
-    name: m.name || m.nameEN || "",
-    nameEN: m.nameEN || "",
+    name: m.nom || m.nomEN || "",
+    nameEN: m.nomEN || "",
     source: "mealdb",
-    mealdbId: m.id || m.mealdbId || null,
+    mealdbId: m.id || null,
     photo: m.photo || null,
-    category: m.category || "",
-    area: m.area || "",
+    category: m.categorie || "",
+    area: m.origine || "",
     duration: m.duration || null,
     persons: m.persons || null,
-    diets: m.diets || [],
+    diets,
     tags: m.tags || [],
-    ingredients: (m.ingredients||[]).map(ing=>({
-      name: ing.name || "",
-      qty: ing.qty || "",
-      unit: ing.unit || "",
-      category: ing.category || getCat(ing.name||"")
-    })),
-    steps: m.steps || [],
+    ingredients: (m.ingredients||[]).map(ing=>{
+      const {qty,unit}=parseMeasureLocal(ing.measure||"");
+      return {name:ing.name||ing.nom||"", qty, unit, category:ing.categorie||ing.category||getCat(ing.name||ing.nom||"")};
+    }),
+    steps: m.etapes || m.steps || [],
     date: new Date().toLocaleDateString("fr-FR"),
     _fromLocal: true
   };
@@ -1518,13 +1542,13 @@ function PageRecettes({db,setDb,showToast}){
         const localHits = searchLocalMealDB(search, 5);
         if(localHits.length > 0){
           setMealdbResults(localHits.map(m=>({
-            id:"mdb_"+(m.id||m.mealdbId||Math.random()),
-            mealdbId:m.id||m.mealdbId||null,
-            name:m.name||m.nameEN||"",
-            nameEN:m.nameEN||"",
+            id:"mdb_"+(m.id||Math.random()),
+            mealdbId:m.id||null,
+            name:m.nom||m.nomEN||"",
+            nameEN:m.nomEN||"",
             photo:m.photo||null,
-            category:m.category||"",
-            area:m.area||"",
+            category:m.categorie||"",
+            area:m.origine||"",
             source:"mealdb",
             _localData:m
           })));
@@ -1572,7 +1596,7 @@ function PageRecettes({db,setDb,showToast}){
     showToast("⏳ Import…");
     try{
       // 1. Vérifier si la recette est dans le cache local
-      const localMatch = _localArray().find(m=>(m.id||m.mealdbId)==mealdbId||(m.id||m.mealdbId)==String(mealdbId));
+      const localMatch = _localArray().find(m=>String(m.id)===String(mealdbId));
       if(localMatch){
         importRecipe(localMealToWisely(localMatch));
         return;
@@ -1944,8 +1968,8 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       const localHits = filterLocalByCategory(cat, 200);
       if(localHits.length > 0){
         setResults(localHits.map(m=>({
-          idMeal: m.id||m.mealdbId||"",
-          strMeal: m.name||m.nameEN||"",
+          idMeal: m.id||"",
+          strMeal: m.nom||m.nomEN||"",
           strCategory: cat,
           _localData: m
         })));
@@ -1967,9 +1991,9 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       const localHits = searchLocalMealDB(query, 50);
       if(localHits.length > 0){
         setResults(localHits.map(m=>({
-          idMeal: m.id||m.mealdbId||"",
-          strMeal: m.name||m.nameEN||"",
-          strCategory: m.categoryEN||m.category||"",
+          idMeal: m.id||"",
+          strMeal: m.nom||m.nomEN||"",
+          strCategory: m.categorieEN||m.categorie||"",
           _localData: m
         })));
         setLoading(false);
@@ -1990,9 +2014,9 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       const localHits = filterLocalByArea(area, 200);
       if(localHits.length > 0){
         setResults(localHits.map(m=>({
-          idMeal: m.id||m.mealdbId||"",
-          strMeal: m.name||m.nameEN||"",
-          strCategory: m.categoryEN||m.category||"",
+          idMeal: m.id||"",
+          strMeal: m.nom||m.nomEN||"",
+          strCategory: m.categorieEN||m.categorie||"",
           _localData: m
         })));
         setLoading(false);
@@ -2009,9 +2033,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
     setLoading(true);setDetail(null);setView("detail");
     try{
       // 1. Chercher dans le cache local (id numérique ou string)
-      const localMatch = _localArray().find(m=>
-        String(m.id||m.mealdbId) === String(id)
-      );
+      const localMatch = _localArray().find(m=>String(m.id)===String(id));
       if(localMatch){
         // Déjà traduit → afficher directement, pas besoin d'IA
         setDetail(localMealToWisely(localMatch));
