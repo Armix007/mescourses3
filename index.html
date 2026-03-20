@@ -1535,7 +1535,7 @@ function PageRecettes({db,setDb,showToast}){
         const searchEN=translateSearchToEN(search);
         const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(searchEN)}`);
         const d=await r.json();
-        setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:translateMealName(m.strMeal),nameEN:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
+        setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:translateMealName(m.strMeal)||m.strMeal,nameEN:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
       }catch{setMealdbResults([]);}
       setMealdbLoading(false);
     },300);
@@ -1582,7 +1582,7 @@ function PageRecettes({db,setDb,showToast}){
       const d=await r.json();const m=d.meals?.[0];if(!m){showToast("❌ Introuvable");return;}
       const ings=[];
       for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
-      importRecipe({id:Date.now(),name:translateMealName(m.strMeal),source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")});
+      importRecipe({id:Date.now(),name:translateMealName(m.strMeal)||m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")});
     }catch{showToast("❌ Erreur import");}
   }
 
@@ -2079,7 +2079,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
         }catch(e){console.warn("Traduction échouée:",e);}
         setTranslating(false);
       }
-      setDetail(raw);
+      setDetail({...raw});
     }catch(e){showToast("❌ "+e.message);setView("list");}
     setLoading(false);setTranslating(false);
   }
