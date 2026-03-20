@@ -175,22 +175,29 @@ let MEALDB_LOCAL = []; // tableau de recettes traduites, rempli au démarrage
 async function loadLocalMealDB(){
   try{
     const r = await fetch('/recipes_mealdb_fr.json');
-    if(!r.ok) return;
+    if(!r.ok){ MEALDB_LOCAL = []; return; }
     const d = await r.json();
-    MEALDB_LOCAL = d.recipes || d || [];
-    console.info(`✅ MealDB local : ${MEALDB_LOCAL.length} recettes chargées`);
+    // Accepte { recipes: [...] }, un tableau direct, ou un objet indexé
+    let arr = null;
+    if(Array.isArray(d)) arr = d;
+    else if(d && Array.isArray(d.recipes)) arr = d.recipes;
+    else if(d && typeof d === 'object') arr = Object.values(d).find(v=>Array.isArray(v)) || [];
+    MEALDB_LOCAL = Array.isArray(arr) ? arr : [];
+    console.info('✅ MealDB local : ' + MEALDB_LOCAL.length + ' recettes chargées');
   } catch(e){
-    // Fichier absent → mode en ligne uniquement
     MEALDB_LOCAL = [];
   }
 }
 
+// Sécurité : garantit toujours un tableau, même si le chargement a échoué
+function _localArray(){ return Array.isArray(MEALDB_LOCAL) ? MEALDB_LOCAL : []; }
+
 // Recherche dans la base locale : retourne jusqu'à maxResults résultats
-// correspondant au terme (nom FR, nom EN, catégorie, origine, tags)
 function searchLocalMealDB(term, maxResults=10){
-  if(!term || !MEALDB_LOCAL.length) return [];
+  const arr = _localArray();
+  if(!term || !arr.length) return [];
   const q = term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  return MEALDB_LOCAL.filter(m=>{
+  return arr.filter(m=>{
     const haystack = [m.name, m.nameEN, m.category, m.area, ...(m.tags||[])].join(' ')
       .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     return haystack.includes(q);
@@ -199,8 +206,9 @@ function searchLocalMealDB(term, maxResults=10){
 
 // Filtre la base locale selon catégorie EN (strCategory TheMealDB)
 function filterLocalByCategory(categoryEN, maxResults=100){
-  if(!MEALDB_LOCAL.length) return [];
-  return MEALDB_LOCAL.filter(m=>
+  const arr = _localArray();
+  if(!arr.length) return [];
+  return arr.filter(m=>
     (m.categoryEN||m.category||"").toLowerCase() === categoryEN.toLowerCase()
     || (m.category||"").toLowerCase().includes(categoryEN.toLowerCase())
   ).slice(0, maxResults);
@@ -208,8 +216,9 @@ function filterLocalByCategory(categoryEN, maxResults=100){
 
 // Filtre la base locale selon origine EN (strArea TheMealDB)
 function filterLocalByArea(areaEN, maxResults=100){
-  if(!MEALDB_LOCAL.length) return [];
-  return MEALDB_LOCAL.filter(m=>
+  const arr = _localArray();
+  if(!arr.length) return [];
+  return arr.filter(m=>
     (m.areaEN||m.area||"").toLowerCase() === areaEN.toLowerCase()
     || (m.area||"").toLowerCase().includes(areaEN.toLowerCase())
   ).slice(0, maxResults);
@@ -1563,7 +1572,7 @@ function PageRecettes({db,setDb,showToast}){
     showToast("⏳ Import…");
     try{
       // 1. Vérifier si la recette est dans le cache local
-      const localMatch = MEALDB_LOCAL.find(m=>(m.id||m.mealdbId)==mealdbId||(m.id||m.mealdbId)==String(mealdbId));
+      const localMatch = _localArray().find(m=>(m.id||m.mealdbId)==mealdbId||(m.id||m.mealdbId)==String(mealdbId));
       if(localMatch){
         importRecipe(localMealToWisely(localMatch));
         return;
@@ -1998,7 +2007,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
     setLoading(true);setDetail(null);setView("detail");
     try{
       // 1. Chercher dans le cache local (id numérique ou string)
-      const localMatch = MEALDB_LOCAL.find(m=>
+      const localMatch = _localArray().find(m=>
         String(m.id||m.mealdbId) === String(id)
       );
       if(localMatch){
@@ -2081,8 +2090,8 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
     <Modal open onClose={onClose}>
       <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:2,color:TXT}}>🌐 Parcourir TheMealDB</div>
       <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>
-        {MEALDB_LOCAL.length>0
-          ? <span>📦 <b style={{color:SUC}}>{MEALDB_LOCAL.length} recettes</b> disponibles hors-ligne · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — CC BY-SA</span>
+        {_localArray().length>0
+          ? <span>📦 <b style={{color:SUC}}>{_localArray().length} recettes</b> disponibles hors-ligne · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — CC BY-SA</span>
           : <span>Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA</span>
         }
       </div>
@@ -2091,7 +2100,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
       {view==="categories"&&(
         <>
           <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input style={{...inp,flex:1}} placeholder={MEALDB_LOCAL.length>0?"Rechercher en français…":"Rechercher (en anglais)…"} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
+            <input style={{...inp,flex:1}} placeholder={_localArray().length>0?"Rechercher en français…":"Rechercher (en anglais)…"} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
             <button style={{...btn("acc"),padding:"10px 14px"}} onClick={search} disabled={loading}>{loading?"⏳":"🔍"}</button>
           </div>
           {/* Sous-onglets catégorie / origine — bien visibles */}
