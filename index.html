@@ -832,16 +832,63 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
 // ═══════════════════════════════════════════════════════════════
 // ITEM MINI (vue grille 3 colonnes ultra-compact)
 // ═══════════════════════════════════════════════════════════════
-function ItemMini({item,onToggle,onDel}){
+function ItemMini({item,onToggle,onDel,onNameChange}){
   const catEmoji=getProductEmoji(item.name);
-  const shortName=item.name.length>14?item.name.slice(0,13)+"…":item.name;
+  const shortName=item.name.length>12?item.name.slice(0,11)+"…":item.name;
+  const [showEdit,setShowEdit]=useState(false);
+  const [editName,setEditName]=useState(item.name);
+  const [editQty,setEditQty]=useState(item.quantities?.[0]?.qty??1);
+  const [editUnit,setEditUnit]=useState(item.quantities?.[0]?.unit??"");
+  const [editCat,setEditCat]=useState(item.category||getCat(item.name));
+
+  function openEdit(){
+    setEditName(item.name);setEditQty(item.quantities?.[0]?.qty??1);
+    setEditUnit(item.quantities?.[0]?.unit??"");setEditCat(item.category||getCat(item.name));
+    setShowEdit(s=>!s);
+  }
+  function saveEdit(){
+    if(editName.trim()&&onNameChange) onNameChange(item.id,editName.trim(),editCat,editQty,editUnit);
+    setShowEdit(false);
+  }
+
   return(
-    <div onClick={()=>onToggle(item.id)} style={{background:item.checked?CREAM2:SURF,border:`1px solid ${item.checked?CARAMEL:BDR}`,borderRadius:10,padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",opacity:item.checked?.5:1,position:"relative",minWidth:0,overflow:"hidden",boxShadow:"0 1px 4px rgba(160,90,40,.05)"}}>
-      <div style={{width:16,height:16,borderRadius:5,border:item.checked?"none":`1.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",position:"absolute",top:5,left:5,flexShrink:0}}>
-        {item.checked&&<span style={{color:"white",fontSize:8,fontWeight:800}}>✓</span>}
+    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:item.checked?CARAMEL:BDR}`,borderRadius:10,boxShadow:"0 1px 4px rgba(160,90,40,.05)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
+      <div style={{padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+        {/* Ligne haut : checkbox | emoji | actions */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}}>
+          <div onClick={()=>onToggle(item.id)} style={{width:15,height:15,borderRadius:4,border:item.checked?"none":`1.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+            {item.checked&&<span style={{color:"white",fontSize:8,fontWeight:800}}>✓</span>}
+          </div>
+          <EmojiImg emoji={catEmoji} size={18}/>
+          <div style={{display:"flex",gap:1}}>
+            <button style={{background:"none",border:"none",color:showEdit?CARAMEL2:TXT3,cursor:"pointer",fontSize:10,padding:"1px 2px",opacity:showEdit?1:.5}} onClick={openEdit}>✏️</button>
+            <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:10,padding:"1px 2px",opacity:.5}} onClick={()=>onDel(item.id)}>🗑️</button>
+          </div>
+        </div>
+        {/* Nom */}
+        <div style={{fontSize:10,fontWeight:700,color:TXT,textAlign:"center",textDecoration:item.checked?"line-through":"none",lineHeight:1.2,width:"100%"}}>{shortName}</div>
+        {/* Quantité */}
+        <div style={{fontSize:9,color:TXT3,fontWeight:600,textAlign:"center"}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join("+")}</div>
       </div>
-      <EmojiImg emoji={catEmoji} size={22}/>
-      <div style={{fontSize:10,fontWeight:700,color:TXT,textAlign:"center",textDecoration:item.checked?"line-through":"none",lineHeight:1.2,wordBreak:"break-word",width:"100%"}}>{shortName}</div>
+      {/* Panneau édition inline mini */}
+      {showEdit&&(
+        <div style={{borderTop:`1px solid ${BDR}`,background:CREAM,padding:"6px 7px",display:"flex",flexDirection:"column",gap:5}}>
+          <input style={{...inp,fontSize:10,padding:"4px 7px"}} value={editName} onChange={e=>setEditName(e.target.value)} placeholder="Nom…"/>
+          <div style={{display:"flex",gap:4}}>
+            <input type="number" min="0" step="0.1" style={{...inp,fontSize:10,padding:"4px 5px",textAlign:"center",flex:1}} value={editQty} onChange={e=>setEditQty(parseFloat(e.target.value)||1)}/>
+            <select style={{...sel,fontSize:9,padding:"4px 3px",flex:1}} value={editUnit} onChange={e=>setEditUnit(e.target.value)}>
+              {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
+            </select>
+          </div>
+          <select style={{...sel,fontSize:9,padding:"4px 5px"}} value={editCat} onChange={e=>setEditCat(e.target.value)}>
+            {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+          <div style={{display:"flex",gap:4}}>
+            <button style={{...btn("gh"),flex:1,fontSize:9,padding:"4px",justifyContent:"center"}} onClick={()=>setShowEdit(false)}>✕</button>
+            <button style={{...btn("acc"),flex:2,fontSize:9,padding:"4px",justifyContent:"center"}} onClick={saveEdit}>✅ OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -850,7 +897,12 @@ function ItemMini({item,onToggle,onDel}){
 // SUGG BLOCK — suggestions adaptées au mode d'affichage
 // ═══════════════════════════════════════════════════════════════
 function SuggBlock({popular,listView,db,setDb,showToast,normInc,getCatFn}){
-  // State local pour les quantités des suggestions
+  // Filtrer les articles déjà dans la liste courante
+  const inList=new Set((db.items||[]).map(i=>i.name.toLowerCase()));
+  const [dismissed,setDismissed]=useState(new Set());
+  const visible=popular.filter(p=>!inList.has(p.name.toLowerCase())&&!dismissed.has(p.name));
+
+  // State local qtys initialisé sur les items visibles
   const [suggQtys,setSuggQtys]=useState(()=>{
     const init={};
     popular.forEach(p=>{
@@ -869,42 +921,26 @@ function SuggBlock({popular,listView,db,setDb,showToast,normInc,getCatFn}){
     if(!ph[p.name])ph[p.name]={count:0,category:catV,lastUnit:sq.unit};
     ph[p.name].count++;ph[p.name].category=catV;ph[p.name].lastUnit=sq.unit;
     const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    // Retirer immédiatement de l'affichage
+    setDismissed(prev=>new Set([...prev,p.name]));
     showToast("✅ "+p.name+" ajouté");
   }
 
   function setQ(name,val){setSuggQtys(prev=>({...prev,[name]:{...prev[name],qty:val}}))}
   function setU(name,val){setSuggQtys(prev=>({...prev,[name]:{...prev[name],unit:val}}))}
 
-  if(listView==="mini"){
-    // Vue mini : grille 3 colonnes ultra-compact
-    return(
-      <div style={{marginTop:14}}>
-        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-          {popular.map((p,i)=>{
-            const info=normInc(p.name);
-            const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
-            const shortName=p.name.length>10?p.name.slice(0,9)+"…":p.name;
-            return(
-              <div key={i} style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:10,padding:"6px 5px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative",overflow:"hidden"}}>
-                <span style={{fontSize:16}}>{em}</span>
-                <div style={{fontSize:9,fontWeight:700,color:TXT,textAlign:"center",lineHeight:1.2}}>{shortName}</div>
-                <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:6,width:22,height:22,fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+  if(!visible.length) return null;
+
+  // Fond distinct pour différencier du contenu liste
+  const SUGG_BG="rgba(184,112,58,.05)";
+  const SUGG_BDR="rgba(184,112,58,.2)";
 
   if(listView==="grille"){
-    // Vue grille 2 colonnes
     return(
-      <div style={{marginTop:14}}>
-        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
+      <div style={{marginTop:14,background:SUGG_BG,border:`1px dashed ${SUGG_BDR}`,borderRadius:14,padding:"12px 10px"}}>
+        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:8}}>💡 Suggestions rapides</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          {popular.map((p,i)=>{
+          {visible.map((p,i)=>{
             const info=normInc(p.name);
             const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
             const sq=suggQtys[p.name]||{qty:1,unit:""};
@@ -929,21 +965,50 @@ function SuggBlock({popular,listView,db,setDb,showToast,normInc,getCatFn}){
     );
   }
 
+  if(listView==="mini"){
+    return(
+      <div style={{marginTop:14,background:SUGG_BG,border:`1px dashed ${SUGG_BDR}`,borderRadius:14,padding:"12px 10px"}}>
+        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:8}}>💡 Suggestions rapides</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+          {visible.map((p,i)=>{
+            const info=normInc(p.name);
+            const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
+            const shortName=p.name.length>10?p.name.slice(0,9)+"…":p.name;
+            const sq=suggQtys[p.name]||{qty:1,unit:""};
+            return(
+              <div key={i} style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:10,padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <span style={{fontSize:16}}>{em}</span>
+                <div style={{fontSize:9,fontWeight:700,color:TXT,textAlign:"center",lineHeight:1.2,width:"100%"}}>{shortName}</div>
+                <input type="number" min="0.1" step="0.5" value={sq.qty} onChange={e=>setQ(p.name,parseFloat(e.target.value)||1)}
+                  style={{...inp,padding:"3px 4px",fontSize:9,width:"100%",textAlign:"center"}}/>
+                <select value={sq.unit} onChange={e=>setU(p.name,e.target.value)}
+                  style={{...sel,padding:"3px 4px",fontSize:9,width:"100%"}}>
+                  {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
+                </select>
+                <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:6,width:"100%",height:22,fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // Vue liste (défaut)
   return(
-    <div style={{marginTop:14}}>
-      <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
-      <div style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:14,overflow:"hidden"}}>
-        {popular.map((p,i)=>{
+    <div style={{marginTop:14,background:SUGG_BG,border:`1px dashed ${SUGG_BDR}`,borderRadius:14,overflow:"hidden"}}>
+      <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",padding:"10px 12px 6px"}}>💡 Suggestions rapides</div>
+      <div>
+        {visible.map((p,i)=>{
           const info=normInc(p.name);
           const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
           const sq=suggQtys[p.name]||{qty:1,unit:""};
           return(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderBottom:i<popular.length-1?`1px solid ${BDR}`:"none"}}>
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderTop:`1px solid ${SUGG_BDR}`}}>
               <span style={{fontSize:16,flexShrink:0}}>{em}</span>
               <div style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>{p.name}</div>
               <input type="number" min="0.1" step="0.5" value={sq.qty} onChange={e=>setQ(p.name,parseFloat(e.target.value)||1)} style={{...inp,padding:"4px 6px",fontSize:11,width:44,textAlign:"center",flexShrink:0}}/>
-              <select value={sq.unit} onChange={e=>setU(p.name,e.target.value)} style={{...sel,padding:"4px 5px",fontSize:10,width:55,flexShrink:0}}>
+              <select value={sq.unit} onChange={e=>setU(p.name,e.target.value)} style={{...sel,padding:"4px 5px",fontSize:10,width:60,flexShrink:0}}>
                 {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
               </select>
               <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:8,width:28,height:28,fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
@@ -977,14 +1042,15 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   useEffect(()=>{
     if(!name.trim()){setSugg([]);return;}
     const q=name.toLowerCase();
-    // Auto-catégorie depuis catalogue
     const autoInfo=normalizeIngredient(name);
-    if(autoInfo&&autoInfo.categorie)setCat(autoInfo.categorie);
-    if(autoInfo&&autoInfo.unite)setUnit(autoInfo.unite);
-    // Fusionner l'historique utilisateur + base PRODUCTS_DB
+    if(autoInfo&&autoInfo.categorie) setCat(normalizeCat(autoInfo.categorie));
+    if(autoInfo&&autoInfo.unite) setUnit(autoInfo.unite);
     const histEntries=Object.entries(db.productHistory).filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>b[1].count-a[1].count);
     const histNames=new Set(histEntries.map(([n])=>n.toLowerCase()));
-    const dbEntries=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!histNames.has(p.toLowerCase())).slice(0,4).map(p=>[p,{count:0,category:getCat(p),lastUnit:""}]);
+    const dbEntries=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!histNames.has(p.toLowerCase())).slice(0,4).map(p=>{
+      const info=normalizeIngredient(p);
+      return[p,{count:0,category:normalizeCat(info.categorie||getCat(p)),lastUnit:info.unite||""}];
+    });
     setSugg([...histEntries,...dbEntries].slice(0,6));
   },[name,db.productHistory]);
 
@@ -1008,31 +1074,45 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
   // ─── VOCAL ────────────────────────────────────────────
   function parseVocalText(text){
-    // Split by virgule (symbol ou mot "virgule") ou "et" en début de segment
     const segments=text.split(/,|\bvirgule\b|\set\s/i).map(s=>s.trim()).filter(Boolean);
+    // Map des unités vocales étendues (contenants inclus)
+    const unitMapVocal={
+      g:"g",gr:"g",gramme:"g",grammes:"g",
+      kg:"kg",kilo:"kg",kilos:"kg",kilogramme:"kg",kilogrammes:"kg",
+      l:"L",litre:"L",litres:"L",
+      ml:"ml",cl:"cl",
+      sachet:"sachet",sachets:"sachet",
+      boite:"boîte","boîte":"boîte",boites:"boîte","boîtes":"boîte",
+      bouteille:"bouteille",bouteilles:"bouteille",
+      paquet:"paquet",paquets:"paquet",
+      tranche:"tranche",tranches:"tranche",
+      botte:"botte",bottes:"botte",
+      pot:"boîte",pots:"boîte",
+      "unité":"","unités":"","pièce":"","pièces":"",piece:"",pieces:"",
+    };
     return segments.map(seg=>{
       const s=seg.toLowerCase().trim();
-      // Try to extract quantity + unit + name
-      // Patterns: "300g de tomate", "2 litres de lait", "5 œufs", "poivron rouge"
-      const m=s.match(/^(\d+[\.,]?\d*)\s*(g|kg|l|litre[s]?|ml|cl|unité[s]?|pièce[s]?)?\s*(?:de\s+)?(.+)$/i);
+      // Pattern: "2 sachets de levure", "1 boîte de tomates", "300g de farine"
+      const m=s.match(/^(\d+[\.,]?\d*)\s*([a-zàâäéèêëîïôùûüç]+)?\s*(?:de\s+|d['']\s*)?(.+)$/i);
       if(m){
         const qv=parseFloat(m[1].replace(",","."))||1;
-        const rawUnit=(m[2]||"").toLowerCase();
-        const unitMap={g:"g",kg:"kg",l:"L",litre:"L",litres:"L",ml:"ml",cl:"cl"};
-        const uv=unitMap[rawUnit]||"";
-        const n=m[3].trim();
+        const rawUnit=(m[2]||"").toLowerCase().trim();
+        const uv=unitMapVocal[rawUnit]!==undefined?unitMapVocal[rawUnit]:null;
+        const namePart=(uv!==null?m[3]:((m[2]?m[2]+" ":"")+m[3])).trim();
+        const n=namePart.charAt(0).toUpperCase()+namePart.slice(1);
         const info=normalizeIngredient(n);
-        return{name:info.nom||n.charAt(0).toUpperCase()+n.slice(1),qty:qv,unit:uv||info.unite||"",category:info.categorie||getCat(n)};
+        const finalUnit=uv!==null?uv:(info.unite||"");
+        return{name:info.nom||n,qty:qv,unit:finalUnit,category:normalizeCat(info.categorie||getCat(n))};
       }
-      // pattern "Œuf 5" or "Oeufs 3"
+      // Pattern "Œufs 3"
       const m2=s.match(/^(.+?)\s+(\d+)$/i);
       if(m2){
         const info2=normalizeIngredient(m2[1].trim());
-        return{name:info2.nom||m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:info2.unite||"",category:info2.categorie||getCat(m2[1])};
+        return{name:info2.nom||m2[1].trim().charAt(0).toUpperCase()+m2[1].trim().slice(1),qty:parseInt(m2[2]),unit:info2.unite||"",category:normalizeCat(info2.categorie||getCat(m2[1]))};
       }
-      // Just a name
+      // Juste un nom
       const info3=normalizeIngredient(s);
-      return{name:info3.nom||s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:info3.unite||"",category:info3.categorie||getCat(s)};
+      return{name:info3.nom||s.charAt(0).toUpperCase()+s.slice(1),qty:1,unit:info3.unite||"",category:normalizeCat(info3.categorie||getCat(s))};
     });
   }
 
@@ -1189,14 +1269,10 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                     const info=normalizeIngredient(n);
                     const catV=normalizeCat(info.categorie||d.category||getCat(n));
                     const unitV=info.unite||d.lastUnit||"";
-                    const qtyV=1;
-                    // Ajouter directement sans passer par le state name
-                    const ni=mergeItem(db.items,n,qtyV,unitV,"manuel",catV);
-                    const ph={...db.productHistory};
-                    if(!ph[n])ph[n]={count:0,category:catV,lastUnit:unitV};
-                    ph[n].count++;ph[n].category=catV;ph[n].lastUnit=unitV;
-                    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
-                    setName("");setSugg([]);showToast("✅ "+n+" ajouté");
+                    setName(n);
+                    setCat(catV);
+                    setUnit(unitV);
+                    setSugg([]);
                   }}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <span style={{fontSize:14}}>{catDisplay}</span>
@@ -1303,7 +1379,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <div key={c}>
                   <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del}/>)}
+                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem}/>)}
                   </div>
                 </div>
               ))}
@@ -1311,7 +1387,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <>
                   <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del}/>)}
+                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem}/>)}
                   </div>
                 </>
               )}
