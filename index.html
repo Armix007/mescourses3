@@ -526,8 +526,7 @@ function getCat(name){
     const raw = norm(name);
     const found = PRODUCTS_CATALOG.find(p =>
       norm(p.nom)===raw || p.cle===raw ||
-      p.aliases.some(a=>norm(a)===raw) ||
-      raw.includes(norm(p.nom)) || norm(p.nom).includes(raw)
+      p.aliases.some(a=>norm(a)===raw)
     );
     if(found) return found.categorie;
   }
@@ -541,8 +540,7 @@ function getProductEmoji(name){
     const raw = norm(name);
     const found = PRODUCTS_CATALOG.find(p =>
       norm(p.nom)===raw || p.cle===raw ||
-      p.aliases.some(a=>norm(a)===raw) ||
-      raw.includes(norm(p.nom)) || norm(p.nom).includes(raw)
+      p.aliases.some(a=>norm(a)===raw)
     );
     if(found && found.emoji) return found.emoji;
   }
