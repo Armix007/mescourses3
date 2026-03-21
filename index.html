@@ -51,7 +51,38 @@ const {useState,useEffect,useRef}=React;
 // ─── CONSTANTES ───────────────────────────────────────────────
 const CATEGORIES=["🍎 Fruits","🥦 Légumes","🥩 Viande","🐟 Poisson","🥛 Laitiers","🧀 Fromage","🥚 Oeufs","🍞 Boulangerie","🥫 Épicerie sèche","🫙 Conserves","🧊 Surgelés","🍷 Boissons","🧴 Hygiène","🧹 Entretien","🍬 Confiseries","❓ Autre"];
 
-// Normalise n'importe quelle catégorie (granulaire ou non) vers les 16 catégories standard
+// ─── FLUENT EMOJI 3D ─────────────────────────────────────────
+const FLUENT_CDN="https://cdn.jsdelivr.net/npm/fluentui-emoji-cdn/icons/";
+function emojiToHex(e){
+  const codes=[];
+  const pts=[...e];
+  for(const ch of pts){
+    const cp=ch.codePointAt(0);
+    if(cp===0xFE0F)continue; // strip variation selector-16
+    codes.push(cp.toString(16));
+  }
+  return codes.join('-');
+}
+// Cache des images vérifiées (évite les requêtes répétées)
+const _emojiImgCache={};
+function getEmojiImgUrl(emoji){
+  if(!emoji||emoji.length===0)return null;
+  if(_emojiImgCache[emoji]!==undefined)return _emojiImgCache[emoji];
+  const hex=emojiToHex(emoji.trim());
+  if(!hex)return(_emojiImgCache[emoji]=null);
+  const url=`${FLUENT_CDN}${hex}.png`;
+  return(_emojiImgCache[emoji]=url);
+}
+// Composant image Fluent Emoji avec fallback Unicode
+function EmojiImg({emoji,size=20,style={}}){
+  const [failed,setFailed]=useState(false);
+  const url=getEmojiImgUrl(emoji);
+  if(!url||failed){
+    return<span style={{fontSize:size,...style}}>{emoji}</span>;
+  }
+  return<img src={url} alt={emoji} width={size} height={size} onError={()=>setFailed(true)} style={{display:"inline-block",verticalAlign:"middle",objectFit:"contain",...style}}/>;
+}
+
 function normalizeCat(cat){
   if(!cat) return "❓ Autre";
   if(CATEGORIES.includes(cat)) return cat; // déjà une catégorie standard
@@ -457,10 +488,11 @@ function guessCat(name){
   if(/flocons d'avoine|granola|muesli|müesli|corn flakes/.test(n))return"🥣 Céréales";
   if(/shampo|savon|dentifrice|gel douche|déodorant|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin|brosse à dents|rasoir|coton|serviette hygiénique|tampon/.test(n))return"🧴 Hygiène";
   if(/eau gazeuse|eau plate|\beau\b/.test(n))return"💧 Eau";
-  if(/jus d'orange|jus de pomme|jus de tomate|jus|nectar/.test(n))return"🧃 Jus";
-  if(/soda|cola|limonade|tonic/.test(n))return"🥤 Sodas";
-  if(/bière/.test(n))return"🍺 Bière";
-  if(/vin|champagne|prosecco|rosé|bordeaux/.test(n))return"🍷 Vin";
+  if(/jus d'orange|jus de pomme|jus de tomate|jus|nectar/.test(n))return"🧃 Boissons";
+  if(/sirop/.test(n))return"🍯 Sucré";
+  if(/soda|cola|limonade|tonic/.test(n))return"🥤 Boissons";
+  if(/bière/.test(n))return"🍺 Boissons";
+  if(/vin|champagne|prosecco|rosé|bordeaux/.test(n))return"🍷 Boissons";
   if(/café|expresso|cappuccino|latte|capsule/.test(n))return"☕ Café";
   if(/thé|infusion|tisane/.test(n))return"🍵 Thé";
   if(/huile d'olive/.test(n))return"🫒 Huile d'olive";
@@ -473,7 +505,7 @@ function guessCat(name){
   if(/miel/.test(n))return"🍯 Miel";
   if(/confiture|gelée/.test(n))return"🍓 Confiture";
   if(/nutella|pâte à tartiner/.test(n))return"🍫 Pâte à tartiner";
-  if(/sirop d'érable|sirop d'agave/.test(n))return"🍯 Sirop";
+  if(/sirop d'érable|sirop d'agave/.test(n))return"🍯 Sucré";
   if(/chocolat/.test(n))return"🍫 Chocolat";
   if(/caramel/.test(n))return"🍬 Confiserie";
   if(/concentré de tomate|tomate concassée|tomate pelée|sauce tomate/.test(n))return"🥫 Conserves";
@@ -484,7 +516,7 @@ function guessCat(name){
   if(/amande|noisette|pistache|cajou|cacahuète|arachide|macadamia|noix du brésil|pignon/.test(n))return"🥜 Noix";
   if(/noix/.test(n))return"🥜 Noix";
   if(/graine de chia|graine de lin|graine de sésame|graine de tournesol|graine de courge/.test(n))return"🌱 Graines";
-  if(/sirop/.test(n))return"🍬 Sirop";
+  if(/sirop/.test(n))return"🍯 Sucré";
   return"🛒 Épicerie";
 }
 // getCat = version améliorée utilisant le catalogue en priorité
@@ -1079,7 +1111,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
       )}
       {db.items.length===0?(
         <div style={{textAlign:"center",padding:"48px 20px"}}>
-          <div style={{fontSize:44,marginBottom:12}}>🛍️</div>
+          <div style={{marginBottom:12}}><EmojiImg emoji="🛍️" size={44}/></div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>Liste vide</div>
           <div style={{fontSize:13,color:TXT3}}>Ajoutez un article ou importez une recette</div>
         </div>
@@ -1185,7 +1217,7 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontSize:16,flexShrink:0}}>{catEmoji}</span>
+            <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
             <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
             {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
           </div>
@@ -1271,7 +1303,7 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange}){
           <div onClick={()=>onToggle(item.id)} style={{width:22,height:22,borderRadius:7,border:item.checked?"none":`2px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,boxShadow:item.checked?`0 2px 6px rgba(184,112,58,.35)`:"none"}}>
             {item.checked&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
           </div>
-          <span style={{fontSize:18}}>{catEmoji}</span>
+          <EmojiImg emoji={catEmoji} size={20}/>
           <div style={{display:"flex",gap:2}}>
             <button style={{background:"none",border:"none",color:showEdit?CARAMEL2:TXT3,cursor:"pointer",fontSize:11,padding:"1px 3px",opacity:showEdit?1:.5}} onClick={openEdit}>✏️</button>
             <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,padding:2,opacity:.5}} onClick={()=>onDel(item.id)}>🗑️</button>
@@ -1671,7 +1703,7 @@ function PageRecettes({db,setDb,showToast}){
       return(
         <div style={{...card,padding:"11px 13px",overflow:"hidden",cursor:"pointer",marginBottom:7,background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",gap:10}} onClick={()=>setViewIdx(realIdx)}>
           <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
-            {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<span style={{fontSize:22}}>{guessRecipeEmoji(r.name)}</span>}
+            {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(r.name)} size={22} style={{display:"flex",alignItems:"center",justifyContent:"center"}}/>}
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:CARAMEL,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
@@ -1691,7 +1723,7 @@ function PageRecettes({db,setDb,showToast}){
       <div style={{...card,padding:0,overflow:"hidden",cursor:"pointer",marginBottom:12,background:"rgba(255,255,255,.92)"}} onClick={()=>setViewIdx(realIdx)}>
         <div style={{height:130,background:`linear-gradient(135deg,${CREAM2} 0%,${BDR} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
           {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-            :<div style={{fontSize:60,filter:"drop-shadow(0 3px 10px rgba(0,0,0,.08))",userSelect:"none"}}>{guessRecipeEmoji(r.name)}</div>}
+            :<div style={{filter:"drop-shadow(0 3px 10px rgba(0,0,0,.08))",userSelect:"none"}}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={60}/></div>}
           {r.source==="mealdb"&&<div style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,.4)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",fontWeight:700,backdropFilter:"blur(4px)"}}>🌐 TheMealDB</div>}
           {r.source==="ai"&&<div style={{position:"absolute",top:8,left:8,background:"rgba(184,112,58,.7)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",fontWeight:700,backdropFilter:"blur(4px)"}}>🤖 IA</div>}
           {isLiked&&<div style={{position:"absolute",top:8,right:8,fontSize:16}}>❤️</div>}
@@ -1800,7 +1832,7 @@ function PageRecettes({db,setDb,showToast}){
             }}>
               {r.photo
                 ? <img src={r.photo+"/preview"} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:7,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-                : <div style={{width:40,height:40,borderRadius:7,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name||"")}</div>
+                : <div style={{width:40,height:40,borderRadius:7,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji={guessRecipeEmoji(r.name||"")} size={22}/></div>
               }
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
@@ -1818,7 +1850,7 @@ function PageRecettes({db,setDb,showToast}){
       )}
       <div style={{marginBottom:10}}>
         <div style={{...card,display:"flex",alignItems:"center",gap:12,padding:"13px 16px",cursor:"pointer",background:`linear-gradient(135deg,rgba(255,255,255,.95),${CREAM2})`,border:`1.5px solid ${CARAMEL2}`,marginBottom:7,boxShadow:`0 3px 14px rgba(184,112,58,.15)`}} onClick={()=>setShowMealDB(true)}>
-          <div style={{width:42,height:42,borderRadius:12,background:`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🌐</div>
+          <div style={{width:42,height:42,borderRadius:12,background:`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji="🌐" size={22}/></div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:14,fontWeight:800,color:CARAMEL,fontFamily:"'Fraunces',serif"}}>TheMealDB</div>
             <div style={{fontSize:11,color:TXT2,marginTop:1}}>Des milliers de recettes par catégorie & origine</div>
@@ -1827,14 +1859,14 @@ function PageRecettes({db,setDb,showToast}){
         </div>
         <div style={{display:"flex",gap:7}}>
           <div style={{...card,flex:1,display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",background:"rgba(255,255,255,.85)"}} onClick={()=>setShowAI(true)}>
-            <span style={{fontSize:20}}>🤖</span>
+            <EmojiImg emoji="🤖" size={20}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:12,fontWeight:700,color:TXT}}>Recette IA</div>
               <div style={{fontSize:10,color:TXT3}}>Générer & modifier</div>
             </div>
           </div>
           <div style={{...card,flex:1,display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",background:"rgba(255,255,255,.85)"}} onClick={()=>setShowFolders(true)}>
-            <span style={{fontSize:20}}>🏷️</span>
+            <EmojiImg emoji="🏷️" size={20}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:12,fontWeight:700,color:TXT}}>Thèmes</div>
               <div style={{fontSize:10,color:TXT3}}>{folders.length} créé{folders.length!==1?"s":""}</div>
@@ -1879,14 +1911,14 @@ function PageRecettes({db,setDb,showToast}){
       {/* Liste ou état vide */}
       {tab==="dossiers"&&activeFolder===null?(
         <div style={{textAlign:"center",padding:"48px 20px"}}>
-          <div style={{fontSize:44,marginBottom:12}}>📁</div>
+          <div style={{marginBottom:12}}><EmojiImg emoji="📁" size={44}/></div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>Vos thèmes</div>
           <div style={{fontSize:13,color:TXT3,marginBottom:16}}>Sélectionnez un thème ci-dessus ou créez-en un</div>
           <button style={{...btn("acc")}} onClick={()=>setShowFolders(true)}>+ Créer un dossier</button>
         </div>
       ):filtered.length===0?(
         <div style={{textAlign:"center",padding:"48px 20px"}}>
-          <div style={{fontSize:44,marginBottom:12}}>{db.recipes.length===0?"🍴":"🔍"}</div>
+          <div style={{marginBottom:12}}><EmojiImg emoji={db.recipes.length===0?"🍴":"🔍"} size={44}/></div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>{db.recipes.length===0?"Aucune recette":"Aucun résultat"}</div>
           <div style={{fontSize:13,color:TXT3}}>{db.recipes.length===0?"Créez votre première recette ou importez depuis TheMealDB":"Essayez un autre filtre ou ajoutez des recettes à ce thème"}</div>
         </div>
@@ -2191,8 +2223,8 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
                   loadDetail(m.idMeal);
                 }
               }}>
-                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,overflow:"hidden"}}>
-                  {(m._localData?.photo)?<img src={m._localData.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:guessRecipeEmoji(m._localData?.name||m.strMeal||"")}
+                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                  {(m._localData?.photo)?<img src={m._localData.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(m._localData?.name||m.strMeal||"")} size={24}/>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m._localData?.name||m.strMeal||""}</div>
@@ -2211,7 +2243,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
         <>
           {(loading||translating)&&(
             <div style={{textAlign:"center",padding:"30px 20px"}}>
-              <div style={{fontSize:32,marginBottom:8}}>⏳</div>
+              <div style={{marginBottom:8}}><EmojiImg emoji="⏳" size={32}/></div>
               <div style={{fontSize:13,color:TXT2,fontWeight:600}}>{translating?"✨ Traduction en cours…":"Chargement…"}</div>
               {translating&&<div style={{fontSize:11,color:TXT3,marginTop:4}}>L'IA traduit le nom, les ingrédients et les étapes</div>}
             </div>
@@ -2499,7 +2531,7 @@ INSTRUCTIONS PRÉCISES :
         <div style={{border:`2px dashed ${BDR}`,borderRadius:12,padding:photo?0:16,textAlign:"center",cursor:photo?"default":"pointer",background:CREAM,overflow:"hidden",marginBottom:6}} onClick={()=>!photo&&photoRef.current.click()}>
           {photo
             ?<img src={photo} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block"}} alt=""/>
-            :<><div style={{fontSize:24,marginBottom:4}}>📷</div><div style={{fontSize:11,color:TXT3}}>Galerie / appareil photo</div></>
+            :<><div style={{marginBottom:4}}><EmojiImg emoji="📷" size={24}/></div><div style={{fontSize:11,color:TXT3}}>Galerie / appareil photo</div></>
           }
         </div>
         <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhoto} capture="environment"/>
@@ -2704,7 +2736,7 @@ function CookingMode({recipe,onClose,onFinish}){
             <button style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,.5)",border:"none",color:"white",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer"}} onClick={()=>donePhotoRef.current.click()}>📷 Changer</button>
           </div>
         :<div style={{border:"2px dashed rgba(255,255,255,.4)",borderRadius:16,padding:"16px",textAlign:"center",cursor:"pointer",marginBottom:14}} onClick={()=>donePhotoRef.current.click()}>
-            <div style={{fontSize:24,marginBottom:4}}>📷</div>
+            <div style={{marginBottom:4}}><EmojiImg emoji="📷" size={24}/></div>
             <div style={{fontSize:12,color:"rgba(255,255,255,.8)",fontWeight:700}}>Immortaliser votre réalisation</div>
           </div>
       }
@@ -2990,7 +3022,7 @@ function FolderManager({db,setDb,showToast,onClose}){
         const count=(f.recipeIds||[]).length;
         return(
           <div key={f.id} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:6,padding:"10px 14px",display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:20}}>🏷️</span>
+            <EmojiImg emoji="🏷️" size={20}/>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:700,color:TXT}}>{f.name}</div>
               <div style={{fontSize:11,color:TXT3}}>{count} recette{count!==1?"s":""}</div>
@@ -3109,7 +3141,7 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
             <button style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,.5)",border:"none",color:"white",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer",fontWeight:600}} onClick={()=>photoRef.current.click()}>📷 Changer</button>
           </div>
         :<div style={{width:"100%",height:110,borderRadius:14,marginBottom:12,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:6}} onClick={()=>photoRef.current.click()}>
-            <div style={{fontSize:52}}>{guessRecipeEmoji(recipe.name)}</div>
+            <div><EmojiImg emoji={guessRecipeEmoji(recipe.name)} size={52}/></div>
             <div style={{fontSize:11,color:TXT2,fontWeight:600,background:"rgba(255,255,255,.75)",borderRadius:8,padding:"3px 10px"}}>📷 Ajouter une photo</div>
           </div>
       }
@@ -3777,7 +3809,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                 </div>
               ))}
               <div style={{width:64,height:64,border:`2px dashed ${CARAMEL2}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column",gap:2}} onClick={()=>scanRef.current.click()}>
-                <div style={{fontSize:22}}>📷</div>
+                <div><EmojiImg emoji="📷" size={22}/></div>
                 <div style={{fontSize:8,color:TXT3,fontWeight:600}}>Photo</div>
               </div>
             </div>
@@ -3815,7 +3847,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                           {item.selected&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
                         </div>
                         {/* Emoji catégorie */}
-                        <span style={{fontSize:18,flexShrink:0}}>{catEmoji}</span>
+                        <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
                         <div style={{flex:1,minWidth:0}}>
                           {/* Badge confiance */}
                           {needsOk&&<div style={{fontSize:9,color:"#c8603a",fontWeight:700,marginBottom:2}}>⚠️ À confirmer</div>}
@@ -4163,7 +4195,7 @@ function PagePlacard({db,setDb,showToast,goToRecettes,goToListe}){
               {recipesWithScore.map(recipe=>(
                 <div key={recipe.id} style={{...card,background:"rgba(255,255,255,.9)",marginBottom:8}}>
                   <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                    <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>{guessRecipeEmoji(recipe.name)}</div>
+                    <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji={guessRecipeEmoji(recipe.name)} size={24}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{recipe.name}</div>
                       <div style={{fontSize:11,color:TXT2,marginTop:2}}>
@@ -4220,7 +4252,7 @@ function PantryItem({item,onDel,onSignal,onAddToListe}){
   return(
     <div style={{...card,marginBottom:6,padding:"10px 13px",background:"rgba(255,255,255,.92)",border:`1.5px solid ${sig.color}33`}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:22,flexShrink:0}}>{(item.category||getCat(item.name)).split(" ")[0]}</span>
+        <EmojiImg emoji={(item.category||getCat(item.name)).split(" ")[0]} size={22} style={{flexShrink:0}}/>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.name}</div>
           {item.quantity&&<div style={{fontSize:11,color:TXT3}}>{item.quantity}</div>}
@@ -4288,7 +4320,7 @@ function AddPantryItemModal({onClose,onSave,showToast}){
       <div style={{display:"flex",gap:6,marginBottom:16}}>
         {SIGNALS.map(s=>(
           <div key={s.id} style={{flex:1,padding:"10px 6px",borderRadius:10,border:`2px solid ${signal===s.id?s.color:BDR}`,background:signal===s.id?s.bg:"transparent",textAlign:"center",cursor:"pointer"}} onClick={()=>setSignal(s.id)}>
-            <div style={{fontSize:22}}>{s.label.split(" ")[0]}</div>
+            <div style={{display:"flex",justifyContent:"center"}}><EmojiImg emoji={s.label.split(" ")[0]} size={22}/></div>
             <div style={{fontSize:9,fontWeight:700,color:signal===s.id?s.color:TXT3,marginTop:3,lineHeight:1.2}}>{s.label.replace(/^[^ ]+ /,"")}</div>
           </div>
         ))}
@@ -4368,7 +4400,7 @@ Exemples de noms génériques : "lait", "œufs", "beurre", "carottes", "yaourt n
               </div>
             ))}
             <div style={{width:72,height:72,border:`2px dashed ${CARAMEL2}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column",gap:2}} onClick={()=>fileRef.current.click()}>
-              <span style={{fontSize:24}}>📷</span>
+              <EmojiImg emoji="📷" size={24}/>
               <span style={{fontSize:8,color:TXT3,fontWeight:600}}>Photo</span>
             </div>
           </div>
@@ -4425,7 +4457,7 @@ function PriceItemCard({name,data,best,catEmoji,onDelete,onDeleteShop,onUpdateSh
     <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:6}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
         <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-          <span style={{fontSize:20,cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPicker(!showCatPicker)}>{catEmoji}</span>
+          <EmojiImg emoji={catEmoji} size={22} style={{cursor:"pointer",flexShrink:0}} onClick={()=>setShowCatPicker(!showCatPicker)}/>
           <div style={{fontWeight:700,fontSize:13,color:TXT,textTransform:"capitalize",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
@@ -4710,7 +4742,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                   if(placed)break;
                 }
                 if(!placed)showToast("⚠️ Toutes les cases ont déjà des recettes");
-              }}>{guessRecipeEmoji(r.name)} {r.name}</div>
+              }}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={13} style={{marginRight:3,verticalAlign:"middle"}}/>{r.name}</div>
             ))}
           </div>
         </div>
@@ -4738,7 +4770,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                     <div style={{fontSize:9,fontWeight:700,color:TXT3,marginBottom:4}}>{MEAL_LABELS[slot]}</div>
                     {recipes.map(recipe=>(
                       <div key={recipe.id} style={{display:"flex",alignItems:"center",gap:4,marginBottom:4,background:"rgba(255,255,255,.7)",borderRadius:7,padding:"4px 6px",cursor:"pointer"}} onClick={()=>setShowActions({dk,slot,recipe,recipeId:recipe.id})}>
-                        <span style={{fontSize:13,flexShrink:0}}>{guessRecipeEmoji(recipe.name)}</span>
+                        <EmojiImg emoji={guessRecipeEmoji(recipe.name)} size={14} style={{flexShrink:0}}/>
                         <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{recipe.name}</div>
                         <span style={{fontSize:10,color:TXT3,flexShrink:0,cursor:"pointer"}} onClick={e=>{e.stopPropagation();removeMealFromSlot(dk,slot,recipe.id);}}>✕</span>
                       </div>
@@ -4814,7 +4846,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                     <div style={{fontSize:10,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ Anti-gaspi :</div>
                     {suggestions.map(r=>(
                       <div key={"s"+r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 8px",borderRadius:10,background:"rgba(212,96,74,.06)",border:`1px solid rgba(212,96,74,.2)`,cursor:"pointer",marginBottom:5}} onClick={()=>addMealToSlot(showPicker.dk,showPicker.slot,r.id)}>
-                        <span style={{fontSize:20}}>{guessRecipeEmoji(r.name)}</span>
+                        <EmojiImg emoji={guessRecipeEmoji(r.name)} size={20}/>
                         <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:TXT}}>{r.name}</div>{r.duration&&<div style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</div>}</div>
                       </div>
                     ))}
@@ -4823,7 +4855,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
                 )}
                 {filtered.map(r=>(
                   <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>addMealToSlot(showPicker.dk,showPicker.slot,r.id)}>
-                    <span style={{fontSize:20,flexShrink:0}}>{guessRecipeEmoji(r.name)}</span>
+                    <EmojiImg emoji={guessRecipeEmoji(r.name)} size={20} style={{flexShrink:0}}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                       <div style={{fontSize:10,color:TXT3}}>{r.duration&&<span style={{marginRight:6}}>⏱️ {r.duration}</span>}{r.persons&&<span>👥 {r.persons} pers.</span>}</div>
@@ -4895,7 +4927,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
       {showActions&&(
         <Modal open onClose={()=>setShowActions(null)}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-            <span style={{fontSize:32}}>{guessRecipeEmoji(showActions.recipe.name)}</span>
+            <EmojiImg emoji={guessRecipeEmoji(showActions.recipe.name)} size={32}/>
             <div>
               <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT}}>{showActions.recipe.name}</div>
               <div style={{fontSize:11,color:TXT3}}>{DAY_NAMES_FULL[new Date(showActions.dk).getDay()===0?6:new Date(showActions.dk).getDay()-1]} · {MEAL_LABELS[showActions.slot]}</div>
@@ -5053,7 +5085,7 @@ function PageParametres({db,setDb,showToast,pseudo,setPseudo,docId,onLogout,setS
 
   const Row=({icon,label,children,border=true})=>(
     <div style={{display:"flex",alignItems:"center",gap:12,padding:"13px 16px",borderBottom:border?`1px solid ${BDR}`:"none"}}>
-      <span style={{fontSize:20,flexShrink:0}}>{icon}</span>
+      <EmojiImg emoji={icon} size={20} style={{flexShrink:0}}/>
       <div style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>{label}</div>
       <div style={{flexShrink:0}}>{children}</div>
     </div>
@@ -5254,7 +5286,7 @@ function App(){
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 60%)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 15</span></div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"white",letterSpacing:-.3}}>🍽️ Wisely Food <span style={{fontSize:10,fontWeight:600,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 7px",letterSpacing:.5,verticalAlign:"middle"}}>Phase 16</span></div>
             {pseudo?<div style={{fontSize:11,color:"rgba(255,255,255,.75)",marginTop:2,fontWeight:600}}>Bonjour {pseudo} 👋</div>
             :<div style={{fontSize:10,color:"rgba(255,255,255,.6)",marginTop:2,fontWeight:600}}>Synchronisé en temps réel ☁️</div>}
           </div>
@@ -5392,7 +5424,7 @@ function App(){
           {id:"maison",    icon:"🏠", label:"Maison"},
         ].map(t=>(
           <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
-            <span style={{fontSize:22,lineHeight:1}}>{t.icon}</span>
+            <EmojiImg emoji={t.icon} size={22} style={{lineHeight:1}}/>
             <span style={{fontSize:9,fontWeight:700,color:page===t.id?CARAMEL:TXT3,letterSpacing:.2}}>{t.label}</span>
             {page===t.id&&<div style={{width:4,height:4,borderRadius:"50%",background:CARAMEL}}/>}
           </div>
