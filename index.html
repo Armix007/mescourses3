@@ -101,7 +101,7 @@ function normalizeCat(cat){
     "Œufs":"🥚 Oeufs",
     "Boulangerie":"🍞 Boulangerie","Viennoiseries":"🍞 Boulangerie","Pâtisserie":"🍞 Boulangerie",
     "Riz":"🥫 Épicerie sèche","Pâtes":"🥫 Épicerie sèche","Céréales":"🥫 Épicerie sèche",
-    "Légumineuses":"🥫 Épicerie sèche","Féculents":"🥫 Épicerie sèche",
+    "Légumineuses":"🥫 Épicerie sèche","Féculents":"🥦 Légumes",
     "Graines":"🥫 Épicerie sèche","Épicerie":"🥫 Épicerie sèche",
     "Sel":"🥫 Épicerie sèche","Épices":"🥫 Épicerie sèche","Herbes":"🥫 Épicerie sèche",
     "Bébé":"🥫 Épicerie sèche","Bébé alimentation":"🥫 Épicerie sèche",
@@ -121,21 +121,40 @@ function normalizeCat(cat){
     "Chien":"🧹 Entretien","Chat":"🧹 Entretien","Rongeur":"🧹 Entretien","Oiseau":"🧹 Entretien",
   };
   if(CAT_MAP[catName]) return CAT_MAP[catName];
-  // Fallback regex sur le nom brut (pour les catégories inconnues)
+  // Mapping étendu : anciens retours de guessCat (Phase 15) et variantes
+  const EXTRA_MAP={
+    "Pain":"🍞 Boulangerie","Baguette":"🍞 Boulangerie",
+    "Poivre":"🥫 Épicerie sèche",
+    "Eau":"🍷 Boissons","Café":"🍷 Boissons","Thé":"🍷 Boissons",
+    "Bière":"🍷 Boissons","Vin":"🍷 Boissons","Jus":"🍷 Boissons","Sodas":"🍷 Boissons",
+    "Huile":"🫙 Conserves","Huile d'olive":"🫙 Conserves",
+    "Vinaigre":"🫙 Conserves","Moutarde":"🫙 Conserves",
+    "Ketchup":"🫙 Conserves","Mayo":"🫙 Conserves","Sauces":"🫙 Conserves",
+    "Olives":"🫙 Conserves",
+    "Miel":"🍬 Confiseries","Confiture":"🍬 Confiseries",
+    "Pâte à tartiner":"🍬 Confiseries","Sirop":"🍬 Confiseries",
+    "Confiserie":"🍬 Confiseries",
+    "Épicerie":"🥫 Épicerie sèche",
+  };
+  if(EXTRA_MAP[catName]) return EXTRA_MAP[catName];
+  // Fallback regex sur le nom complet de catégorie
   const c=cat.toLowerCase();
   if(/fruit/i.test(c)) return "🍎 Fruits";
-  if(/légume|champignon/i.test(c)) return "🥦 Légumes";
-  if(/viande|bœuf|boeuf|veau|porc|agneau|volaille|gibier|charcuterie/i.test(c)) return "🥩 Viande";
-  if(/poisson|fruits de mer/i.test(c)) return "🐟 Poisson";
-  if(/lait|crème|beurre|yaourt|crémerie/i.test(c)) return "🥛 Laitiers";
+  if(/légume|champignon|féculent|patate|pomme de terre/i.test(c)) return "🥦 Légumes";
+  if(/viande|bœuf|boeuf|veau|porc|agneau|volaille|gibier|charcuterie|poulet|dinde/i.test(c)) return "🥩 Viande";
+  if(/poisson|mer|crevette|moule|huître/i.test(c)) return "🐟 Poisson";
+  if(/lait|crème|beurre|yaourt|crémerie|fromage blanc/i.test(c)) return "🥛 Laitiers";
   if(/fromage/i.test(c)) return "🧀 Fromage";
   if(/œuf|oeuf/i.test(c)) return "🥚 Oeufs";
-  if(/boulangerie|pâtisserie|viennoiserie/i.test(c)) return "🍞 Boulangerie";
-  if(/conserve|sauce|condiment|huile|vinaigre/i.test(c)) return "🫙 Conserves";
-  if(/surgelé/i.test(c)) return "🧊 Surgelés";
-  if(/boisson/i.test(c)) return "🍷 Boissons";
-  if(/hygiène|entretien/i.test(c)) return "🧴 Hygiène";
-  return "❓ Autre";
+  if(/boulangerie|pâtisserie|viennoiserie|pain|cake|tarte/i.test(c)) return "🍞 Boulangerie";
+  if(/surgelé|congelé/i.test(c)) return "🧊 Surgelés";
+  if(/boisson|eau|café|thé|bière|vin|jus|soda/i.test(c)) return "🍷 Boissons";
+  if(/sauce|condiment|huile|vinaigre|conserve|moutarde|ketchup/i.test(c)) return "🫙 Conserves";
+  if(/sucré|chocolat|bonbon|miel|confiture|sirop|confiserie/i.test(c)) return "🍬 Confiseries";
+  if(/hygiène|hygiene|savon|shampo/i.test(c)) return "🧴 Hygiène";
+  if(/entretien|lessive/i.test(c)) return "🧹 Entretien";
+  // Dernier recours : épicerie sèche plutôt que ❓
+  return "🥫 Épicerie sèche";
 }
 const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte","bouteille","paquet","tranche","botte"];
 const UL={"":"pcs","g":"g","kg":"kg","ml":"ml","cl":"cl","L":"L","càs":"càs","càc":"càc","pincée":"pincée","sachet":"sachet","boîte":"boîte","bouteille":"bouteille","paquet":"paquet","tranche":"tranche","botte":"botte"};
@@ -501,7 +520,7 @@ function guessCat(name){
   if(/moutarde/.test(n))return"🫙 Moutarde";
   if(/ketchup/.test(n))return"🍅 Ketchup";
   if(/mayonnaise/.test(n))return"🫙 Mayo";
-  if(/pesto|sauce tomate|sauce soja|tabasco|nuoc|wasabi|tahini/.test(n))return"🫙 Sauces";
+  if(/sauce|pesto|tabasco|nuoc|wasabi|tahini|sriracha|piquante|worcestershire|barbecue/.test(n))return"🫙 Condiments";
   if(/miel/.test(n))return"🍯 Miel";
   if(/confiture|gelée/.test(n))return"🍓 Confiture";
   if(/nutella|pâte à tartiner/.test(n))return"🍫 Pâte à tartiner";
@@ -517,7 +536,7 @@ function guessCat(name){
   if(/noix/.test(n))return"🥜 Noix";
   if(/graine de chia|graine de lin|graine de sésame|graine de tournesol|graine de courge/.test(n))return"🌱 Graines";
   if(/sirop/.test(n))return"🍯 Sucré";
-  return"🛒 Épicerie";
+  return"🥫 Épicerie sèche";
 }
 // getCat = version améliorée utilisant le catalogue en priorité
 function getCat(name){
