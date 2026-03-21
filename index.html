@@ -626,10 +626,12 @@ function Modal({open,onClose,children}){
   );
 }
 
-function SecTitle({children}){
+function SecTitle({children,count}){
   return(
-    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:TXT3,margin:"14px 0 7px",display:"flex",alignItems:"center",gap:6}}>
-      {children}<div style={{flex:1,height:1,background:BDR}}/>
+    <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,margin:"14px 0 7px",display:"flex",alignItems:"center",gap:6}}>
+      {children}
+      {count!=null&&<span style={{fontSize:9,fontWeight:600,color:TXT3,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 7px",lineHeight:"16px"}}>{count}</span>}
+      <div style={{flex:1,height:1,background:BDR}}/>
     </div>
   );
 }
@@ -823,6 +825,132 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ITEM MINI (vue grille 3 colonnes ultra-compact)
+// ═══════════════════════════════════════════════════════════════
+function ItemMini({item,onToggle,onDel}){
+  const catEmoji=getProductEmoji(item.name);
+  const shortName=item.name.length>14?item.name.slice(0,13)+"…":item.name;
+  return(
+    <div onClick={()=>onToggle(item.id)} style={{background:item.checked?CREAM2:SURF,border:`1px solid ${item.checked?CARAMEL:BDR}`,borderRadius:10,padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",opacity:item.checked?.5:1,position:"relative",minWidth:0,overflow:"hidden",boxShadow:"0 1px 4px rgba(160,90,40,.05)"}}>
+      <div style={{width:16,height:16,borderRadius:5,border:item.checked?"none":`1.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",position:"absolute",top:5,left:5,flexShrink:0}}>
+        {item.checked&&<span style={{color:"white",fontSize:8,fontWeight:800}}>✓</span>}
+      </div>
+      <EmojiImg emoji={catEmoji} size={22}/>
+      <div style={{fontSize:10,fontWeight:700,color:TXT,textAlign:"center",textDecoration:item.checked?"line-through":"none",lineHeight:1.2,wordBreak:"break-word",width:"100%"}}>{shortName}</div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUGG BLOCK — suggestions adaptées au mode d'affichage
+// ═══════════════════════════════════════════════════════════════
+function SuggBlock({popular,listView,db,setDb,showToast,normInc,getCatFn}){
+  // State local pour les quantités des suggestions
+  const [suggQtys,setSuggQtys]=useState(()=>{
+    const init={};
+    popular.forEach(p=>{
+      const info=normInc(p.name);
+      init[p.name]={qty:1,unit:info.unite||p.lastUnit||""};
+    });
+    return init;
+  });
+
+  function addSugg(p){
+    const info=normInc(p.name);
+    const catV=normalizeCat(info.categorie||p.category||getCatFn(p.name));
+    const sq=suggQtys[p.name]||{qty:1,unit:""};
+    const ni=mergeItem(db.items,p.name,sq.qty,sq.unit,"manuel",catV);
+    const ph={...db.productHistory};
+    if(!ph[p.name])ph[p.name]={count:0,category:catV,lastUnit:sq.unit};
+    ph[p.name].count++;ph[p.name].category=catV;ph[p.name].lastUnit=sq.unit;
+    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+    showToast("✅ "+p.name+" ajouté");
+  }
+
+  function setQ(name,val){setSuggQtys(prev=>({...prev,[name]:{...prev[name],qty:val}}))}
+  function setU(name,val){setSuggQtys(prev=>({...prev,[name]:{...prev[name],unit:val}}))}
+
+  if(listView==="mini"){
+    // Vue mini : grille 3 colonnes ultra-compact
+    return(
+      <div style={{marginTop:14}}>
+        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+          {popular.map((p,i)=>{
+            const info=normInc(p.name);
+            const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
+            const shortName=p.name.length>10?p.name.slice(0,9)+"…":p.name;
+            return(
+              <div key={i} style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:10,padding:"6px 5px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative",overflow:"hidden"}}>
+                <span style={{fontSize:16}}>{em}</span>
+                <div style={{fontSize:9,fontWeight:700,color:TXT,textAlign:"center",lineHeight:1.2}}>{shortName}</div>
+                <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:6,width:22,height:22,fontSize:13,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if(listView==="grille"){
+    // Vue grille 2 colonnes
+    return(
+      <div style={{marginTop:14}}>
+        <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {popular.map((p,i)=>{
+            const info=normInc(p.name);
+            const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
+            const sq=suggQtys[p.name]||{qty:1,unit:""};
+            return(
+              <div key={i} style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:12,padding:"9px 10px",display:"flex",flexDirection:"column",gap:5,boxShadow:"0 1px 4px rgba(160,90,40,.04)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{fontSize:16}}>{em}</span>
+                  <div style={{flex:1,fontSize:12,fontWeight:700,color:TXT,lineHeight:1.2}}>{p.name}</div>
+                </div>
+                <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                  <input type="number" min="0.1" step="0.5" value={sq.qty} onChange={e=>setQ(p.name,parseFloat(e.target.value)||1)} style={{...inp,padding:"4px 6px",fontSize:11,width:44,textAlign:"center"}}/>
+                  <select value={sq.unit} onChange={e=>setU(p.name,e.target.value)} style={{...sel,padding:"4px 5px",fontSize:10,flex:1}}>
+                    {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
+                  </select>
+                  <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:8,width:28,height:28,fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Vue liste (défaut)
+  return(
+    <div style={{marginTop:14}}>
+      <div style={{fontSize:10,fontWeight:800,color:TXT2,letterSpacing:.8,textTransform:"uppercase",marginBottom:7}}>💡 Suggestions rapides</div>
+      <div style={{background:SURF,border:`1px solid ${BDR}`,borderRadius:14,overflow:"hidden"}}>
+        {popular.map((p,i)=>{
+          const info=normInc(p.name);
+          const em=(info.categorie||getCatFn(p.name)).split(" ")[0];
+          const sq=suggQtys[p.name]||{qty:1,unit:""};
+          return(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderBottom:i<popular.length-1?`1px solid ${BDR}`:"none"}}>
+              <span style={{fontSize:16,flexShrink:0}}>{em}</span>
+              <div style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>{p.name}</div>
+              <input type="number" min="0.1" step="0.5" value={sq.qty} onChange={e=>setQ(p.name,parseFloat(e.target.value)||1)} style={{...inp,padding:"4px 6px",fontSize:11,width:44,textAlign:"center",flexShrink:0}}/>
+              <select value={sq.unit} onChange={e=>setU(p.name,e.target.value)} style={{...sel,padding:"4px 5px",fontSize:10,width:55,flexShrink:0}}>
+                {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
+              </select>
+              <button onClick={()=>addSugg(p)} style={{background:CARAMEL,border:"none",color:"white",borderRadius:8,width:28,height:28,fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1023,11 +1151,12 @@ function PageListe({db,setDb,showToast,goToPlanning}){
         <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:3}}>
           <div onClick={()=>{setListView("liste");localStorage.setItem("ws_list_view","liste");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="liste"?SURF:"transparent",boxShadow:listView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>☰</div>
           <div onClick={()=>{setListView("grille");localStorage.setItem("ws_list_view","grille");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="grille"?SURF:"transparent",boxShadow:listView==="grille"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>⊞</div>
+          <div onClick={()=>{setListView("mini");localStorage.setItem("ws_list_view","mini");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="mini"?SURF:"transparent",boxShadow:listView==="mini"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:13,transition:"all .2s",letterSpacing:-1}}>⋮⋮⋮</div>
         </div>
       </div>
 
       {/* Add form */}
-      <div style={{...card,background:"rgba(255,255,255,.9)"}}>
+      <div style={{...card,background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`,boxShadow:"0 2px 12px rgba(184,112,58,.10)"}}>
         <div style={{display:"flex",gap:8,marginBottom:8}}>
           <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
           <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal} title={vocalActive?"Arrêter la reconnaissance vocale":"Démarrer la reconnaissance vocale"}>
@@ -1057,13 +1186,17 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               return(
                 <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT}}
                   onClick={()=>{
-                    setName(n);
                     const info=normalizeIngredient(n);
-                    if(info.categorie)setCat(info.categorie);
-                    else if(d.category)setCat(d.category);
-                    if(info.unite)setUnit(info.unite);
-                    else if(d.lastUnit!==undefined)setUnit(d.lastUnit);
-                    setSugg([]);
+                    const catV=normalizeCat(info.categorie||d.category||getCat(n));
+                    const unitV=info.unite||d.lastUnit||"";
+                    const qtyV=1;
+                    // Ajouter directement sans passer par le state name
+                    const ni=mergeItem(db.items,n,qtyV,unitV,"manuel",catV);
+                    const ph={...db.productHistory};
+                    if(!ph[n])ph[n]={count:0,category:catV,lastUnit:unitV};
+                    ph[n].count++;ph[n].category=catV;ph[n].lastUnit=unitV;
+                    const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
+                    setName("");setSugg([]);showToast("✅ "+n+" ajouté");
                   }}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <span style={{fontSize:14}}>{catDisplay}</span>
@@ -1081,34 +1214,6 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
         </div>
 
-        {/* ─── Suggestions d'articles populaires ─── */}
-        {!name&&(()=>{
-          const freq=Object.entries(db.productHistory).sort((a,b)=>b[1].count-a[1].count).slice(0,8).map(([n,d])=>({name:n,...d}));
-          const popular=freq.length>=4?freq:PRODUCTS_DB.slice(0,8-freq.length).filter(p=>!freq.find(f=>f.name.toLowerCase()===p.toLowerCase())).map(p=>({name:p,count:0,category:getCat(p),lastUnit:""})).concat(freq).slice(0,8);
-          if(!popular.length)return null;
-          return(
-            <div style={{marginTop:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:TXT3,letterSpacing:.8,textTransform:"uppercase",marginBottom:5}}>Suggestions</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {popular.map((p,i)=>{
-                  const info=normalizeIngredient(p.name);
-                  const em=(info.categorie||getCat(p.name)).split(" ")[0];
-                  return(
-                    <div key={i} onClick={()=>{
-                      setName(p.name);
-                      const catV=info.categorie||p.category||getCat(p.name);
-                      const unitV=info.unite||p.lastUnit||"";
-                      setCat(catV);setUnit(unitV);setSugg([]);
-                    }} style={{display:"flex",alignItems:"center",gap:4,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,flexShrink:0}}>
-                      <span style={{fontSize:13}}>{em}</span>
-                      <span>{p.name}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       {/* Validation vocale en attente */}
@@ -1161,22 +1266,22 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             )}
           </div>
 
-          {/* Vue liste ou grille */}
+          {/* Vue liste / grille 2 / mini grille 3 */}
           {listView==="liste"?(
             <>
               {Object.entries(catsSorted).map(([c,items])=>(
-                <div key={c}><SecTitle>{c}</SecTitle>
+                <div key={c}><SecTitle count={items.length}>{c}</SecTitle>
                   {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem}/>)}
                 </div>
               ))}
               {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem}/>)}</div>}
             </>
-          ):(
+          ):listView==="grille"?(
             /* Vue grille 2 colonnes */
             <>
               {Object.entries(catsSorted).map(([c,items])=>(
                 <div key={c}>
-                  <SecTitle>{c}</SecTitle>
+                  <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
                     {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem}/>)}
                   </div>
@@ -1191,6 +1296,26 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 </>
               )}
             </>
+          ):(
+            /* Vue mini grille 3 colonnes */
+            <>
+              {Object.entries(catsSorted).map(([c,items])=>(
+                <div key={c}>
+                  <SecTitle count={items.length}>{c}</SecTitle>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
+                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del}/>)}
+                  </div>
+                </div>
+              ))}
+              {chk.length>0&&(
+                <>
+                  <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
+                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del}/>)}
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           <div style={{display:"flex",gap:8,marginTop:10}}>
@@ -1198,6 +1323,14 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             <button style={{...btn("gh"),fontSize:12,justifyContent:"center",padding:"10px 14px"}} onClick={()=>setShowSavedLists(true)}>📋 Listes</button>
             <button style={{...btn("gh"),flex:1,fontSize:11,justifyContent:"center",color:DNG,border:`1px solid rgba(212,96,74,.25)`}} onClick={()=>setConfirmClear(true)}>🗑️ Vider</button>
           </div>
+
+          {/* ─── SUGGESTIONS POPULAIRES (sous les boutons) ─── */}
+          {(()=>{
+            const freq=Object.entries(db.productHistory).sort((a,b)=>b[1].count-a[1].count).slice(0,12).map(([n,d])=>({name:n,...d}));
+            const popular=freq.length>=6?freq:PRODUCTS_DB.slice(0,12-freq.length).filter(p=>!freq.find(f=>f.name.toLowerCase()===p.toLowerCase())).map(p=>({name:p,count:0,category:getCat(p),lastUnit:""})).concat(freq).slice(0,12);
+            if(!popular.length)return null;
+            return <SuggBlock popular={popular} listView={listView} db={db} setDb={setDb} showToast={showToast} normInc={normalizeIngredient} getCatFn={getCat}/>;
+          })()}
         </>
       )}
       {db.items.length===0&&(
@@ -1205,6 +1338,12 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <button style={{...btn("out"),fontSize:12,justifyContent:"center"}} onClick={()=>setShowSavedLists(true)}>📋 Listes sauvegardées</button>
         </div>
       )}
+      {db.items.length===0&&(()=>{
+        const freq=Object.entries(db.productHistory).sort((a,b)=>b[1].count-a[1].count).slice(0,12).map(([n,d])=>({name:n,...d}));
+        const popular=freq.length>=6?freq:PRODUCTS_DB.slice(0,12-freq.length).filter(p=>!freq.find(f=>f.name.toLowerCase()===p.toLowerCase())).map(p=>({name:p,count:0,category:getCat(p),lastUnit:""})).concat(freq).slice(0,12);
+        if(!popular.length)return null;
+        return <SuggBlock popular={popular} listView={listView} db={db} setDb={setDb} showToast={showToast} normInc={normalizeIngredient} getCatFn={getCat}/>;
+      })()}
       <EqtyModal open={!!eqty} item={eqty?db.items.find(i=>i.id===eqty.itemId):null} qi={eqty?.qi} onClose={()=>setEqty(null)} onConf={confEqty} onDel={delQty}/>
       <Modal open={confirmClear} onClose={()=>setConfirmClear(false)}>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:8,color:TXT}}>Vider toute la liste ?</div>
