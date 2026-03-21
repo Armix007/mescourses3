@@ -85,42 +85,56 @@ function EmojiImg({emoji,size=20,style={}}){
 
 function normalizeCat(cat){
   if(!cat) return "❓ Autre";
-  if(CATEGORIES.includes(cat)) return cat; // déjà une catégorie standard
+  if(CATEGORIES.includes(cat)) return cat;
+  // Mapping direct par nom de catégorie granulaire (fiable, sans regex)
+  const catName=cat.includes(" ")?cat.split(" ").slice(1).join(" "):cat;
+  const CAT_MAP={
+    "Fruits":"🍎 Fruits","Fruits secs":"🍎 Fruits",
+    "Légumes":"🥦 Légumes","Champignons":"🥦 Légumes",
+    "Bœuf":"🥩 Viande","Veau":"🥩 Viande","Porc":"🥩 Viande","Agneau":"🥩 Viande",
+    "Volaille":"🥩 Viande","Gibier":"🥩 Viande","Boucherie":"🥩 Viande",
+    "Abats":"🥩 Viande","Charcuterie":"🥩 Viande",
+    "Poisson":"🐟 Poisson","Poissonnerie":"🐟 Poisson","Fruits de mer":"🐟 Poisson",
+    "Lait":"🥛 Laitiers","Laitiers":"🥛 Laitiers","Crémerie":"🥛 Laitiers",
+    "Beurre":"🥛 Laitiers","Boissons végétales":"🥛 Laitiers",
+    "Fromage":"🧀 Fromage",
+    "Œufs":"🥚 Oeufs",
+    "Boulangerie":"🍞 Boulangerie","Viennoiseries":"🍞 Boulangerie","Pâtisserie":"🍞 Boulangerie",
+    "Riz":"🥫 Épicerie sèche","Pâtes":"🥫 Épicerie sèche","Céréales":"🥫 Épicerie sèche",
+    "Légumineuses":"🥫 Épicerie sèche","Féculents":"🥫 Épicerie sèche",
+    "Graines":"🥫 Épicerie sèche","Épicerie":"🥫 Épicerie sèche",
+    "Sel":"🥫 Épicerie sèche","Épices":"🥫 Épicerie sèche","Herbes":"🥫 Épicerie sèche",
+    "Bébé":"🥫 Épicerie sèche","Bébé alimentation":"🥫 Épicerie sèche",
+    "Conserves":"🫙 Conserves","Sauces cuisinées":"🫙 Conserves",
+    "Condiments":"🫙 Conserves","Huiles":"🫙 Conserves","Vinaigres":"🫙 Conserves",
+    "Japonais":"🫙 Conserves","Chinois":"🫙 Conserves","Asiatique":"🫙 Conserves",
+    "Indien":"🫙 Conserves","Thaïlandais":"🫙 Conserves","Vietnamien":"🫙 Conserves",
+    "Coréen":"🫙 Conserves","Maghreb":"🫙 Conserves","Libanais":"🫙 Conserves",
+    "Grec":"🫙 Conserves","Mexicain":"🫙 Conserves","Africain":"🫙 Conserves",
+    "Espagnol":"🫙 Conserves","Italien":"🫙 Conserves",
+    "Surgelés":"🧊 Surgelés",
+    "Boissons":"🍷 Boissons",
+    "Sucré":"🍬 Confiseries","Chocolat":"🍬 Confiseries","Noix":"🍬 Confiseries",
+    "Snacking":"🍬 Confiseries","Biscuits":"🍬 Confiseries",
+    "Hygiène":"🧴 Hygiène","Bébé hygiène":"🧴 Hygiène",
+    "Entretien":"🧹 Entretien","Animalerie":"🧹 Entretien",
+    "Chien":"🧹 Entretien","Chat":"🧹 Entretien","Rongeur":"🧹 Entretien","Oiseau":"🧹 Entretien",
+  };
+  if(CAT_MAP[catName]) return CAT_MAP[catName];
+  // Fallback regex sur le nom brut (pour les catégories inconnues)
   const c=cat.toLowerCase();
-  // Fruits
-  if(/fruit|pomme|poire|banane|orange|citron|raisin|fraise|framboise|cerise|pêche|abricot|prune|melon|mangue|ananas|kiwi|avocat|figue|noix de coco|grenade|litchi|papaye/i.test(c)) return "🍎 Fruits";
-  // Légumes
-  if(/légume|tomate|carotte|courgette|poivron|oignon|ail|poireau|champignon|épinard|brocoli|chou|salade|laitue|mâche|roquette|concombre|aubergine|céleri|fenouil|radis|betterave|artichaut|asperge|navet|panais|patate douce|butternut|potiron|courge|maïs|petit pois|haricot vert/i.test(c)) return "🥦 Légumes";
-  // Féculents → Épicerie sèche
-  if(/féculent|pomme de terre|riz|pâte|spaghetti|macaroni|tagliatelle|lasagne|ravioli|gnocchi|quinoa|boulgour|semoule|couscous|polenta|céréale|flocon|granola|muesli/i.test(c)) return "🥫 Épicerie sèche";
-  // Légumineuses → Épicerie sèche
-  if(/légumineuse|lentille|pois chiche|haricot blanc|haricot rouge|fève|tofu|tempeh|soja/i.test(c)) return "🥫 Épicerie sèche";
-  // Viande
-  if(/viande|bœuf|boeuf|veau|porc|agneau|lapin|gibier|charcuterie|lardons|bacon|saucisse|jambon|chorizo|merguez|salami|rosette|saucisson|mortadelle|pancetta|rillettes|volaille|poulet|dinde|canard|pintade|magret/i.test(c)) return "🥩 Viande";
-  // Poisson
-  if(/poisson|saumon|thon|cabillaud|dorade|lotte|bar|sole|flétan|maquereau|sardine|anchois|truite|hareng|fruit de mer|crevette|moule|huître|homard|langoustine|seiche|poulpe|calmar|saint-jacques/i.test(c)) return "🐟 Poisson";
-  // Laitiers
-  if(/lait(?!ier)|crème|yaourt|beurre|margarine|petit-suisse|fromage blanc|kéfir|boisson végétale|amande|avoine|soja|coco.*lait/i.test(c)) return "🥛 Laitiers";
-  // Fromage
-  if(/fromage|mozzarella|parmesan|gruyère|emmental|comté|beaufort|reblochon|raclette|brie|camembert|roquefort|chèvre|feta|ricotta|mascarpone|cheddar/i.test(c)) return "🧀 Fromage";
-  // Oeufs
-  if(/oeuf|œuf/i.test(c)) return "🥚 Oeufs";
-  // Boulangerie
-  if(/boulangerie|pain|baguette|brioche|croissant|viennoiserie|madeleine|toast|wrap|tortilla|pâtisserie|gâteau|cake|tarte|biscuit/i.test(c)) return "🍞 Boulangerie";
-  // Conserves
-  if(/conserve|bocal|boîte en|olive|concentré|sauce tomate|tomate concassée|tomate pelée/i.test(c)) return "🫙 Conserves";
-  // Surgelés
-  if(/surgelé|congelé|glace|sorbet/i.test(c)) return "🧊 Surgelés";
-  // Boissons (toutes — avant confiseries pour éviter faux positifs)
-  if(/boisson|jus|soda|bière|vin|café|thé|infusion|tisane|eau|cola|limonade|champagne|prosecco|nectar|sirop/i.test(c)) return "🍷 Boissons";
-  // Hygiène
-  if(/hygiène|hygiene|shampo|savon|dentifrice|gel douche|déodorant|rasoir|coton|serviette hygiénique|tampon|brosse à dents/i.test(c)) return "🧴 Hygiène";
-  // Entretien
-  if(/entretien|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin/i.test(c)) return "🧹 Entretien";
-  // Sucré/Confiseries (ne matcher que les vrais mots-clés, pas les catégories composées)
-  if(/confiserie|bonbon|chocolat|caramel|confiture|miel|nutella|pâte à tartiner|sucré|pâtisserie|épicerie/i.test(c)) return "🍬 Confiseries";
-  // Épicerie sèche (fallback pour tout ce qui est sec)
-  if(/épicerie|sel|poivre|farine|sucre|huile|vinaigre|épice|herbe|condiment|sauce/i.test(c)) return "🥫 Épicerie sèche";
+  if(/fruit/i.test(c)) return "🍎 Fruits";
+  if(/légume|champignon/i.test(c)) return "🥦 Légumes";
+  if(/viande|bœuf|boeuf|veau|porc|agneau|volaille|gibier|charcuterie/i.test(c)) return "🥩 Viande";
+  if(/poisson|fruits de mer/i.test(c)) return "🐟 Poisson";
+  if(/lait|crème|beurre|yaourt|crémerie/i.test(c)) return "🥛 Laitiers";
+  if(/fromage/i.test(c)) return "🧀 Fromage";
+  if(/œuf|oeuf/i.test(c)) return "🥚 Oeufs";
+  if(/boulangerie|pâtisserie|viennoiserie/i.test(c)) return "🍞 Boulangerie";
+  if(/conserve|sauce|condiment|huile|vinaigre/i.test(c)) return "🫙 Conserves";
+  if(/surgelé/i.test(c)) return "🧊 Surgelés";
+  if(/boisson/i.test(c)) return "🍷 Boissons";
+  if(/hygiène|entretien/i.test(c)) return "🧴 Hygiène";
   return "❓ Autre";
 }
 const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte","bouteille","paquet","tranche","botte"];
