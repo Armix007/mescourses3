@@ -111,14 +111,14 @@ function normalizeCat(cat){
   if(/conserve|bocal|boîte en|olive|concentré|sauce tomate|tomate concassée|tomate pelée/i.test(c)) return "🫙 Conserves";
   // Surgelés
   if(/surgelé|congelé|glace|sorbet/i.test(c)) return "🧊 Surgelés";
-  // Boissons (toutes)
-  if(/boisson|jus|soda|bière|vin|café|thé|infusion|tisane|eau|cola|limonade|champagne|prosecco|nectar|sirop.*boisson/i.test(c)) return "🍷 Boissons";
+  // Boissons (toutes — avant confiseries pour éviter faux positifs)
+  if(/boisson|jus|soda|bière|vin|café|thé|infusion|tisane|eau|cola|limonade|champagne|prosecco|nectar|sirop/i.test(c)) return "🍷 Boissons";
   // Hygiène
   if(/hygiène|hygiene|shampo|savon|dentifrice|gel douche|déodorant|rasoir|coton|serviette hygiénique|tampon|brosse à dents/i.test(c)) return "🧴 Hygiène";
   // Entretien
   if(/entretien|lessive|liquide vaisselle|éponge|papier toilette|essuie-tout|sopalin/i.test(c)) return "🧹 Entretien";
-  // Confiseries
-  if(/confiserie|bonbon|chocolat|caramel|confiture|miel|nutella|pâte à tartiner|sirop d'érable|sucre glace|farine|levure|épice|herbe|huile|vinaigre|moutarde|ketchup|mayo|sauce|pesto|tahini|noix|amande|noisette|pistache|cajou|graine/i.test(c)) return "🍬 Confiseries";
+  // Sucré/Confiseries (ne matcher que les vrais mots-clés, pas les catégories composées)
+  if(/confiserie|bonbon|chocolat|caramel|confiture|miel|nutella|pâte à tartiner|sucré|pâtisserie|épicerie/i.test(c)) return "🍬 Confiseries";
   // Épicerie sèche (fallback pour tout ce qui est sec)
   if(/épicerie|sel|poivre|farine|sucre|huile|vinaigre|épice|herbe|condiment|sauce/i.test(c)) return "🥫 Épicerie sèche";
   return "❓ Autre";
@@ -532,6 +532,21 @@ function getCat(name){
     if(found) return found.categorie;
   }
   return guessCat(name);
+}
+// getProductEmoji = emoji SPÉCIFIQUE du produit (ex: 🍋 pour citron, 🧂 pour sel)
+// Priorité : p.emoji du catalogue > emoji de la catégorie granulaire > fallback guessCat
+function getProductEmoji(name){
+  if(PRODUCTS_CATALOG.length > 0){
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'").trim();
+    const raw = norm(name);
+    const found = PRODUCTS_CATALOG.find(p =>
+      norm(p.nom)===raw || p.cle===raw ||
+      p.aliases.some(a=>norm(a)===raw) ||
+      raw.includes(norm(p.nom)) || norm(p.nom).includes(raw)
+    );
+    if(found && found.emoji) return found.emoji;
+  }
+  return getCat(name).split(' ')[0];
 }
 
 
@@ -1194,7 +1209,7 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
   const [editQty,setEditQty]=useState(item.quantities?.[0]?.qty??1);
   const [editUnit,setEditUnit]=useState(item.quantities?.[0]?.unit??"");
   const [editCat,setEditCat]=useState(item.category||getCat(item.name));
-  const catEmoji=(item.category||getCat(item.name)).split(" ")[0];
+  const catEmoji=getProductEmoji(item.name);
 
   function openEdit(){
     setEditName(item.name);
@@ -1278,7 +1293,7 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
 // ─── ITEM CARD (vue grille 2 colonnes) ───────────────────────
 function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
-  const catEmoji=(item.category||getCat(item.name)).split(" ")[0];
+  const catEmoji=getProductEmoji(item.name);
   const [showEdit,setShowEdit]=useState(false);
   const [editName,setEditName]=useState(item.name);
   const [editQty,setEditQty]=useState(item.quantities?.[0]?.qty??1);
@@ -3837,7 +3852,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                   const isLow=item.confidence==="low"||item.failed;
                   const isMed=item.confidence==="medium";
                   const needsOk=isLow&&!item.confirmed;
-                  const catEmoji=item.genericName?getCat(item.genericName).split(" ")[0]:"❓";
+                  const catEmoji=item.genericName?getProductEmoji(item.genericName):"❓";
                   return(
                     <div key={i} style={{padding:"8px 0",borderBottom:i<scanResult.length-1?`1px solid ${BDR}`:"none",background:needsOk?"rgba(200,96,58,.05)":isMed&&!item.confirmed?"rgba(200,160,58,.04)":"transparent",borderRadius:6}}>
                       {item.originalName&&<div style={{fontSize:9,color:TXT3,marginBottom:2,fontStyle:"italic",paddingLeft:30}}>{item.originalName}</div>}
@@ -3936,7 +3951,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
                   {(byCat[cat]||[]).map(([name,data])=>{
                     const shops=Object.entries(data.shops||{});if(!shops.length)return null;
                     const best=shops.sort((a,b)=>(a[1].priceRef?.value??a[1].price)-(b[1].priceRef?.value??b[1].price))[0];
-                    const catEmoji=(Object.values(data.shops||{})[0]?.category||getCat(name)).split(" ")[0];
+                    const catEmoji=getProductEmoji(name);
                     return(
                       <PriceItemCard key={name} name={name} data={data} best={best} catEmoji={catEmoji}
                         onDelete={()=>deletePriceItem(name)}
