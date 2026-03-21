@@ -341,25 +341,11 @@ function normalizeIngredient(rawName){
     match = PRODUCTS_CATALOG.find(p => p.aliases.some(a => normalize(a) === raw));
   }
   
-  // 4. Correspondance partielle : le raw contient le nom canonique ou vice-versa
-  if(!match){
-    match = PRODUCTS_CATALOG.find(p => {
-      const nomN = normalize(p.nom);
-      return raw.includes(nomN) || nomN.includes(raw);
-    });
-  }
+  // 4. Correspondance partielle sur aliases (exact word boundary)
+  // Les étapes includes ont été supprimées : trop de faux positifs
+  // ("sel" dans "beurre demi-sel", "citron" dans "citronnelle", etc.)
 
-  // 5. Correspondance partielle sur aliases
-  if(!match){
-    match = PRODUCTS_CATALOG.find(p =>
-      p.aliases.some(a => {
-        const aN = normalize(a);
-        return raw.includes(aN) || aN.includes(raw);
-      })
-    );
-  }
-
-  // 6. Correspondance par mots-clés (≥2 mots en commun)
+  // 5. Correspondance par mots-clés (≥2 mots en commun)
   if(!match){
     const rawWords = raw.split(/\s+/).filter(w => w.length > 2);
     if(rawWords.length >= 2){
