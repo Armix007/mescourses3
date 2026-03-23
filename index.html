@@ -602,9 +602,10 @@ const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",widt
 function FullPage({open,onClose,children,noPad}){
   if(!open)return null;
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:SURF,display:"flex",flexDirection:"column",overflowY:noPad?"hidden":"auto"}}>
-      {!noPad&&<div style={{padding:"18px 16px 0"}}/>}
-      {children}
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflowY:"hidden"}}>
+      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflowY:noPad?"hidden":"auto",background:"transparent"}}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -3212,85 +3213,165 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
   }
 
   return(
-    <Modal open onClose={onClose}>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:4,color:TXT}}>🤖 Recette par IA</div>
-      <div style={{fontSize:11,color:TXT3,marginBottom:12}}>Générez et affinez vos recettes par chat ou par vocal</div>
-      <div style={{display:"flex",gap:4,marginBottom:14,background:"rgba(255,255,255,.6)",borderRadius:12,padding:3}}>
-        {[{id:"frigo",label:"🧊 Frigo → Recette"},{id:"variation",label:"✨ Variation"}].map(m=>(
-          <div key={m.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:mode===m.id?SURF:"transparent",color:mode===m.id?CARAMEL:TXT3,cursor:"pointer"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);}}>
-            {m.label}
-          </div>
-        ))}
+    <FullPage open onClose={onClose}>
+      {/* ── HEADER ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 14px 10px",borderBottom:`1px solid ${BDR}`,flexShrink:0}}>
+        <div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:TXT}}>🤖 Recette par IA</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>Générez et affinez par chat</div>
+        </div>
+        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Fermer</button>
       </div>
-      {!result?(
-        <>
-          {mode==="frigo"?(
-            <>
-              <span style={lbl}>Ingrédients disponibles</span>
-              <textarea style={{...inp,minHeight:70,resize:"none",fontSize:12,marginBottom:6}} placeholder="Ex: poulet, courgettes, riz…" value={fridgeInput} onChange={e=>setFridgeInput(e.target.value)}/>
-              <div style={{display:"flex",gap:6,marginBottom:12}}>
-                <button style={{...btn("gh"),flex:1,fontSize:11,background:listening?"rgba(212,96,74,.1)":"",color:listening?DNG:undefined}} onClick={()=>startVoice("fridge")} disabled={listening}>{listening?"🎤 Écoute…":"🎤 Ajouter par vocal"}</button>
-                {items?.length>0&&<div style={{fontSize:10,color:TXT3,display:"flex",alignItems:"center"}}>💡 Pré-rempli</div>}
+
+      {/* ── CONTENU SCROLLABLE ── */}
+      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px"}}>
+
+        {/* ① MODE */}
+        <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>① Mode</div>
+        <div style={{display:"flex",gap:8,marginBottom:20}}>
+          {[{id:"frigo",emoji:"🧊",label:"Avec ce que j'ai",sub:"Mes ingrédients → recette"},
+            {id:"variation",emoji:"✨",label:"Adapter",sub:"Variation d'une recette"}
+          ].map(m=>(
+            <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);}}>
+              <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
+              <div style={{fontSize:11,fontWeight:800,color:mode===m.id?CARAMEL:TXT2}}>{m.label}</div>
+              <div style={{fontSize:9,color:TXT3,marginTop:2}}>{m.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {!result?(
+          <>
+            {/* ② SAISIE selon le mode */}
+            {mode==="frigo"?(
+              <>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7}}>② Mes ingrédients disponibles</div>
+                  <button style={{...btn("gh"),fontSize:10,padding:"4px 9px",background:"rgba(184,112,58,.1)",border:"1px solid rgba(184,112,58,.2)",color:CARAMEL,borderRadius:8}} onClick={()=>startVoice("fridge")} disabled={listening}>{listening?"🎤 Écoute…":"🎤 Vocal"}</button>
+                </div>
+                {items?.length>0&&<div style={{fontSize:9,color:SUC,fontWeight:700,marginBottom:6}}>✓ Pré-rempli depuis votre liste de courses</div>}
+                <div style={{background:"rgba(255,255,255,.94)",border:`1.5px solid ${CARAMEL}`,borderRadius:13,overflow:"hidden",marginBottom:6}}>
+                  {fridgeInput.split(",").map(s=>s.trim()).filter(Boolean).map((ing,i,arr)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",borderBottom:i<arr.length-1?`1px solid ${BDR}`:"none"}}>
+                      <span style={{fontSize:13,flexShrink:0}}>{guessRecipeEmoji(ing)||"🥄"}</span>
+                      <span style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>{ing}</span>
+                      <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,padding:"0 2px"}} onClick={()=>setFridgeInput(fridgeInput.split(",").filter((_,j)=>j!==i).join(", "))}>✕</button>
+                    </div>
+                  ))}
+                  {fridgeInput.split(",").filter(s=>s.trim()).length===0&&(
+                    <div style={{padding:"12px",textAlign:"center",color:TXT3,fontSize:12}}>Aucun ingrédient · tapez ci-dessous ou dictez</div>
+                  )}
+                </div>
+                <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ajouter un ingrédient…" onKeyDown={e=>{if(e.key==="Enter"&&e.target.value.trim()){setFridgeInput(prev=>prev?prev+", "+e.target.value.trim():e.target.value.trim());e.target.value="";}}}/>
+              </>
+            ):(
+              <>
+                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>② Recette de base</div>
+                <input style={{...inp,marginBottom:14}} placeholder="Ex: Poulet rôti, Quiche lorraine…" value={variationBase} onChange={e=>setVariationBase(e.target.value)}/>
+                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Type de variation</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:16}}>
+                  {["végétarien","vegan","sans gluten","sans lactose","plus rapide","version légère","version enfants"].map(v=>(
+                    <div key={v} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:variationType===v?CARAMEL:"rgba(255,255,255,.75)",color:variationType===v?"white":TXT2,border:`1.5px solid ${variationType===v?CARAMEL:BDR}`,cursor:"pointer"}} onClick={()=>setVariationType(v)}>{v}</div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ③ PRÉFÉRENCES */}
+            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>③ Préférences <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
+            <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, avec une sauce crémeuse, pour un repas léger…"/>
+
+            {/* ④ GÉNÉRER */}
+            <button style={{...btn("acc"),width:"100%",justifyContent:"center",padding:"14px",fontSize:14,borderRadius:13}} onClick={generate} disabled={generating}>
+              {generating?"⏳ Génération en cours…":"✨ Générer ma recette"}
+            </button>
+            {!localStorage.getItem("ws_apikey")&&(
+              <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:10}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>showToast("⚠️ Configurez la clé API via les paramètres 🔑")}>Configurer 🔑</span></div>
+            )}
+          </>
+        ):(
+          <>
+            {/* RÉSULTAT */}
+            <div style={{background:`linear-gradient(135deg,rgba(42,20,8,.95),rgba(90,45,15,.9))`,borderRadius:16,padding:"14px 16px",marginBottom:12,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"relative",zIndex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <span style={{fontSize:34}}>{guessRecipeEmoji(result.name)||"🥘"}</span>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:"white",lineHeight:1.25}}>{result.name}</div>
+                </div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {result.duration&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>⏱️ {result.duration}</div>}
+                  {result.persons&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>👥 {result.persons} pers.</div>}
+                  <div style={{background:"rgba(184,112,58,.4)",color:"rgba(255,220,160,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>🤖 IA</div>
+                </div>
               </div>
-            </>
-          ):(
-            <>
-              <span style={lbl}>Recette de base</span>
-              <input style={{...inp,marginBottom:10}} placeholder="Ex: Poulet rôti, Quiche lorraine…" value={variationBase} onChange={e=>setVariationBase(e.target.value)}/>
-              <span style={lbl}>Type de variation</span>
-              <select style={{...sel,marginBottom:12}} value={variationType} onChange={e=>setVariationType(e.target.value)}>
-                {["végétarien","vegan","sans gluten","sans lactose","plus rapide (max 20 min)","version légère","version enfants"].map(v=><option key={v} value={v}>{v}</option>)}
-              </select>
-            </>
-          )}
-          <button style={{...btn("acc"),width:"100%",justifyContent:"center"}} onClick={generate} disabled={generating}>{generating?"⏳ Génération en cours…":"✨ Générer la recette"}</button>
-          {!localStorage.getItem("ws_apikey")&&<div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:8}}>⚠️ Clé API requise — configurez via 🔑</div>}
-        </>
-      ):(
-        <>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,marginBottom:6}}>{result.name}</div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-            {result.duration&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {result.duration}</span>}
-            {result.persons&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {result.persons} pers.</span>}
-            <span style={{fontSize:10,background:"rgba(200,132,90,.1)",padding:"2px 8px",borderRadius:20,color:CARAMEL2,fontWeight:600}}>🤖 IA</span>
-          </div>
-          {result.tip&&<div style={{fontSize:11,color:TXT2,padding:"7px 10px",background:CREAM,borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`,marginBottom:8}}>💡 {result.tip}</div>}
-          <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:8,maxHeight:100,overflowY:"auto"}}>
-            {result.ingredients.map((ing,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:12,borderBottom:i<result.ingredients.length-1?`1px solid ${BDR}`:"none"}}>
-                <span style={{color:TXT}}>{ing.name}</span><span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
+            </div>
+
+            {result.tip&&(
+              <div style={{background:"rgba(184,112,58,.08)",border:`1.5px solid rgba(184,112,58,.2)`,borderRadius:12,padding:"10px 12px",marginBottom:12,display:"flex",gap:8}}>
+                <span style={{fontSize:14,flexShrink:0}}>💡</span>
+                <div style={{fontSize:11,color:TXT2,lineHeight:1.55}}>{result.tip}</div>
               </div>
-            ))}
-          </div>
-          {result.steps?.length>0&&(
-            <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:8,maxHeight:120,overflowY:"auto"}}>
-              {result.steps.map((step,i)=>(
-                <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:i<result.steps.length-1?`1px solid ${BDR}`:"none",fontSize:12,color:TXT2,lineHeight:1.5}}>
-                  <div style={{width:18,height:18,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
-                  <div>{step}</div>
+            )}
+
+            <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+              Ingrédients <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{result.ingredients.length}</span>
+              <div style={{flex:1,height:1,background:BDR}}/>
+            </div>
+            <div style={{...card,padding:0,overflow:"hidden",marginBottom:12}}>
+              {result.ingredients.map((ing,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderBottom:i<result.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12}}>
+                  <span style={{color:TXT,fontWeight:600}}>{ing.name}</span>
+                  <span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
                 </div>
               ))}
             </div>
-          )}
-          <div style={{background:"rgba(200,132,90,.06)",border:`1px solid rgba(200,132,90,.2)`,borderRadius:12,padding:10,marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:CARAMEL2,marginBottom:4}}>💬 Modifier cette recette</div>
-            <div style={{fontSize:10,color:TXT3,marginBottom:6}}>Ex : "Remplace le four par une poêle", "Ajoute une sauce crémeuse"…</div>
-            {chatHistory.filter(m=>m.role==="user").slice(1).slice(-2).map((m,i)=>(
-              <div key={i} style={{fontSize:10,color:TXT2,padding:"3px 8px",background:"rgba(200,132,90,.08)",borderRadius:6,marginBottom:4}}>💬 {m.content}</div>
-            ))}
-            <div style={{display:"flex",gap:6}}>
-              <input style={{...inp,flex:1,fontSize:12,padding:"8px 10px"}} placeholder="Votre demande de modification…" value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!chatLoading&&sendChat()}/>
-              <button style={{...btn("gh"),padding:"8px 10px",fontSize:14,background:listening?"rgba(212,96,74,.1)":"",color:listening?DNG:undefined}} onClick={()=>startVoice("chat")} disabled={listening}>🎤</button>
-              <button style={{...btn("acc"),padding:"8px 12px",fontSize:12}} onClick={sendChat} disabled={chatLoading||!chatMsg.trim()}>{chatLoading?"⏳":"→"}</button>
+
+            {result.steps?.length>0&&(
+              <>
+                <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+                  Préparation <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{result.steps.length}</span>
+                  <div style={{flex:1,height:1,background:BDR}}/>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+                  {result.steps.map((step,i)=>(
+                    <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,lineHeight:1.6,color:TXT2}}>
+                      <div style={{width:22,height:22,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>{i+1}</div>
+                      <div>{step}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Chat modification */}
+            <div style={{background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.2)`,borderRadius:14,padding:12,marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:800,color:CARAMEL,marginBottom:3}}>💬 Modifier cette recette</div>
+              <div style={{fontSize:10,color:TXT3,marginBottom:8}}>Ex : "Rends-la végétarienne", "Ajoute une sauce crémeuse"…</div>
+              {chatHistory.filter(m=>m.role==="user").slice(1).slice(-2).map((m,i)=>(
+                <div key={i} style={{fontSize:10,color:TXT2,padding:"3px 8px",background:"rgba(200,132,90,.08)",borderRadius:6,marginBottom:4}}>💬 {m.content}</div>
+              ))}
+              <div style={{display:"flex",gap:6}}>
+                <input style={{...inp,flex:1,fontSize:12,padding:"8px 10px"}} placeholder="Votre demande…" value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!chatLoading&&sendChat()}/>
+                <button style={{...btn("gh"),padding:"8px 10px",fontSize:14}} onClick={()=>startVoice("chat")} disabled={listening}>🎤</button>
+                <button style={{...btn("acc"),padding:"8px 12px",fontSize:12}} onClick={sendChat} disabled={chatLoading||!chatMsg.trim()}>{chatLoading?"⏳":"→"}</button>
+              </div>
             </div>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button style={{...btn("gh"),flex:1,fontSize:11}} onClick={()=>{setResult(null);setChatHistory([]);}}>↩ Régénérer</button>
-            <button style={{...btn("acc"),flex:2,fontSize:11}} onClick={()=>onImport(result)}>💾 Enregistrer</button>
-          </div>
-        </>
-      )}
-    </Modal>
+          </>
+        )}
+      </div>
+
+      {/* ── BARRE BAS FIXE ── */}
+      <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0,background:`rgba(253,248,240,.97)`,backdropFilter:"blur(12px)"}}>
+        {result?(
+          <>
+            <button style={{...btn("gh"),flex:1,justifyContent:"center",fontSize:11}} onClick={()=>{setResult(null);setChatHistory([]);}}>↩ Régénérer</button>
+            <button style={{...btn("acc"),flex:2,justifyContent:"center",fontSize:12}} onClick={()=>onImport(result)}>💾 Enregistrer</button>
+          </>
+        ):(
+          <button style={{...btn("gh"),flex:1,justifyContent:"center"}} onClick={onClose}>Annuler</button>
+        )}
+      </div>
+    </FullPage>
   );
 }
 
