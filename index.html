@@ -598,6 +598,17 @@ const card={background:SURF,border:`1px solid ${BDR}`,borderRadius:16,padding:14
 const ovl={position:"fixed",inset:0,background:"rgba(80,40,10,.55)",zIndex:200,display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"};
 const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",width:"100%",maxHeight:"94vh",overflowY:"auto"};
 
+// Composant plein écran (pour MealDBSearch, RecipeEdit)
+function FullPage({open,onClose,children,noPad}){
+  if(!open)return null;
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:200,background:SURF,display:"flex",flexDirection:"column",overflowY:noPad?"hidden":"auto"}}>
+      {!noPad&&<div style={{padding:"18px 16px 0"}}/>}
+      {children}
+    </div>
+  );
+}
+
 // ─── COMPOSANTS DE BASE ───────────────────────────────────────
 function Toast({msg}){
   return msg?<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",background:CARAMEL,color:"white",padding:"10px 20px",borderRadius:40,fontSize:12,fontWeight:700,zIndex:500,boxShadow:"0 4px 20px rgba(160,90,40,.3)",pointerEvents:"none",whiteSpace:"nowrap"}}>{msg}</div>:null;
@@ -2490,94 +2501,102 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
   const [catTab,setCatTab]=useState("categories"); // categories | areas
 
   return(
-    <Modal open onClose={onClose}>
-      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:2,color:TXT}}>🌐 Parcourir TheMealDB</div>
-      <div style={{fontSize:10,color:TXT3,marginBottom:12,lineHeight:1.5}}>
-        {_localArray().length>0
-          ? <span>📦 <b style={{color:SUC}}>{_localArray().length} recettes</b> disponibles hors-ligne · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — CC BY-SA</span>
-          : <span>Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> — licence Creative Commons CC BY-SA</span>
-        }
+    <FullPage open onClose={onClose}>
+      {/* ── HEADER ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 14px 10px",borderBottom:`1px solid ${BDR}`,flexShrink:0}}>
+        <div>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:TXT}}>🌐 TheMealDB</div>
+          <div style={{fontSize:10,color:TXT3,marginTop:2}}>
+            {_localArray().length>0
+              ?<span>📦 <b style={{color:SUC}}>{_localArray().length} recettes</b> hors-ligne</span>
+              :<span>Recettes CC BY-SA · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>themealdb.com</span></span>
+            }
+          </div>
+        </div>
+        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Fermer</button>
       </div>
+
+      {/* ── CONTENU SCROLLABLE ── */}
+      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 40px"}}>
 
       {/* VUE CATÉGORIES */}
       {view==="categories"&&(
         <>
-          <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input style={{...inp,flex:1}} placeholder={_localArray().length>0?"Rechercher en français…":"Rechercher (en anglais)…"} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
-            <button style={{...btn("acc"),padding:"10px 14px"}} onClick={search} disabled={loading}>{loading?"⏳":"🔍"}</button>
+          {/* Recherche */}
+          <div style={{position:"relative",marginBottom:12}}>
+            <input style={{...inp,paddingLeft:34}} placeholder={_localArray().length>0?"Rechercher en français…":"Rechercher (en anglais)…"} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()}/>
+            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,pointerEvents:"none"}}>🔍</span>
+            <button style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",...btn("acc"),padding:"6px 12px",fontSize:12}} onClick={search} disabled={loading}>{loading?"⏳":"→"}</button>
           </div>
-          {/* Sous-onglets catégorie / origine — bien visibles */}
-          <div style={{display:"flex",gap:6,marginBottom:12}}>
-            {[{id:"categories",label:"🍽️ Catégories",count:categories.length},{id:"areas",label:"🌍 Origines",count:Object.keys(AREA_FR).length}].map(t=>(
-              <div key={t.id} style={{flex:1,padding:"10px 8px",textAlign:"center",borderRadius:12,background:catTab===t.id?`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`:"rgba(255,255,255,.85)",color:catTab===t.id?"white":TXT2,cursor:"pointer",border:`1.5px solid ${catTab===t.id?CARAMEL:BDR}`,boxShadow:catTab===t.id?`0 3px 12px rgba(184,112,58,.25)`:"none",transition:"all .2s"}} onClick={()=>setCatTab(t.id)}>
-                <div style={{fontSize:18,marginBottom:2}}>{t.label.split(" ")[0]}</div>
-                <div style={{fontSize:11,fontWeight:700}}>{t.label.replace(/^[^ ]+ /,"")}</div>
-                <div style={{fontSize:9,opacity:.75,marginTop:1}}>{t.count} choix</div>
+
+          {/* Tabs Catégories / Origines */}
+          <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:12,padding:3,gap:2,marginBottom:14}}>
+            {[{id:"categories",label:"🍽️ Catégories"},{id:"areas",label:"🌍 Origines"}].map(t=>(
+              <div key={t.id} style={{flex:1,padding:"8px 4px",textAlign:"center",fontSize:12,fontWeight:700,borderRadius:9,background:catTab===t.id?SURF:"transparent",color:catTab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .15s",boxShadow:catTab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none"}} onClick={()=>setCatTab(t.id)}>
+                {t.label}
               </div>
             ))}
           </div>
+
+          {/* Grille catégories */}
           {catTab==="categories"&&(
-            <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:300,overflowY:"auto"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {categories.map(cat=>(
-                <div key={cat.idCategory} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 12px",background:"rgba(255,255,255,.9)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",width:"calc(50% - 4px)",boxSizing:"border-box",boxShadow:"0 1px 5px rgba(160,90,40,.07)"}} onClick={()=>browseCategory(cat.strCategory)}>
-                  <span style={{fontSize:20}}>{(CAT_FR[cat.strCategory]||cat.strCategory).split(" ")[0]}</span>
+                <div key={cat.idCategory} style={{display:"flex",alignItems:"center",gap:8,padding:"11px 12px",background:"rgba(255,255,255,.9)",border:`1px solid ${BDR}`,borderRadius:13,cursor:"pointer",boxShadow:"0 1px 5px rgba(160,90,40,.06)"}} onClick={()=>browseCategory(cat.strCategory)}>
+                  <span style={{fontSize:22,flexShrink:0}}>{(CAT_FR[cat.strCategory]||cat.strCategory).split(" ")[0]}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(CAT_FR[cat.strCategory]||cat.strCategory).replace(/^[^ ]+ /,"")}</div>
                   </div>
-                  <span style={{color:CARAMEL2,fontWeight:700}}>›</span>
+                  <span style={{color:CARAMEL2,fontWeight:700,fontSize:14}}>›</span>
                 </div>
               ))}
             </div>
           )}
           {catTab==="areas"&&(
-            <div style={{display:"flex",flexWrap:"wrap",gap:7,maxHeight:300,overflowY:"auto"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {Object.entries(AREA_FR).map(([en,fr])=>(
-                <div key={en} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 12px",background:"rgba(255,255,255,.9)",border:`1px solid ${BDR}`,borderRadius:12,cursor:"pointer",width:"calc(50% - 4px)",boxSizing:"border-box",boxShadow:"0 1px 5px rgba(160,90,40,.07)"}} onClick={()=>browseArea(en)}>
-                  <span style={{fontSize:20}}>{fr.split(" ")[0]}</span>
+                <div key={en} style={{display:"flex",alignItems:"center",gap:8,padding:"11px 12px",background:"rgba(255,255,255,.9)",border:`1px solid ${BDR}`,borderRadius:13,cursor:"pointer"}} onClick={()=>browseArea(en)}>
+                  <span style={{fontSize:22,flexShrink:0}}>{fr.split(" ")[0]}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fr.replace(/^[^ ]+ /,"")}</div>
                   </div>
-                  <span style={{color:CARAMEL2,fontWeight:700}}>›</span>
+                  <span style={{color:CARAMEL2,fontWeight:700,fontSize:14}}>›</span>
                 </div>
               ))}
             </div>
           )}
+
+          <div style={{fontSize:10,color:TXT3,marginTop:14,padding:"8px 11px",background:CREAM,borderRadius:9,borderLeft:`2px solid ${BDR}`,lineHeight:1.55}}>
+            📖 Recettes issues de <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open("https://www.themealdb.com","_blank")}>TheMealDB.com</span> · Licence CC BY-SA
+          </div>
         </>
       )}
 
       {/* VUE LISTE */}
       {view==="list"&&(
         <>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setView("categories");setResults([]);}}>← Retour</button>
-            <div style={{fontSize:13,fontWeight:700,color:TXT,flex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <button style={{...btn("gh"),fontSize:11,padding:"7px 12px"}} onClick={()=>{setView("categories");setResults([]);}}>← Retour</button>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:800,color:TXT,flex:1}}>
               {selectedCat.startsWith("__area__")?AREA_FR[selectedCat.replace("__area__","")]||selectedCat.replace("__area__",""):selectedCat?CAT_FR[selectedCat]||selectedCat:"Résultats"}
             </div>
-            <span style={{fontSize:11,color:TXT3}}>{results.length} recettes</span>
+            <span style={{fontSize:11,color:TXT3,fontWeight:600}}>{results.length}</span>
           </div>
           {loading&&<div style={{textAlign:"center",padding:20,color:TXT3}}>⏳ Chargement…</div>}
-          <div style={{maxHeight:380,overflowY:"auto"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>
             {results.map(m=>(
-              <div key={m.idMeal||m._localData?.id||Math.random()} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
-                if(m._localData){
-                  // Données locales complètes → affichage direct sans appel réseau
-                  const ld=localMealToWisely(m._localData);
-                  detailRef.current=ld;
-                  setDetail(ld);
-                  setView("detail");
-                } else {
-                  loadDetail(m.idMeal);
-                }
+              <div key={m.idMeal||m._localData?.id||Math.random()} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
+                if(m._localData){const ld=localMealToWisely(m._localData);detailRef.current=ld;setDetail(ld);setView("detail");}
+                else{loadDetail(m.idMeal);}
               }}>
-                <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
-                  {(m._localData?.photo)?<img src={m._localData.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(m._localData?.name||m.strMeal||"")} size={24}/>}
+                <div style={{width:46,height:46,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                  {m._localData?.photo?<img src={m._localData.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(m._localData?.name||m.strMeal||"")} size={24}/>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m._localData?.name||m.strMeal||""}</div>
                   {(m._localData?.category||m.strCategory)&&<div style={{fontSize:10,color:TXT3,marginTop:1}}>{m._localData?.category||(CAT_FR[m.strCategory]||m.strCategory)}{m._localData?.area?` · ${m._localData.area}`:""}</div>}
-                  {m._localData?.duration&&<div style={{fontSize:9,color:TXT3}}>⏱️ {m._localData.duration}</div>}
                 </div>
-                <div style={{fontSize:18,color:TXT3,flexShrink:0}}>›</div>
+                <span style={{color:TXT3,fontSize:16}}>›</span>
               </div>
             ))}
           </div>
@@ -2588,7 +2607,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
       {view==="detail"&&(
         <>
           {(loading||translating)&&(
-            <div style={{textAlign:"center",padding:"30px 20px"}}>
+            <div style={{textAlign:"center",padding:"40px 20px"}}>
               <div style={{marginBottom:8}}><EmojiImg emoji="⏳" size={32}/></div>
               <div style={{fontSize:13,color:TXT2,fontWeight:600}}>{translating?"✨ Traduction en cours…":"Chargement…"}</div>
               {translating&&<div style={{fontSize:11,color:TXT3,marginTop:4}}>L'IA traduit le nom, les ingrédients et les étapes</div>}
@@ -2596,54 +2615,80 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
           )}
           {detail&&!loading&&!translating&&(
             <>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>{setDetail(null);setView("list");}}>← Retour</button>
-                <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:TXT,flex:1,lineHeight:1.3}}>{detail.name}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <button style={{...btn("gh"),fontSize:11,padding:"7px 12px"}} onClick={()=>{setDetail(null);setView("list");}}>← Retour</button>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,flex:1,lineHeight:1.3,fontWeight:800}}>{detail.name}</div>
               </div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+
+              {/* Bannière import */}
+              <div style={{background:`linear-gradient(135deg,rgba(184,112,58,.08),rgba(184,112,58,.04))`,border:`1.5px solid rgba(184,112,58,.25)`,borderRadius:13,padding:"11px 13px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20,flexShrink:0}}>📥</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:800,color:CARAMEL}}>Non enregistrée</div>
+                  <div style={{fontSize:10,color:TXT2,marginTop:1}}>Importez pour modifier et retrouver dans vos recettes</div>
+                </div>
+              </div>
+
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
                 {detail.category&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{detail.category}</span>}
                 {detail.area&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{detail.area}</span>}
                 <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🥗 {detail.ingredients.length} ingr.</span>
-                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>📋 {detail.steps.length} étapes</span>
-                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {detail.persons||"❓"} pers.</span>
-                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {detail.duration||"❓"}</span>
+                {detail.steps?.length>0&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>📋 {detail.steps.length} étapes</span>}
+                <span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {detail.persons||"?"} pers.</span>
+                {detail.duration&&<span style={{fontSize:10,background:CREAM2,padding:"2px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {detail.duration}</span>}
               </div>
-              <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>Ingrédients</div>
-              <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:130,overflowY:"auto"}}>
+
+              {/* Ingrédients */}
+              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+                Ingrédients <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{detail.ingredients.length}</span>
+                <div style={{flex:1,height:1,background:BDR}}/>
+              </div>
+              <div style={{...card,padding:0,overflow:"hidden",marginBottom:12}}>
                 {detail.ingredients.map((ing,i)=>(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:i<detail.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12}}>
-                    <span style={{color:TXT}}>{ing.name}</span>
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderBottom:i<detail.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:13}}>
+                    <span style={{color:TXT,fontWeight:600}}>{ing.name}</span>
                     <span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
                   </div>
                 ))}
               </div>
+
+              {/* Étapes */}
               {detail.steps?.length>0&&(
                 <>
-                  <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:5}}>Étapes de préparation</div>
-                  <div style={{background:CREAM,border:`1px solid ${BDR}`,borderRadius:10,padding:"8px 12px",marginBottom:10,maxHeight:160,overflowY:"auto"}}>
+                  <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+                    Préparation <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{detail.steps.length}</span>
+                    <div style={{flex:1,height:1,background:BDR}}/>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
                     {detail.steps.map((step,i)=>(
-                      <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:i<detail.steps.length-1?`1px solid ${BDR}`:"none",fontSize:11,color:TXT2,lineHeight:1.5}}>
-                        <div style={{width:18,height:18,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,lineHeight:1.6,color:TXT2}}>
+                        <div style={{width:22,height:22,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>{i+1}</div>
                         <div>{step}</div>
                       </div>
                     ))}
                   </div>
                 </>
               )}
-              {/* Attribution + lien source */}
-              <div style={{fontSize:10,color:TXT3,marginBottom:12,padding:"7px 10px",background:"rgba(200,132,90,.06)",borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`,lineHeight:1.6}}>
-                📖 Source : <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open(`https://www.themealdb.com/meal/${detail.mealdbId}`,`_blank`)}>TheMealDB — voir la recette originale</span><br/>
+
+              <div style={{fontSize:10,color:TXT3,padding:"7px 10px",background:CREAM,borderRadius:9,borderLeft:`2px solid ${BDR}`,lineHeight:1.6}}>
+                📖 Source : <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>window.open(`https://www.themealdb.com/meal/${detail.mealdbId}`,"_blank")}>TheMealDB — voir la recette originale</span><br/>
                 Licence Creative Commons CC BY-SA · Traduction automatique par IA
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button style={{...btn("gh"),flex:1}} onClick={()=>{setDetail(null);setView("list");}}>Annuler</button>
-                <button style={{...btn("acc"),flex:1}} onClick={()=>onImport(detailRef.current||detail)}>✅ Importer</button>
               </div>
             </>
           )}
         </>
       )}
-    </Modal>
+
+      </div>
+
+      {/* Barre bas fixe — import uniquement dans le détail */}
+      {view==="detail"&&detail&&!loading&&!translating&&(
+        <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0,background:`rgba(253,248,240,.97)`,backdropFilter:"blur(12px)"}}>
+          <button style={{...btn("gh"),flex:1,justifyContent:"center"}} onClick={()=>{setDetail(null);setView("list");}}>← Retour</button>
+          <button style={{...btn("acc"),flex:2,justifyContent:"center"}} onClick={()=>onImport(detailRef.current||detail)}>📥 Importer dans mes recettes</button>
+        </div>
+      )}
+    </FullPage>
   );
 }
 
@@ -2745,9 +2790,7 @@ function RecipeEdit({recipe,onSave,onClose,onDel,showToast}){
 
   return(
     <>
-      <Modal open onClose={onClose} noPad>
-
-        {/* ── PHOTO ZONE ── */}
+      <FullPage open onClose={onClose} noPad>
         <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhoto} capture="environment"/>
         <div style={{height:isNew?140:160,position:"relative",background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0,cursor:isNew&&!photo?"pointer":"default"}}
           onClick={()=>isNew&&!photo&&photoRef.current.click()}>
@@ -2943,7 +2986,7 @@ function RecipeEdit({recipe,onSave,onClose,onDel,showToast}){
             {isNew?"✅ Créer la recette":"✅ Enregistrer"}
           </button>
         </div>
-      </Modal>
+      </FullPage>
       <CropModal open={!!cropSrc} src={cropSrc} onConfirm={handleCropConfirm} onClose={()=>setCropSrc(null)}/>
       <ApiKeyModal open={showApiKey} onSave={k=>{setShowApiKey(false);if(scannedRaw)doScan(scannedRaw.dataUrl,scannedRaw.mt);}} onClose={()=>setShowApiKey(false)}/>
     </>
