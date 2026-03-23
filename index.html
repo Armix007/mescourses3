@@ -1924,9 +1924,9 @@ function PageRecettes({db,setDb,showToast}){
 
   function getFiltered(){
     let list=db.recipes;
-    if(tab==="dossiers"){
-      if(activeFolder==="likes") list=list.filter(r=>likedIds.has(r.id));
-      else if(activeFolder!==null){
+    if(tab==="likes") list=list.filter(r=>likedIds.has(r.id));
+    else if(tab==="dossiers"){
+      if(activeFolder!==null){
         const f=folders.find(f=>f.id===activeFolder);
         const ids=new Set(f?.recipeIds||[]);
         list=list.filter(r=>ids.has(r.id));
@@ -1948,229 +1948,275 @@ function PageRecettes({db,setDb,showToast}){
     const isLiked=likedIds.has(r.id);
     if(recipeView==="liste"){
       return(
-        <div style={{...card,padding:"11px 13px",overflow:"hidden",cursor:"pointer",marginBottom:7,background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",gap:10}} onClick={()=>setViewIdx(realIdx)}>
-          <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
-            {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(r.name)} size={22} style={{display:"flex",alignItems:"center",justifyContent:"center"}}/>}
+        <div style={{...card,padding:"10px 12px",overflow:"hidden",cursor:"pointer",marginBottom:7,background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",gap:10}} onClick={()=>setViewIdx(realIdx)}>
+          <div style={{width:46,height:46,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+            {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:10}}/>:<EmojiImg emoji={guessRecipeEmoji(r.name)} size={24}/>}
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:15,color:CARAMEL,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:14,color:CARAMEL,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
             <div style={{display:"flex",gap:6,marginTop:3,flexWrap:"wrap"}}>
-              {r.duration&&<span style={{fontSize:10,color:TXT3}}>⏱️ {r.duration}</span>}
-              {r.persons&&<span style={{fontSize:10,color:TXT3}}>👥 {r.persons}</span>}
-              <span style={{fontSize:10,color:TXT3}}>🥗 {r.ingredients.length}</span>
-              {r.difficulty&&<span style={{fontSize:10,color:TXT3}}>{RECIPE_DIFFICULTY.find(d=>d.id===r.difficulty)?.label}</span>}
+              {r.duration&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>⏱️ {r.duration}</span>}
+              {r.persons&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>👥 {r.persons}</span>}
+              <span style={{fontSize:10,color:TXT3,fontWeight:600}}>🥗 {r.ingredients.length}</span>
+              {cost&&<span style={{fontSize:10,color:SUC,fontWeight:700}}>~{cost.total.toFixed(2)}€</span>}
             </div>
           </div>
-          {isLiked&&<span style={{fontSize:14}}>❤️</span>}
+          {isLiked&&<span style={{fontSize:13,flexShrink:0}}>❤️</span>}
           <span style={{color:TXT3,fontSize:16,flexShrink:0}}>›</span>
         </div>
       );
     }
+    // Vue grille 2 colonnes
     return(
-      <div style={{...card,padding:0,overflow:"hidden",cursor:"pointer",marginBottom:12,background:"rgba(255,255,255,.92)"}} onClick={()=>setViewIdx(realIdx)}>
-        <div style={{height:130,background:`linear-gradient(135deg,${CREAM2} 0%,${BDR} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
+      <div style={{...card,padding:0,overflow:"hidden",cursor:"pointer",background:"rgba(255,255,255,.92)"}} onClick={()=>setViewIdx(realIdx)}>
+        <div style={{height:108,background:`linear-gradient(135deg,${CREAM2} 0%,${BDR} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
           {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-            :<div style={{filter:"drop-shadow(0 3px 10px rgba(0,0,0,.08))",userSelect:"none"}}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={60}/></div>}
-          {r.source==="mealdb"&&<div style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,.4)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",fontWeight:700,backdropFilter:"blur(4px)"}}>🌐 TheMealDB</div>}
-          {r.source==="ai"&&<div style={{position:"absolute",top:8,left:8,background:"rgba(184,112,58,.7)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",fontWeight:700,backdropFilter:"blur(4px)"}}>🤖 IA</div>}
-          {isLiked&&<div style={{position:"absolute",top:8,right:8,fontSize:16}}>❤️</div>}
-          {r.stars>0&&<div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,.35)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",backdropFilter:"blur(4px)"}}>{[""," ⭐","⭐⭐","⭐⭐⭐","⭐⭐⭐⭐","⭐⭐⭐⭐⭐"][r.stars]}</div>}
-          {r.lastCooked&&<div style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,.35)",color:"white",fontSize:9,borderRadius:8,padding:"2px 7px",backdropFilter:"blur(4px)"}}>📅 {r.lastCooked}</div>}
+            :<div style={{filter:"drop-shadow(0 3px 10px rgba(0,0,0,.08))"}}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={48}/></div>}
+          {r.source==="mealdb"&&<div style={{position:"absolute",top:6,left:6,background:"rgba(0,0,0,.42)",color:"white",fontSize:8,borderRadius:7,padding:"2px 6px",fontWeight:700,backdropFilter:"blur(4px)"}}>🌐</div>}
+          {r.source==="ai"&&<div style={{position:"absolute",top:6,left:6,background:"rgba(184,112,58,.7)",color:"white",fontSize:8,borderRadius:7,padding:"2px 6px",fontWeight:700,backdropFilter:"blur(4px)"}}>🤖</div>}
+          {isLiked&&<div style={{position:"absolute",top:6,right:6,fontSize:13}}>❤️</div>}
+          {r.stars>0&&<div style={{position:"absolute",bottom:5,left:6,background:"rgba(0,0,0,.35)",color:"white",fontSize:8,borderRadius:6,padding:"1px 6px",backdropFilter:"blur(4px)"}}>{["","⭐","⭐⭐","⭐⭐⭐","⭐⭐⭐⭐","⭐⭐⭐⭐⭐"][r.stars]}</div>}
         </div>
-        <div style={{padding:"11px 14px"}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:6,color:CARAMEL,fontWeight:700}}>{r.name}</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-            <span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>🥗 {r.ingredients.length} ingr.</span>
-            {r.persons&&<span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {r.persons} pers.</span>}
-            {r.duration&&<span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {r.duration}</span>}
-            {r.difficulty&&<span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:TXT2,fontWeight:600}}>{RECIPE_DIFFICULTY.find(d=>d.id===r.difficulty)?.label}</span>}
-            {cost&&<span style={{fontSize:11,background:"rgba(90,138,58,.1)",padding:"3px 8px",borderRadius:20,color:SUC,fontWeight:700}}>~{cost.total.toFixed(2)}€</span>}
-            {r.note&&<span style={{fontSize:11,background:CREAM2,padding:"3px 8px",borderRadius:20,color:CARAMEL2,fontWeight:600}}>📝</span>}
+        <div style={{padding:"8px 10px 10px"}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:12,marginBottom:5,color:CARAMEL,fontWeight:700,lineHeight:1.25,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{r.name}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+            {r.duration&&<span style={{fontSize:10,background:CREAM2,padding:"2px 7px",borderRadius:20,color:TXT2,fontWeight:600}}>⏱️ {r.duration}</span>}
+            {r.persons&&<span style={{fontSize:10,background:CREAM2,padding:"2px 7px",borderRadius:20,color:TXT2,fontWeight:600}}>👥 {r.persons}</span>}
+            {cost&&<span style={{fontSize:10,background:"rgba(90,138,58,.1)",padding:"2px 7px",borderRadius:20,color:SUC,fontWeight:700}}>~{cost.total.toFixed(2)}€</span>}
           </div>
         </div>
       </div>
     );
   }
 
+  // ─── helpers tabs ───────────────────────────────────────
+  const [favTab,setFavTab]=useState(false); // true = favoris, false = toutes
+
   return(
     <div style={{padding:14,paddingBottom:90}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT,fontWeight:700}}>Mes recettes</div>
-        <div style={{display:"flex",gap:7,alignItems:"center"}}>
+
+      {/* ─── HEADER ─── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:22,color:TXT,fontWeight:900}}>Mes recettes</div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:2}}>
             <div onClick={()=>{setRecipeView("liste");localStorage.setItem("ws_recipe_view","liste");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="liste"?SURF:"transparent",boxShadow:recipeView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>☰</div>
             <div onClick={()=>{setRecipeView("grille");localStorage.setItem("ws_recipe_view","grille");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="grille"?SURF:"transparent",boxShadow:recipeView==="grille"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>⊞</div>
           </div>
-          <button style={btn("acc")} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Recette</button>
+          <button style={{...btn("acc"),fontSize:12,padding:"8px 13px"}} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Créer</button>
         </div>
       </div>
-      <div style={{position:"relative",marginBottom:8}}>
-        <input style={{...inp,paddingLeft:34}} placeholder="Rechercher par nom, ingrédient…" value={search} onChange={e=>setSearch(e.target.value)}/>
+
+      {/* ─── RECHERCHE ─── */}
+      <div style={{position:"relative",marginBottom:10}}>
+        <input style={{...inp,paddingLeft:34}} placeholder="Nom, ingrédient, cuisine…" value={search} onChange={e=>setSearch(e.target.value)}/>
         <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,pointerEvents:"none"}}>🔍</span>
         {search&&<span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,cursor:"pointer",color:TXT3}} onClick={()=>setSearch("")}>✕</span>}
       </div>
-      <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
-        <button style={{...btn(activeFiltersCount>0?"acc":"gh"),fontSize:11,padding:"7px 12px"}} onClick={()=>setShowFilters(!showFilters)}>🎚️ Filtres{activeFiltersCount>0?` (${activeFiltersCount})`:""}</button>
-        {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"5px 10px",color:DNG}} onClick={()=>{setDiffFilters(new Set());setTypeFilters(new Set());setTimeFilters(new Set());setDietFilters(new Set());setAreaFilter("");}}>✕ Effacer</button>}
-      </div>
-      {showFilters&&(
-        <div style={{...card,background:"rgba(255,255,255,.92)",marginBottom:10,padding:"12px 14px"}}>
-          <div style={{marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Régime</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {["🌱 Végétarien","🌿 Vegan","🚫🌾 Sans gluten","🥛 Sans lactose","🐟 Poisson","🥩 Viande","⚡ Rapide"].map(f=>(
-                <span key={f} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:dietFilters.has(f)?CARAMEL2:CREAM2,color:dietFilters.has(f)?"white":TXT2,border:`1px solid ${dietFilters.has(f)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600,display:"inline-flex",alignItems:"center",gap:3}} onClick={()=>toggleFilter(setDietFilters,f)}>{dietFilters.has(f)&&<span style={{fontSize:9}}>✓</span>}{f}</span>
+
+      {/* ─── RÉSULTATS RECHERCHE : mes recettes en premier, MealDB ensuite ─── */}
+      {search.trim().length>=2&&(
+        <>
+          {/* Mes recettes filtrées */}
+          {filtered.length>0&&(
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+                Dans mes recettes <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{filtered.length}</span>
+                <div style={{flex:1,height:1,background:BDR}}/>
+              </div>
+              {filtered.slice(0,3).map(r=><RecipeCard key={r.id||db.recipes.indexOf(r)} r={r}/>)}
+            </div>
+          )}
+          {/* MealDB en second */}
+          {(mealdbResults.length>0||mealdbLoading)&&(
+            <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:10,padding:"10px 13px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                <span style={{fontSize:13}}>🌐</span>
+                <div style={{fontSize:11,fontWeight:700,color:CARAMEL}}>Dans TheMealDB</div>
+                {mealdbLoading&&<div style={{fontSize:10,color:TXT3,marginLeft:4}}>Recherche…</div>}
+                {!mealdbLoading&&mealdbResults.length>0&&<span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700,marginLeft:2}}>{mealdbResults.length}</span>}
+              </div>
+              {mealdbResults.map(r=>(
+                <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
+                  if(r._localData){const wrecipe=localMealToWisely(r._localData);setShowMealDB({...r,_preloaded:wrecipe});}
+                  else{setShowMealDB(r);}
+                }}>
+                  {r.photo
+                    ?<img src={r.photo+"/preview"} alt="" style={{width:38,height:38,objectFit:"cover",borderRadius:8,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+                    :<div style={{width:38,height:38,borderRadius:8,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji={guessRecipeEmoji(r.name||"")} size={20}/></div>
+                  }
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                    <div style={{fontSize:9,color:TXT3}}>{r.category}{r.area?" · "+r.area:""}</div>
+                  </div>
+                  <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();
+                    if(r._localData){const wrecipe=localMealToWisely(r._localData);setShowMealDB({...r,_preloaded:wrecipe});}
+                    else{setShowMealDB(r);}
+                  }}>Voir</button>
+                </div>
               ))}
+              {mealdbResults.length===5&&(
+                <div style={{fontSize:10,color:CARAMEL2,fontWeight:700,textAlign:"center",marginTop:8,cursor:"pointer"}} onClick={()=>setShowMealDB(true)}>
+                  Voir tous les résultats dans TheMealDB →
+                </div>
+              )}
+            </div>
+          )}
+          {filtered.length===0&&!mealdbLoading&&mealdbResults.length===0&&(
+            <div style={{textAlign:"center",padding:"32px 20px",color:TXT3,fontSize:13}}>Aucun résultat pour « {search} »</div>
+          )}
+        </>
+      )}
+
+      {/* ─── CONTENU PRINCIPAL (hors recherche) ─── */}
+      {!search.trim()&&(
+        <>
+          {/* Filtres rapides scrollables */}
+          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:8,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+            {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
+              <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(setDietFilters,t)}>
+                {t}
+              </div>
+            ))}
+            {/* Filtres avancés */}
+            <div style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:showFilters||activeFiltersCount>0?CARAMEL:"rgba(255,255,255,.75)",color:showFilters||activeFiltersCount>0?"white":TXT2,cursor:"pointer",border:`1px solid ${showFilters||activeFiltersCount>0?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFilters(f=>!f)}>
+              🎚️{activeFiltersCount>0?` (${activeFiltersCount})`:""}
             </div>
           </div>
-          <div style={{marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Difficulté</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {RECIPE_DIFFICULTY.map(d=>(
-                <span key={d.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:diffFilters.has(d.id)?CARAMEL2:CREAM2,color:diffFilters.has(d.id)?"white":TXT2,border:`1px solid ${diffFilters.has(d.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>d.id===""?setDiffFilters(new Set()):toggleFilter(setDiffFilters,d.id)}>{d.label}{diffFilters.has(d.id)&&" ✓"}</span>
-              ))}
+
+          {/* Panel filtres avancés */}
+          {showFilters&&(
+            <div style={{...card,background:"rgba(255,255,255,.94)",marginBottom:10,padding:"12px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontSize:12,fontWeight:800,color:TXT}}>🎚️ Filtres avancés</div>
+                <div style={{display:"flex",gap:5}}>
+                  {activeFiltersCount>0&&<button style={{...btn("gh"),fontSize:10,padding:"4px 8px",color:DNG}} onClick={()=>{setDiffFilters(new Set());setTypeFilters(new Set());setTimeFilters(new Set());setDietFilters(new Set());setAreaFilter("");}}>✕ Effacer</button>}
+                  <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>setShowFilters(false)}>Fermer</button>
+                </div>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:TXT2,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>Difficulté</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {RECIPE_DIFFICULTY.filter(d=>d.id).map(d=>(
+                    <span key={d.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:diffFilters.has(d.id)?CARAMEL2:CREAM2,color:diffFilters.has(d.id)?"white":TXT2,border:`1px solid ${diffFilters.has(d.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>toggleFilter(setDiffFilters,d.id)}>{d.label}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:TXT2,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>Temps</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {[{id:"fast",label:"⚡ <30min"},{id:"medium",label:"🕐 30-60min"},{id:"slow",label:"🐢 >1h"}].map(t=>(
+                    <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:timeFilters.has(t.id)?CARAMEL2:CREAM2,color:timeFilters.has(t.id)?"white":TXT2,border:`1px solid ${timeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>toggleFilter(setTimeFilters,t.id)}>{t.label}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{marginBottom:db.recipes.some(r=>r.area)?10:0}}>
+                <div style={{fontSize:10,fontWeight:800,color:TXT2,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>Type de repas</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {RECIPE_MEAL_TYPE.filter(t=>t.id).map(t=>(
+                    <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:typeFilters.has(t.id)?CARAMEL2:CREAM2,color:typeFilters.has(t.id)?"white":TXT2,border:`1px solid ${typeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>toggleFilter(setTypeFilters,t.id)}>{t.label}</span>
+                  ))}
+                </div>
+              </div>
+              {db.recipes.some(r=>r.area)&&(
+                <div>
+                  <div style={{fontSize:10,fontWeight:800,color:TXT2,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>Origine</div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    {[...new Set(db.recipes.map(r=>r.area).filter(Boolean))].sort().map(a=>(
+                      <span key={a} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:areaFilter===a?CARAMEL2:CREAM2,color:areaFilter===a?"white":TXT2,border:`1px solid ${areaFilter===a?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setAreaFilter(areaFilter===a?"":a)}>{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Tabs Toutes / Favoris / Thèmes */}
+          <div style={{display:"flex",background:"rgba(255,255,255,.6)",borderRadius:12,padding:3,marginBottom:10,border:"1px solid rgba(255,255,255,.5)"}}>
+            {[
+              {id:"recettes",label:"🍽️ Toutes"},
+              {id:"likes",label:`❤️ Favoris${likedIds.size>0?" ("+likedIds.size+")":""}`},
+              {id:"dossiers",label:`🏷️ Thèmes${folders.length>0?" ("+folders.length+")":""}` },
+            ].map(t=>(
+              <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:tab===t.id?"white":CREAM2,color:tab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .15s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
+                {t.label}
+              </div>
+            ))}
           </div>
-          <div style={{marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Type de repas</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {RECIPE_MEAL_TYPE.map(t=>(
-                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:typeFilters.has(t.id)?CARAMEL2:CREAM2,color:typeFilters.has(t.id)?"white":TXT2,border:`1px solid ${typeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>t.id===""?setTypeFilters(new Set()):toggleFilter(setTypeFilters,t.id)}>{t.label}{typeFilters.has(t.id)&&" ✓"}</span>
+
+          {/* Sous-navigation thèmes */}
+          {tab==="dossiers"&&(
+            <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8,marginBottom:10,scrollbarWidth:"none"}}>
+              {folders.map(f=>(
+                <div key={f.id} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:activeFolder===f.id?CARAMEL:"rgba(255,255,255,.75)",color:activeFolder===f.id?"white":TXT2,cursor:"pointer",border:`1px solid ${activeFolder===f.id?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setActiveFolder(f.id)}>
+                  🏷️ {f.name} ({(f.recipeIds||[]).length})
+                </div>
               ))}
-            </div>
-          </div>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Temps</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {[{id:"",label:"Tous"},{id:"fast",label:"⚡ <30min"},{id:"medium",label:"🕐 30-60min"},{id:"slow",label:"🐢 >1h"}].map(t=>(
-                <span key={t.id} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:timeFilters.has(t.id)?CARAMEL2:CREAM2,color:timeFilters.has(t.id)?"white":TXT2,border:`1px solid ${timeFilters.has(t.id)?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>t.id===""?setTimeFilters(new Set()):toggleFilter(setTimeFilters,t.id)}>{t.label}{timeFilters.has(t.id)&&" ✓"}</span>
-              ))}
-            </div>
-          </div>
-          {/* Filtre origine : affiché seulement si des recettes importées ont un champ area */}
-          {db.recipes.some(r=>r.area)&&(
-            <div style={{marginTop:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:TXT2,marginBottom:6}}>Origine</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {["",...[...new Set(db.recipes.map(r=>r.area).filter(Boolean))].sort()].map(a=>(
-                  <span key={a||"__all"} style={{fontSize:11,padding:"4px 10px",borderRadius:16,background:areaFilter===a&&a?CARAMEL2:CREAM2,color:areaFilter===a&&a?"white":TXT2,border:`1px solid ${areaFilter===a&&a?CARAMEL2:BDR}`,cursor:"pointer",fontWeight:600}} onClick={()=>setAreaFilter(a)}>{a||"Tous"}{areaFilter===a&&a&&" ✓"}</span>
-                ))}
+              <div style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.75)",color:TXT2,cursor:"pointer",border:`1px solid ${BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFolders(true)}>
+                + Créer
               </div>
             </div>
           )}
-        </div>
-      )}
-      {search.trim().length>=2&&(mealdbResults.length>0||mealdbLoading)&&(
-        <div style={{...card,background:"rgba(255,255,255,.9)",marginBottom:10,padding:"10px 14px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-            <span style={{fontSize:14}}>🌐</span>
-            <div style={{fontSize:12,fontWeight:700,color:CARAMEL}}>{mealdbResults.some(r=>r._localData)?"📦 Base locale":"TheMealDB"}</div>
-            {mealdbLoading&&<div style={{fontSize:10,color:TXT3}}>Recherche…</div>}
-          </div>
-          {mealdbResults.map(r=>(
-            <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>{
-              if(r._localData){
-                // Recette locale → pré-rempli, pas d'appel réseau
-                const wrecipe = localMealToWisely(r._localData);
-                setShowMealDB({...r, _preloaded: wrecipe});
-              } else {
-                setShowMealDB(r);
-              }
-            }}>
-              {r.photo
-                ? <img src={r.photo+"/preview"} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:7,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-                : <div style={{width:40,height:40,borderRadius:7,background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji={guessRecipeEmoji(r.name||"")} size={22}/></div>
-              }
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                <div style={{fontSize:10,color:TXT3}}>{r.category}{r.area?" · "+r.area:""}</div>
+
+          {/* ─── MES RECETTES ─── */}
+          {tab!=="dossiers"||activeFolder!==null?(
+            <>
+              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+                {tab==="likes"?"❤️ Favoris":tab==="dossiers"&&activeFolder?`🏷️ ${folders.find(f=>f.id===activeFolder)?.name}`:"Mes recettes"}
+                <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{filtered.length}</span>
+                <div style={{flex:1,height:1,background:BDR}}/>
               </div>
-              <button style={{...btn("acc"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();
-                if(r._localData){
-                  const wrecipe = localMealToWisely(r._localData);
-                  setShowMealDB({...r, _preloaded: wrecipe});
-                } else { setShowMealDB(r); }
-              }}>👁️ Voir & importer</button>
+              {filtered.length===0?(
+                <div style={{textAlign:"center",padding:"40px 20px"}}>
+                  <div style={{marginBottom:12}}><EmojiImg emoji={db.recipes.length===0?"🍴":"🔍"} size={44}/></div>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>
+                    {db.recipes.length===0?"Aucune recette":tab==="likes"?"Aucun favori":"Aucun résultat"}
+                  </div>
+                  <div style={{fontSize:13,color:TXT3,marginBottom:16}}>
+                    {db.recipes.length===0?"Créez votre première recette ou importez depuis TheMealDB":tab==="likes"?"Marquez des recettes ❤️ pour les retrouver ici":"Essayez d'autres filtres"}
+                  </div>
+                  {db.recipes.length===0&&<button style={{...btn("acc")}} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Créer une recette</button>}
+                </div>
+              ):(
+                recipeView==="grille"?(
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                    {filtered.map(r=><RecipeCard key={r.id||db.recipes.indexOf(r)} r={r}/>)}
+                  </div>
+                ):(
+                  <div style={{marginBottom:14}}>
+                    {filtered.map(r=><RecipeCard key={r.id||db.recipes.indexOf(r)} r={r}/>)}
+                  </div>
+                )
+              )}
+            </>
+          ):(
+            <div style={{textAlign:"center",padding:"40px 20px"}}>
+              <div style={{marginBottom:12}}><EmojiImg emoji="🏷️" size={44}/></div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>Vos thèmes</div>
+              <div style={{fontSize:13,color:TXT3,marginBottom:16}}>Sélectionnez un thème ou créez-en un nouveau</div>
+              <button style={{...btn("acc")}} onClick={()=>setShowFolders(true)}>+ Créer un thème</button>
             </div>
-          ))}
-        </div>
-      )}
-      <div style={{marginBottom:10}}>
-        <div style={{...card,display:"flex",alignItems:"center",gap:12,padding:"13px 16px",cursor:"pointer",background:`linear-gradient(135deg,rgba(255,255,255,.95),${CREAM2})`,border:`1.5px solid ${CARAMEL2}`,marginBottom:7,boxShadow:`0 3px 14px rgba(184,112,58,.15)`}} onClick={()=>setShowMealDB(true)}>
-          <div style={{width:42,height:42,borderRadius:12,background:`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji="🌐" size={22}/></div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:14,fontWeight:800,color:CARAMEL,fontFamily:"'Fraunces',serif"}}>TheMealDB</div>
-            <div style={{fontSize:11,color:TXT2,marginTop:1}}>Des milliers de recettes par catégorie & origine</div>
-          </div>
-          <div style={{fontSize:20,color:CARAMEL2,fontWeight:700}}>›</div>
-        </div>
-        <div style={{display:"flex",gap:7}}>
-          <div style={{...card,flex:1,display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",background:"rgba(255,255,255,.85)"}} onClick={()=>setShowAI(true)}>
-            <EmojiImg emoji="🤖" size={20}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:TXT}}>Recette IA</div>
-              <div style={{fontSize:10,color:TXT3}}>Générer & modifier</div>
-            </div>
-          </div>
-          <div style={{...card,flex:1,display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",background:"rgba(255,255,255,.85)"}} onClick={()=>setShowFolders(true)}>
-            <EmojiImg emoji="🏷️" size={20}/>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:TXT}}>Thèmes</div>
-              <div style={{fontSize:10,color:TXT3}}>{folders.length} créé{folders.length!==1?"s":""}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      <div style={{display:"flex",gap:4,background:"rgba(255,255,255,.6)",borderRadius:12,padding:3,marginBottom:10}}>
-        {[{id:"recettes",label:"🍽️ Toutes"},{id:"dossiers",label:"🏷️ Thèmes"}].map(t=>(
-          <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:12,fontWeight:700,borderRadius:9,background:tab===t.id?"white":CREAM2,color:tab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .2s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
-            {t.label}
+          {/* ─── DÉCOUVRIR (en bas, secondaire) ─── */}
+          <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+            Découvrir<div style={{flex:1,height:1,background:BDR}}/>
           </div>
-        ))}
-      </div>
-
-            {/* Sous-navigation dossiers */}
-      {tab==="dossiers"&&(
-        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8,marginBottom:10,scrollbarWidth:"none"}}>
-          <div style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:activeFolder==="likes"?CARAMEL:"rgba(255,255,255,.75)",color:activeFolder==="likes"?"white":TXT2,cursor:"pointer",border:`1px solid ${activeFolder==="likes"?CARAMEL:BDR}`}} onClick={()=>setActiveFolder("likes")}>
-            ❤️ Favoris ({(db.likedRecipes||[]).length})
+          <div style={{display:"flex",gap:7}}>
+            <div style={{flex:2,...card,display:"flex",alignItems:"center",gap:10,padding:"11px 13px",cursor:"pointer",background:`linear-gradient(135deg,rgba(255,255,255,.95),${CREAM2})`,border:`1.5px solid ${CARAMEL2}`}} onClick={()=>setShowMealDB(true)}>
+              <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><EmojiImg emoji="🌐" size={18}/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:800,color:CARAMEL,fontFamily:"'Fraunces',serif"}}>TheMealDB</div>
+                <div style={{fontSize:10,color:TXT2,marginTop:1}}>Des milliers de recettes</div>
+              </div>
+              <div style={{fontSize:18,color:CARAMEL2}}>›</div>
+            </div>
+            <div style={{flex:1,...card,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,padding:"11px 8px",cursor:"pointer",background:"rgba(255,255,255,.85)"}} onClick={()=>setShowAI(true)}>
+              <EmojiImg emoji="🤖" size={22}/>
+              <div style={{fontSize:11,fontWeight:700,color:TXT}}>Recette IA</div>
+            </div>
           </div>
-          {folders.map(f=>(
-            <div key={f.id} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:activeFolder===f.id?CARAMEL:"rgba(255,255,255,.75)",color:activeFolder===f.id?"white":TXT2,cursor:"pointer",border:`1px solid ${activeFolder===f.id?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setActiveFolder(f.id)}>
-              🏷️ {f.name} ({(f.recipeIds||[]).length})
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Filtres régime */}
-      {(tab==="recettes"||activeFolder!==null)&&(
-        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8,marginBottom:10,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-          {DIET_TAGS.map(t=>(
-            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s",display:"inline-flex",alignItems:"center",gap:3}} onClick={()=>toggleFilter(setDietFilters,t)}>
-              {t}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Liste ou état vide */}
-      {tab==="dossiers"&&activeFolder===null?(
-        <div style={{textAlign:"center",padding:"48px 20px"}}>
-          <div style={{marginBottom:12}}><EmojiImg emoji="📁" size={44}/></div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>Vos thèmes</div>
-          <div style={{fontSize:13,color:TXT3,marginBottom:16}}>Sélectionnez un thème ci-dessus ou créez-en un</div>
-          <button style={{...btn("acc")}} onClick={()=>setShowFolders(true)}>+ Créer un dossier</button>
-        </div>
-      ):filtered.length===0?(
-        <div style={{textAlign:"center",padding:"48px 20px"}}>
-          <div style={{marginBottom:12}}><EmojiImg emoji={db.recipes.length===0?"🍴":"🔍"} size={44}/></div>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:6,color:TXT}}>{db.recipes.length===0?"Aucune recette":"Aucun résultat"}</div>
-          <div style={{fontSize:13,color:TXT3}}>{db.recipes.length===0?"Créez votre première recette ou importez depuis TheMealDB":"Essayez un autre filtre ou ajoutez des recettes à ce thème"}</div>
-        </div>
-      ):(
-        filtered.map(r=><RecipeCard key={r.id||db.recipes.indexOf(r)} r={r}/>)
+        </>
       )}
 
       {showEdit&&<RecipeEdit recipe={editIdx>=0?db.recipes[editIdx]:null} onSave={saveRecipe} onClose={()=>setShowEdit(false)} showToast={showToast}/>}
