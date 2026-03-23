@@ -2272,7 +2272,7 @@ function PageRecettes({db,setDb,showToast}){
         </>
       )}
 
-      {showEdit&&<RecipeEdit recipe={editIdx>=0?db.recipes[editIdx]:null} onSave={saveRecipe} onClose={()=>setShowEdit(false)} showToast={showToast}/>}
+      {showEdit&&<RecipeEdit recipe={editIdx>=0?db.recipes[editIdx]:null} onSave={saveRecipe} onClose={()=>setShowEdit(false)} onDel={editIdx>=0?()=>{delRecipe(editIdx);setShowEdit(false);}:undefined} showToast={showToast}/>}
       {viewIdx>=0&&db.recipes[viewIdx]&&<RecipeView
         recipe={db.recipes[viewIdx]} priceDB={db.priceDB} db={db} setDb={d=>{setDb(d);saveDB(d);}}
         onClose={()=>setViewIdx(-1)}
@@ -2669,7 +2669,8 @@ function ApiKeyModal({open,onSave,onClose}){
 }
 
 // ─── RECIPE EDIT ──────────────────────────────────────────────
-function RecipeEdit({recipe,onSave,onClose,showToast}){
+function RecipeEdit({recipe,onSave,onClose,onDel,showToast}){
+  const isNew=!recipe;
   const [name,setName]=useState(recipe?.name||"");
   const [persons,setPersons]=useState(recipe?.persons||"");
   const [duration,setDuration]=useState(recipe?.duration||"");
@@ -2685,10 +2686,11 @@ function RecipeEdit({recipe,onSave,onClose,showToast}){
   const [cropSrc,setCropSrc]=useState(null);
   const [cropFor,setCropFor]=useState(null);
   const [showApiKey,setShowApiKey]=useState(false);
-  // Multi-scan
   const [multiMode,setMultiMode]=useState(false);
   const [multiPhotos,setMultiPhotos]=useState([]);
   const [merging,setMerging]=useState(false);
+  const [openPanel,setOpenPanel]=useState(null); // "note"|"delete"|null
+  const [noteText,setNoteText]=useState(recipe?.note||"");
   const scanRef=useRef(),photoRef=useRef(),multiRef=useRef();
 
   function handlePhoto(e){
@@ -2699,322 +2701,247 @@ function RecipeEdit({recipe,onSave,onClose,showToast}){
   function handleScanFile(e){
     const file=e.target.files[0];if(!file)return;
     const mt=file.type||"image/jpeg";
-    const r=new FileReader();r.onload=ev=>{
-      const dataUrl=ev.target.result;
-      setScannedRaw({dataUrl,mt});
-      doScan(dataUrl,mt);
-    };r.readAsDataURL(file);e.target.value="";
+    const r=new FileReader();r.onload=ev=>{const dataUrl=ev.target.result;setScannedRaw({dataUrl,mt});doScan(dataUrl,mt);};
+    r.readAsDataURL(file);e.target.value="";
   }
 
   function handleMultiFile(e){
     const file=e.target.files[0];if(!file)return;
     const mt=file.type||"image/jpeg";
-    const r=new FileReader();r.onload=ev=>{
-      setMultiPhotos(prev=>[...prev,{dataUrl:ev.target.result,mt,id:Date.now()}]);
-    };r.readAsDataURL(file);e.target.value="";
+    const r=new FileReader();r.onload=ev=>{setMultiPhotos(prev=>[...prev,{dataUrl:ev.target.result,mt,id:Date.now()}]);};
+    r.readAsDataURL(file);e.target.value="";
   }
 
   function removeMultiPhoto(id){setMultiPhotos(prev=>prev.filter(p=>p.id!==id));}
-
-  async function doMultiScan(){
-    if(multiPhotos.length<2){showToast("⚠️ Ajoutez au moins 2 photos");return;}
-    const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){setShowApiKey(true);return;}
-    setMerging(true);setScanMsg("");setScanStatus("idle");
-    const prompt=`Tu es un expert en extraction de recettes de cuisine. On t'envoie ${multiPhotos.length} photos d'une même recette (pages successives ou zones qui se chevauchent).
-TÂCHE : Fusionne toutes ces images en UNE SEULE recette cohérente.
-RÈGLES DE FUSION :
-- Si un ingrédient apparaît plusieurs fois (zones qui se recoupent), ne le garde qu'UNE seule fois
-- Pour les étapes, reconstitue l'ordre logique même si elles sont sur des photos différentes
-- Prends le titre de la photo qui le montre le mieux
-- Si une photo montre une VRAIE PHOTOGRAPHIE d'un plat cuisiné où la nourriture occupe la majorité de l'image (sans texte dominant), "dishPhotoDataPresent":true. Une page de livre avec une petite illustration = false.
-RETOURNE UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :
-{"title":null,"persons":null,"duration":null,"dishPhotoDataPresent":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
-INSTRUCTIONS : qty=chiffre seul, unit=unité normalisée (g,kg,ml,cl,L,càs,càc,pincée,sachet,boîte,bouteille,paquet,tranche,botte), noms génériques sans marques, steps dans l'ordre logique`;
-    try{
-      const content=[
-        ...multiPhotos.map((p,i)=>[
-          {type:"text",text:`— Photo ${i+1}/${multiPhotos.length} :`},
-          {type:"image",source:{type:"base64",media_type:p.mt,data:p.dataUrl.split(",")[1]}}
-        ]).flat(),
-        {type:"text",text:prompt}
-      ];
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content}]})
-      });
-      if(!resp.ok){
-        const errData=await resp.json().catch(()=>({}));
-        if(resp.status===401){localStorage.removeItem("ws_apikey");setShowApiKey(true);}
-        throw new Error("Erreur "+resp.status+(errData.error?.message?" : "+errData.error.message:""));
-      }
-      const data=await resp.json();
-      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
-      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
-      const p=JSON.parse(text);
-      if(p.title)setName(p.title);
-      if(p.persons)setPersons(String(p.persons));
-      if(p.duration)setDuration(p.duration);
-      if(p.dishPhotoDataPresent&&multiPhotos.length)setPhoto(multiPhotos[0].dataUrl);
-      if(p.ingredients?.length)setIngs(p.ingredients.map(i=>({name:i.name||"",qty:i.qty||"",unit:normUnit(i.unit||"")})));
-      if(p.steps?.length)setSteps(p.steps.map(s=>s.trim()).filter(Boolean));
-      const nbI=p.ingredients?.filter(i=>i.name)?.length||0,nbS=p.steps?.length||0;
-      setScanMsg(`✨ ${multiPhotos.length} photos fusionnées — ${nbI} ingrédient${nbI>1?"s":""}, ${nbS} étape${nbS>1?"s":""}`);
-      setScanStatus("ok");setMultiMode(false);setMultiPhotos([]);
-    }catch(err){
-      console.error(err);setScanMsg("❌ "+err.message);setScanStatus("error");
-    }
-    setMerging(false);
-  }
 
   function handleCropConfirm(dataUrl){
     if(cropFor==="photo"){setPhoto(dataUrl);setCropSrc(null);}
     else if(cropFor==="scan-retry"){setCropSrc(null);doScan(dataUrl,scannedRaw?.mt||"image/jpeg");}
   }
 
-  async function doScan(dataUrl,mt="image/jpeg"){
-    const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){setShowApiKey(true);return;}
-    setScanning(true);setScanMsg("");setScanStatus("idle");
-    const base64=dataUrl.split(",")[1];
-    const prompt=`Tu es un expert en extraction de recettes de cuisine à partir d'images. Analyse cette image et retourne UNIQUEMENT un objet JSON valide (sans markdown, sans backtick, sans texte autour).
-
-FORMAT EXACT :
-{"title":null,"persons":null,"duration":null,"dishPhotoDataPresent":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
-
-INSTRUCTIONS PRÉCISES :
-
-1. IDENTIFICATION DU CONTENU :
-   - Si l'image contient du TEXTE de recette (livre, magazine, fiche, écran) → extrais les données, "dishPhotoDataPresent":false
-   - "dishPhotoDataPresent":true UNIQUEMENT si l'image est une VRAIE PHOTOGRAPHIE d'un plat cuisiné où la nourriture occupe la MAJORITÉ de l'image, sans texte dominant. Une page de livre avec une petite photo en haut = false. Une page avec des ingrédients illustrés = false. Seule une photo réelle d'un plat servi = true.
-
-2. EXTRACTION DES INGRÉDIENTS (priorité absolue) :
-   - Cherche la liste d'ingrédients même si elle est dans un encadré, une colonne latérale, ou en petit texte
-   - qty = chiffre seul (ex: "200", "2", "0.5"), sans unité
-   - unit = unité seule normalisée (g, kg, ml, cl, L, càs, càc, pincée, sachet, boîte, bouteille, paquet, tranche, botte)
-   - Si pas de quantité précise : qty=""
-   - Ignore les décorations, publicités, numéros de page
-
-3. NOMS D'INGRÉDIENTS :
-   - Utilise le nom générique en français (ex: "tomates cerises" et non "Tomates Cerises Barquette Bio")
-   - Supprime les marques commerciales
-
-4. title : titre principal de la recette, null si absent
-5. persons : nombre de personnes (chiffre seul), null si absent  
-6. duration : durée totale ou de préparation (ex: "45 min"), null si absente
-7. steps : étapes numérotées extraites du texte, dans l'ordre, texte original conservé`;
-
-    try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "x-api-key":apiKey,
-          "anthropic-version":"2023-06-01",
-          "anthropic-dangerous-direct-browser-access":"true"
-        },
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:3000,
-          messages:[{role:"user",content:[
-            {type:"image",source:{type:"base64",media_type:mt,data:base64}},
-            {type:"text",text:prompt}
-          ]}]
-        })
-      });
-      if(!resp.ok){
-        const errData=await resp.json().catch(()=>({}));
-        if(resp.status===401){
-          throw new Error("Clé API invalide (401) — vérifiez sur console.anthropic.com");
-        }
-        throw new Error("Erreur "+resp.status+(errData.error?.message?" : "+errData.error.message:""));
-      }
-      const data=await resp.json();
-      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
-      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
-      const p=JSON.parse(text);
-      if(p.title)setName(p.title);
-      if(p.persons)setPersons(String(p.persons));
-      if(p.duration)setDuration(p.duration);
-      // ✅ CORRECTION : utilise dishPhotoDataPresent pour mieux détecter la photo du plat
-      if(p.dishPhotoDataPresent)setPhoto(dataUrl);
-      if(p.ingredients?.length)setIngs(p.ingredients.map(i=>({name:i.name||"",qty:i.qty||"",unit:normUnit(i.unit||"")})));
-      if(p.steps?.length)setSteps(p.steps.map(s=>s.trim()).filter(Boolean));
-      // Message de résultat précis
-      const nbIngr=p.ingredients?.filter(i=>i.name)?.length||0;
-      const nbSteps=p.steps?.length||0;
-      setScanMsg(`✨ ${nbIngr} ingrédient${nbIngr>1?"s":""} et ${nbSteps} étape${nbSteps>1?"s":""} extraits !`);
-      setScanStatus("ok");
-    }catch(err){
-      console.error(err);
-      if(err.message.includes("401")){
-        localStorage.removeItem("ws_apikey");
-        setShowApiKey(true);
-      }
-      setScanMsg("❌ "+err.message);setScanStatus("error");
-    }
-    setScanning(false);
-  }
-
   function uIng(i,f,v){const n=[...ings];n[i]={...n[i],[f]:v};setIngs(n);}
   function uStep(i,v){const n=[...steps];n[i]=v;setSteps(n);}
+
   function doSave(){
     if(!name.trim()){showToast("⚠️ Donnez un nom à la recette");return;}
-    onSave({id:recipe?.id||Date.now(),name:name.trim(),photo,persons:parseInt(persons)||null,duration:duration.trim()||null,
-      difficulty:difficulty||null,mealType:mealType||null,
-      ingredients:ings.filter(i=>i.name.trim()),steps:steps.filter(Boolean),
-      date:recipe?.date||new Date().toLocaleDateString("fr-FR")});
+    onSave({
+      id:recipe?.id||Date.now(),
+      name:name.trim(),photo,
+      persons:parseInt(persons)||null,
+      duration:duration.trim()||null,
+      difficulty:difficulty||null,
+      mealType:mealType||null,
+      ingredients:ings.filter(i=>i.name.trim()),
+      steps:steps.filter(Boolean),
+      note:noteText.trim()||recipe?.note||null,
+      source:recipe?.source||null,
+      mealdbId:recipe?.mealdbId||null,
+      stars:recipe?.stars||null,
+      lastCooked:recipe?.lastCooked||null,
+      cookedCount:recipe?.cookedCount||0,
+      date:recipe?.date||new Date().toLocaleDateString("fr-FR")
+    });
   }
 
   return(
     <>
-      <Modal open onClose={onClose}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:20,marginBottom:14}}>{recipe?"Modifier":"Nouvelle recette"}</div>
+      <Modal open onClose={onClose} noPad>
 
-        {/* ── Photo du plat ── */}
-        <span style={lbl}>Photo du plat</span>
-        <div style={{border:`2px dashed ${BDR}`,borderRadius:12,padding:photo?0:16,textAlign:"center",cursor:photo?"default":"pointer",background:CREAM,overflow:"hidden",marginBottom:6}} onClick={()=>!photo&&photoRef.current.click()}>
-          {photo
-            ?<img src={photo} style={{width:"100%",maxHeight:140,objectFit:"cover",display:"block"}} alt=""/>
-            :<><div style={{marginBottom:4}}><EmojiImg emoji="📷" size={24}/></div><div style={{fontSize:11,color:TXT3}}>Galerie / appareil photo</div></>
-          }
-        </div>
+        {/* ── PHOTO ZONE ── */}
         <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhoto} capture="environment"/>
-        {photo&&(
-          <div style={{display:"flex",gap:6,marginBottom:10}}>
-            <button style={{...btn("gh"),flex:1,fontSize:11,padding:"6px 10px"}} onClick={()=>photoRef.current.click()}>🔄 Changer</button>
-            <button style={{...btn("gh"),flex:1,fontSize:11,padding:"6px 10px"}} onClick={()=>{setCropSrc(photo);setCropFor("photo");}}>✂️ Recadrer</button>
-            <button style={{...btn("dng"),fontSize:11,padding:"6px 10px"}} onClick={()=>setPhoto(null)}>✕</button>
-          </div>
-        )}
-
-        {/* ── Scanner recette IA ── */}
-        <span style={lbl}>Scanner une recette par IA</span>
-
-        {/* Choix du mode */}
-        {!multiMode&&(
-          <div style={{display:"flex",gap:6,marginBottom:8}}>
-            <div style={{flex:1,border:`2px dashed rgba(200,132,90,.35)`,borderRadius:12,padding:12,textAlign:"center",cursor:scanning?"not-allowed":"pointer",background:CREAM,opacity:scanning?.7:1}} onClick={()=>!scanning&&scanRef.current.click()}>
-              <div style={{fontSize:20,marginBottom:2}}>{scanning?"⏳":"📷"}</div>
-              <div style={{fontSize:11,color:CARAMEL2,fontWeight:700}}>{scanning?"Analyse…":"1 photo"}</div>
-              <div style={{fontSize:9,color:TXT3,marginTop:1}}>Recette sur une page</div>
-            </div>
-            <div style={{flex:1,border:`2px dashed rgba(200,132,90,.35)`,borderRadius:12,padding:12,textAlign:"center",cursor:"pointer",background:CREAM}} onClick={()=>{setMultiMode(true);setMultiPhotos([]);setScanMsg("");}}>
-              <div style={{fontSize:20,marginBottom:2}}>📷📷</div>
-              <div style={{fontSize:11,color:CARAMEL2,fontWeight:700}}>Plusieurs photos</div>
-              <div style={{fontSize:9,color:TXT3,marginTop:1}}>Recette sur 2+ pages</div>
-            </div>
-          </div>
-        )}
-        <input ref={scanRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScanFile} capture="environment"/>
-        <input ref={multiRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleMultiFile} capture="environment"/>
-
-        {/* Mode multi-photos */}
-        {multiMode&&(
-          <div style={{background:CREAM2,border:`1.5px solid ${BDR}`,borderRadius:14,padding:12,marginBottom:8}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:12,fontWeight:700,color:TXT}}>📷📷 Mode multi-photos</div>
-              <button style={{...btn("gh"),fontSize:10,padding:"4px 8px"}} onClick={()=>{setMultiMode(false);setMultiPhotos([]);}}>✕ Annuler</button>
-            </div>
-            {/* Miniatures des photos ajoutées */}
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
-              {multiPhotos.map((p,i)=>(
-                <div key={p.id} style={{position:"relative",width:60,height:60}}>
-                  <img src={p.dataUrl} style={{width:60,height:60,objectFit:"cover",borderRadius:8,border:`2px solid ${CARAMEL2}`}} alt={`Photo ${i+1}`}/>
-                  <div style={{position:"absolute",top:-4,right:-4,width:18,height:18,borderRadius:"50%",background:DNG,color:"white",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={()=>removeMultiPhoto(p.id)}>✕</div>
-                  <div style={{position:"absolute",bottom:2,left:2,background:"rgba(0,0,0,.55)",color:"white",fontSize:8,borderRadius:4,padding:"1px 4px",fontWeight:700}}>{i+1}</div>
-                </div>
-              ))}
-              {/* Bouton ajouter photo */}
-              <div style={{width:60,height:60,border:`2px dashed ${CARAMEL2}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column"}} onClick={()=>multiRef.current.click()}>
-                <div style={{fontSize:18}}>+</div>
-                <div style={{fontSize:8,color:TXT3}}>Photo</div>
+        <div style={{height:isNew?140:160,position:"relative",background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0,cursor:isNew&&!photo?"pointer":"default"}}
+          onClick={()=>isNew&&!photo&&photoRef.current.click()}>
+          {photo
+            ?<img src={photo} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+            :<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                <EmojiImg emoji={name?guessRecipeEmoji(name):"📷"} size={isNew?48:52}/>
+                {isNew&&<div style={{fontSize:11,color:TXT2,fontWeight:600,background:"rgba(255,255,255,.75)",borderRadius:8,padding:"3px 10px"}}>📷 Ajouter une photo</div>}
               </div>
-            </div>
-            <div style={{fontSize:10,color:TXT3,marginBottom:8}}>
-              {multiPhotos.length===0?"Ajoutez les photos dans l'ordre (début → fin de la recette)":
-               multiPhotos.length===1?"Ajoutez au moins une 2ème photo":
-               `${multiPhotos.length} photos prêtes — les zones en double seront fusionnées`}
-            </div>
-            <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:12}} onClick={doMultiScan} disabled={merging||multiPhotos.length<2}>
-              {merging?"⏳ Fusion en cours…":`✨ Fusionner et analyser (${multiPhotos.length} photos)`}
+          }
+          {/* Bouton changer photo — modification seulement, en haut à gauche */}
+          {!isNew&&(
+            <button style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,.48)",border:"none",color:"white",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600,backdropFilter:"blur(4px)"}}
+              onClick={()=>photoRef.current.click()}>
+              📷 Changer la photo
             </button>
-          </div>
-        )}
+          )}
+          <button style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,.4)",border:"none",color:"white",borderRadius:8,padding:"5px 9px",fontSize:13,cursor:"pointer",backdropFilter:"blur(4px)"}} onClick={onClose}>✕</button>
+        </div>
 
-        {/* Message de résultat */}
-        {scanMsg&&(
-          <div style={{marginBottom:8}}>
-            <div style={{fontSize:11,textAlign:"center",padding:"6px 10px",borderRadius:8,background:scanStatus==="ok"?"rgba(90,138,58,.12)":"rgba(212,96,74,.12)",color:scanStatus==="ok"?SUC:DNG}}>{scanMsg}</div>
-            {scanStatus==="error"&&scannedRaw&&(
-              <button style={{...btn("gh"),width:"100%",fontSize:11,marginTop:5,justifyContent:"center"}} onClick={()=>{setCropSrc(scannedRaw.dataUrl);setCropFor("scan-retry");}}>
-                ✂️ Recadrer l'image et réessayer
-              </button>
-            )}
-            {scanStatus==="error"&&(
-              <button style={{...btn("gh"),width:"100%",fontSize:11,marginTop:4,justifyContent:"center"}} onClick={()=>setShowApiKey(true)}>
-                🔑 Configurer la clé API
-              </button>
-            )}
-          </div>
-        )}
-        {!localStorage.getItem("ws_apikey")&&(
-          <div style={{fontSize:11,color:TXT3,textAlign:"center",marginBottom:8,padding:"6px 10px",background:CREAM,borderRadius:8,borderLeft:`2px solid ${CARAMEL2}`}}>
-            ⚠️ Clé API requise — <span style={{color:CARAMEL2,cursor:"pointer",fontWeight:600}} onClick={()=>setShowApiKey(true)}>Configurer</span>
-          </div>
-        )}
+        {/* ── CONTENU SCROLLABLE ── */}
+        <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px"}}>
 
-        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
-        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
-        <span style={lbl}>Nom de la recette</span>
-        <input style={{...inp,marginBottom:10}} placeholder="Ex: Poulet rôti" value={name} onChange={e=>setName(e.target.value)}/>
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <div style={{flex:1}}><span style={lbl}>Personnes</span><input style={inp} type="number" min="1" placeholder="4" value={persons} onChange={e=>setPersons(e.target.value)}/></div>
-          <div style={{flex:1}}><span style={lbl}>Durée</span><input style={inp} placeholder="45 min" value={duration} onChange={e=>setDuration(e.target.value)}/></div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <div style={{flex:1}}>
-            <span style={lbl}>Difficulté</span>
-            <select style={sel} value={difficulty} onChange={e=>setDifficulty(e.target.value)}>
-              {RECIPE_DIFFICULTY.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
-            </select>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:900,color:TXT,marginBottom:14}}>
+            {isNew?"Nouvelle recette":"Modifier la recette"}
           </div>
-          <div style={{flex:1}}>
-            <span style={lbl}>Type de repas</span>
-            <select style={sel} value={mealType} onChange={e=>setMealType(e.target.value)}>
-              {RECIPE_MEAL_TYPE.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
+
+          {/* ── SCAN IA — création seulement ── */}
+          {isNew&&(
+            <div style={{background:CREAM2,border:`1.5px solid rgba(200,132,90,.3)`,borderRadius:14,padding:"11px 13px",marginBottom:14}}>
+              <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:9}}>🤖 Importer depuis une photo</div>
+              {!multiMode&&(
+                <div style={{display:"flex",gap:6,marginBottom:scanMsg?8:0}}>
+                  <div style={{flex:1,border:`2px dashed rgba(200,132,90,.35)`,borderRadius:11,padding:"10px 8px",textAlign:"center",cursor:scanning?"not-allowed":"pointer",background:SURF,opacity:scanning?.7:1}} onClick={()=>!scanning&&scanRef.current.click()}>
+                    <div style={{fontSize:18,marginBottom:2}}>{scanning?"⏳":"📸"}</div>
+                    <div style={{fontSize:11,color:CARAMEL2,fontWeight:700}}>{scanning?"Analyse…":"1 page"}</div>
+                  </div>
+                  <div style={{flex:1,border:`2px dashed rgba(200,132,90,.35)`,borderRadius:11,padding:"10px 8px",textAlign:"center",cursor:"pointer",background:SURF}} onClick={()=>{setMultiMode(true);setMultiPhotos([]);setScanMsg("");}}>
+                    <div style={{fontSize:18,marginBottom:2}}>📷📷</div>
+                    <div style={{fontSize:11,color:CARAMEL2,fontWeight:700}}>Multi-pages</div>
+                  </div>
+                </div>
+              )}
+              <input ref={scanRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScanFile} capture="environment"/>
+              <input ref={multiRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleMultiFile} capture="environment"/>
+              {multiMode&&(
+                <div style={{background:CREAM,border:`1.5px solid ${BDR}`,borderRadius:11,padding:10,marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <div style={{fontSize:11,fontWeight:700,color:TXT}}>📷📷 Multi-photos</div>
+                    <button style={{...btn("gh"),fontSize:10,padding:"3px 8px"}} onClick={()=>{setMultiMode(false);setMultiPhotos([]);}}>✕</button>
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>
+                    {multiPhotos.map((p,i)=>(
+                      <div key={p.id} style={{position:"relative",width:56,height:56}}>
+                        <img src={p.dataUrl} style={{width:56,height:56,objectFit:"cover",borderRadius:8,border:`2px solid ${CARAMEL2}`}} alt=""/>
+                        <div style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:"50%",background:DNG,color:"white",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={()=>removeMultiPhoto(p.id)}>✕</div>
+                        <div style={{position:"absolute",bottom:2,left:2,background:"rgba(0,0,0,.55)",color:"white",fontSize:8,borderRadius:4,padding:"1px 4px",fontWeight:700}}>{i+1}</div>
+                      </div>
+                    ))}
+                    <div style={{width:56,height:56,border:`2px dashed ${CARAMEL2}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:SURF,flexDirection:"column"}} onClick={()=>multiRef.current.click()}>
+                      <div style={{fontSize:16}}>+</div>
+                      <div style={{fontSize:8,color:TXT3}}>Photo</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:9,color:TXT3,marginBottom:6}}>{multiPhotos.length<2?"Ajoutez au moins 2 photos":`${multiPhotos.length} photos · prêt`}</div>
+                  <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:11}} onClick={doMultiScan} disabled={merging||multiPhotos.length<2}>
+                    {merging?"⏳ Fusion…":`✨ Analyser (${multiPhotos.length} photos)`}
+                  </button>
+                </div>
+              )}
+              {scanMsg&&(
+                <div style={{fontSize:11,textAlign:"center",padding:"6px 10px",borderRadius:8,background:scanStatus==="ok"?"rgba(90,138,58,.12)":"rgba(212,96,74,.12)",color:scanStatus==="ok"?SUC:DNG,marginTop:scanMsg?4:0}}>{scanMsg}</div>
+              )}
+              {!localStorage.getItem("ws_apikey")&&(
+                <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:6}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,cursor:"pointer",fontWeight:700}} onClick={()=>setShowApiKey(true)}>Configurer 🔑</span></div>
+              )}
+            </div>
+          )}
+
+          {/* ── INFOS ── */}
+          <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
+            Informations<div style={{flex:1,height:1,background:BDR}}/>
           </div>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <span style={{...lbl,marginBottom:0}}>Ingrédients</span>
-          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setIngs([...ings,{name:"",qty:"",unit:""}])}>+ Ajouter</button>
-        </div>
-        {ings.map((ing,i)=>(
-          <div key={i} style={{display:"flex",gap:5,alignItems:"center",marginBottom:5,background:CREAM,borderRadius:10,padding:"6px 8px",border:`1px solid ${BDR}`}}>
-            <input style={{flex:1,background:"transparent",border:"none",color:TXT,fontFamily:"inherit",fontSize:13,outline:"none",minWidth:0}} placeholder="Ingrédient…" value={ing.name} onChange={e=>uIng(i,"name",e.target.value)}/>
-            <input style={{width:44,background:"transparent",border:"none",color:TXT2,fontFamily:"inherit",fontSize:13,textAlign:"right",outline:"none"}} placeholder="Qté" value={ing.qty} onChange={e=>uIng(i,"qty",e.target.value)}/>
-            <select style={{width:58,background:"transparent",border:"none",color:TXT3,fontFamily:"inherit",fontSize:12,outline:"none",appearance:"none",cursor:"pointer"}} value={ing.unit} onChange={e=>uIng(i,"unit",e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
-            <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:13,padding:"0 2px"}} onClick={()=>setIngs(ings.filter((_,j)=>j!==i))}>✕</button>
+          <input style={{...inp,marginBottom:8}} placeholder="Nom de la recette *" value={name} onChange={e=>setName(e.target.value)}/>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:1}}><input style={inp} type="number" min="1" placeholder="Personnes" value={persons} onChange={e=>setPersons(e.target.value)}/></div>
+            <div style={{flex:1}}><input style={inp} placeholder="Durée (ex: 45 min)" value={duration} onChange={e=>setDuration(e.target.value)}/></div>
           </div>
-        ))}
-        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <span style={{...lbl,marginBottom:0}}>Étapes de préparation</span>
-          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setSteps([...steps,""])}>+ Étape</button>
-        </div>
-        {steps.map((step,i)=>(
-          <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:6}}>
-            <div style={{width:22,height:22,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:8}}>{i+1}</div>
-            <textarea style={{...inp,flex:1,padding:"8px 10px",fontSize:13,resize:"none",minHeight:56}} value={step} onChange={e=>uStep(i,e.target.value)}/>
-            <button style={{...btn("gh"),padding:"6px 8px",marginTop:4,fontSize:13}} onClick={()=>setSteps(steps.filter((_,j)=>j!==i))}>✕</button>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{flex:1}}>
+              <select style={sel} value={difficulty} onChange={e=>setDifficulty(e.target.value)}>
+                {RECIPE_DIFFICULTY.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+            </div>
+            <div style={{flex:1}}>
+              <select style={sel} value={mealType} onChange={e=>setMealType(e.target.value)}>
+                {RECIPE_MEAL_TYPE.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
           </div>
-        ))}
-        <div style={{height:1,background:BDR,margin:"12px 0"}}/>
-        <div style={{display:"flex",gap:8}}>
-          <button style={{...btn("gh"),flex:1}} onClick={onClose}>Annuler</button>
-          <button style={{...btn("suc"),flex:1}} onClick={doSave}>✅ Enregistrer</button>
+
+          {/* ── INGRÉDIENTS ── */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,display:"flex",alignItems:"center",gap:7}}>
+              Ingrédients <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{ings.filter(i=>i.name.trim()).length}</span>
+            </div>
+            <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setIngs([...ings,{name:"",qty:"",unit:""}])}>+ Ajouter</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>
+            {ings.map((ing,i)=>(
+              <div key={i} style={{display:"flex",gap:5,alignItems:"center",background:"rgba(255,255,255,.88)",borderRadius:10,padding:"7px 10px",border:`1px solid ${BDR}`}}>
+                <span style={{fontSize:14,flexShrink:0}}>{guessRecipeEmoji(ing.name)||"🥄"}</span>
+                <input style={{flex:1,background:"transparent",border:"none",color:TXT,fontFamily:"inherit",fontSize:13,outline:"none",minWidth:0,fontWeight:600}} placeholder="Ingrédient…" value={ing.name} onChange={e=>uIng(i,"name",e.target.value)}/>
+                <input style={{width:40,background:"transparent",border:"none",color:TXT2,fontFamily:"inherit",fontSize:12,textAlign:"right",outline:"none"}} placeholder="Qté" value={ing.qty} onChange={e=>uIng(i,"qty",e.target.value)}/>
+                <select style={{width:54,background:"transparent",border:"none",color:TXT3,fontFamily:"inherit",fontSize:11,outline:"none",cursor:"pointer"}} value={ing.unit} onChange={e=>uIng(i,"unit",e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
+                <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,padding:"0 2px",flexShrink:0}} onClick={()=>setIngs(ings.filter((_,j)=>j!==i))}>✕</button>
+              </div>
+            ))}
+          </div>
+
+          {/* ── ÉTAPES ── */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,display:"flex",alignItems:"center",gap:7}}>
+              Étapes <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{steps.filter(Boolean).length}</span>
+            </div>
+            <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={()=>setSteps([...steps,""])}>+ Étape</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+            {steps.map((step,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                <div style={{width:22,height:22,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:9}}>{i+1}</div>
+                <textarea style={{...inp,flex:1,padding:"8px 10px",fontSize:12,resize:"none",minHeight:52}} value={step} onChange={e=>uStep(i,e.target.value)} placeholder="Décrivez cette étape…"/>
+                <button style={{...btn("gh"),padding:"6px 8px",marginTop:4,fontSize:12,flexShrink:0}} onClick={()=>setSteps(steps.filter((_,j)=>j!==i))}>✕</button>
+              </div>
+            ))}
+          </div>
+
+          {/* ── ACTIONS SECONDAIRES — modification seulement ── */}
+          {!isNew&&(
+            <>
+              <div style={{display:"flex",gap:7,marginTop:6}}>
+                <button style={{
+                  flex:1,justifyContent:"center",fontSize:11,padding:"9px 4px",
+                  border:`1.5px solid ${openPanel==="note"?CARAMEL:BDR}`,
+                  color:openPanel==="note"?CARAMEL:TXT2,borderRadius:11,cursor:"pointer",
+                  fontFamily:"inherit",fontWeight:700,display:"flex",alignItems:"center",gap:5,
+                  background:openPanel==="note"?`rgba(184,112,58,.06)`:"transparent"
+                }} onClick={()=>togglePanel("note")}>
+                  📝 Note personnelle
+                </button>
+                <button style={{
+                  flex:1,justifyContent:"center",fontSize:11,padding:"9px 4px",
+                  border:`1.5px solid ${openPanel==="delete"?"rgba(212,96,74,.35)":BDR}`,
+                  color:openPanel==="delete"?DNG:TXT2,borderRadius:11,cursor:"pointer",
+                  fontFamily:"inherit",fontWeight:700,display:"flex",alignItems:"center",gap:5,
+                  background:openPanel==="delete"?`rgba(212,96,74,.05)`:"transparent"
+                }} onClick={()=>togglePanel("delete")}>
+                  🗑️ Supprimer
+                </button>
+              </div>
+
+              {/* Panel Note */}
+              {openPanel==="note"&&(
+                <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:13,padding:"12px 13px",marginTop:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <div style={{fontSize:10,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.6}}>📝 Note personnelle</div>
+                    <button onClick={()=>setOpenPanel(null)} style={{background:"none",border:"none",fontSize:13,color:TXT3,cursor:"pointer"}}>✕</button>
+                  </div>
+                  <textarea style={{...inp,minHeight:64,resize:"none",fontSize:12,marginBottom:8}} placeholder="Astuces, variantes, ce que j'ai changé…" value={noteText} onChange={e=>setNoteText(e.target.value)}/>
+                  <div style={{fontSize:10,color:TXT3}}>💡 Cette note sera visible sur la page de détail de la recette</div>
+                </div>
+              )}
+
+              {/* Panel Supprimer */}
+              {openPanel==="delete"&&(
+                <div style={{background:"rgba(212,96,74,.05)",border:`1.5px solid rgba(212,96,74,.2)`,borderRadius:13,padding:"12px 13px",marginTop:8}}>
+                  <div style={{fontSize:12,fontWeight:700,color:DNG,marginBottom:4}}>Supprimer cette recette ?</div>
+                  <div style={{fontSize:11,color:TXT2,marginBottom:10}}>Cette action est irréversible.</div>
+                  <div style={{display:"flex",gap:7}}>
+                    <button style={{...btn("gh"),flex:1,fontSize:11,justifyContent:"center"}} onClick={()=>setOpenPanel(null)}>Annuler</button>
+                    <button style={{...btn("dng"),flex:1,fontSize:11,justifyContent:"center"}} onClick={onDel}>🗑️ Supprimer</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── BARRE BAS FIXE ── */}
+        <div style={{position:"sticky",bottom:0,background:`rgba(253,248,240,.96)`,backdropFilter:"blur(12px)",borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0}}>
+          <button style={{...btn("gh"),flex:1,justifyContent:"center"}} onClick={onClose}>Annuler</button>
+          <button style={{...btn("suc"),flex:2,justifyContent:"center"}} onClick={doSave}>
+            {isNew?"✅ Créer la recette":"✅ Enregistrer"}
+          </button>
         </div>
       </Modal>
       <CropModal open={!!cropSrc} src={cropSrc} onConfirm={handleCropConfirm} onClose={()=>setCropSrc(null)}/>
@@ -3033,7 +2960,6 @@ function CookingMode({recipe,onClose,onFinish}){
   const [donePhoto,setDonePhoto]=useState(null);
   const [doneNote,setDoneNote]=useState("");
   const [doneStars,setDoneStars]=useState(0);
-  const [doneMissing,setDoneMissing]=useState("");
   const timerRef=useRef(null);
   const donePhotoRef=useRef();
   const steps=recipe.steps||[];
@@ -3065,7 +2991,7 @@ function CookingMode({recipe,onClose,onFinish}){
 
   function confirmFinish(skip){
     if(skip){onFinish({});return;}
-    onFinish({photo:donePhoto,note:doneNote,stars:doneStars,missing:doneMissing});
+    onFinish({photo:donePhoto,note:doneNote,stars:doneStars});
   }
 
   if(showDone) return(
@@ -3095,13 +3021,9 @@ function CookingMode({recipe,onClose,onFinish}){
         </div>
         {doneStars>0&&<div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginTop:4}}>{["","Bof…","Pas mal","Bien !","Très bien !","Parfait ! 🏆"][doneStars]}</div>}
       </div>
-      <div style={{marginBottom:10}}>
+      <div style={{marginBottom:16}}>
         <div style={{fontSize:11,color:"rgba(255,255,255,.7)",marginBottom:5,fontWeight:700}}>📝 Commentaire</div>
         <textarea style={{width:"100%",background:"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:10,padding:"10px 12px",color:"white",fontSize:13,fontFamily:"inherit",resize:"none",minHeight:56,outline:"none"}} placeholder="Astuces, variantes…" value={doneNote} onChange={e=>setDoneNote(e.target.value)}/>
-      </div>
-      <div style={{marginBottom:16}}>
-        <div style={{fontSize:11,color:"rgba(255,255,255,.7)",marginBottom:5,fontWeight:700}}>🛒 Il me manquait…</div>
-        <input style={{width:"100%",background:"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:10,padding:"10px 12px",color:"white",fontSize:13,fontFamily:"inherit",outline:"none"}} placeholder="Ex: thym frais, citron…" value={doneMissing} onChange={e=>setDoneMissing(e.target.value)}/>
       </div>
       <button style={{width:"100%",padding:"15px",background:"white",border:"none",borderRadius:14,color:CARAMEL,fontWeight:800,fontSize:14,cursor:"pointer",marginBottom:8}} onClick={()=>confirmFinish(false)}>✅ Terminer</button>
       <button style={{width:"100%",padding:"11px",background:"rgba(255,255,255,.15)",border:"none",borderRadius:12,color:"rgba(255,255,255,.8)",fontWeight:600,fontSize:12,cursor:"pointer"}} onClick={()=>confirmFinish(true)}>Passer</button>
@@ -3391,17 +3313,68 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
   const [vp,setVp]=useState(recipe.persons||1);
   const [have,setHave]=useState(new Set());
   const [cooking,setCooking]=useState(false);
-  const [openPanel,setOpenPanel]=useState(null); // "plan"|"theme"|"note"|"delete"|null
-  const [noteText,setNoteText]=useState(recipe.note||"");
+  const [openPanel,setOpenPanel]=useState(null); // "plan"|"theme"|null
   const [planConflict,setPlanConflict]=useState(null);
-  const photoRef=useRef();
   const base=recipe.persons||1,scale=vp/base;
   const cost=estimateRecipeCost(recipe,priceDB,vp);
   const isLiked=(db.likedRecipes||[]).includes(recipe.id);
   const folders=db.folders||[];
   const calendar=db.calendar||{};
+  const cookedCount=recipe.cookedCount||0;
 
   function togglePanel(p){setOpenPanel(prev=>prev===p?null:p);}
+
+  async function doScan(dataUrl,mt="image/jpeg"){
+    const apiKey=localStorage.getItem("ws_apikey")||"";
+    if(!apiKey){setShowApiKey(true);return;}
+    setScanning(true);setScanMsg("");setScanStatus("idle");
+    const base64=dataUrl.split(",")[1];
+    const prompt=`Tu es un expert en extraction de recettes de cuisine à partir d'images. Analyse cette image et retourne UNIQUEMENT un objet JSON valide (sans markdown, sans backtick, sans texte autour).
+FORMAT EXACT :
+{"title":null,"persons":null,"duration":null,"dishPhotoDataPresent":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
+INSTRUCTIONS : qty=chiffre seul, unit=unité normalisée (g,kg,ml,cl,L,càs,càc,pincée,sachet,boîte,bouteille,paquet,tranche,botte), noms génériques sans marques, steps dans l'ordre logique. "dishPhotoDataPresent":true UNIQUEMENT si photo réelle d'un plat cuisiné où la nourriture occupe la majorité de l'image.`;
+    try{
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:mt,data:base64}},{type:"text",text:prompt}]}]})});
+      if(!resp.ok){const errData=await resp.json().catch(()=>({}));if(resp.status===401){throw new Error("Clé API invalide (401)");}throw new Error("Erreur "+resp.status+(errData.error?.message?" : "+errData.error.message:""));}
+      const data=await resp.json();
+      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      const p=JSON.parse(text);
+      if(p.title)setName(p.title);if(p.persons)setPersons(String(p.persons));if(p.duration)setDuration(p.duration);
+      if(p.dishPhotoDataPresent)setPhoto(dataUrl);
+      if(p.ingredients?.length)setIngs(p.ingredients.map(i=>({name:i.name||"",qty:i.qty||"",unit:normUnit(i.unit||"")})));
+      if(p.steps?.length)setSteps(p.steps.map(s=>s.trim()).filter(Boolean));
+      const nb=p.ingredients?.filter(i=>i.name)?.length||0,ns=p.steps?.length||0;
+      setScanMsg(`✨ ${nb} ingrédient${nb>1?"s":""} et ${ns} étape${ns>1?"s":""} extraits !`);setScanStatus("ok");
+    }catch(err){console.error(err);if(err.message.includes("401")){localStorage.removeItem("ws_apikey");setShowApiKey(true);}setScanMsg("❌ "+err.message);setScanStatus("error");}
+    setScanning(false);
+  }
+
+  async function doMultiScan(){
+    if(multiPhotos.length<2){showToast("⚠️ Ajoutez au moins 2 photos");return;}
+    const apiKey=localStorage.getItem("ws_apikey")||"";
+    if(!apiKey){setShowApiKey(true);return;}
+    setMerging(true);setScanMsg("");setScanStatus("idle");
+    const prompt=`Fusionne ces ${multiPhotos.length} photos d'une même recette en UN SEUL JSON valide (sans markdown).
+FORMAT : {"title":null,"persons":null,"duration":null,"dishPhotoDataPresent":false,"ingredients":[{"name":"","qty":"","unit":""}],"steps":[]}
+RÈGLES : pas de doublons, ordre logique des étapes, noms génériques français, qty=chiffre seul, unit normalisée.`;
+    try{
+      const content=[...multiPhotos.map((p,i)=>[{type:"text",text:`Photo ${i+1}/${multiPhotos.length} :`},{type:"image",source:{type:"base64",media_type:p.mt,data:p.dataUrl.split(",")[1]}}]).flat(),{type:"text",text:prompt}];
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content}]})});
+      if(!resp.ok){const e=await resp.json().catch(()=>({}));if(resp.status===401){localStorage.removeItem("ws_apikey");setShowApiKey(true);}throw new Error("Erreur "+resp.status);}
+      const data=await resp.json();
+      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      const p=JSON.parse(text);
+      if(p.title)setName(p.title);if(p.persons)setPersons(String(p.persons));if(p.duration)setDuration(p.duration);
+      if(p.dishPhotoDataPresent&&multiPhotos.length)setPhoto(multiPhotos[0].dataUrl);
+      if(p.ingredients?.length)setIngs(p.ingredients.map(i=>({name:i.name||"",qty:i.qty||"",unit:normUnit(i.unit||"")})));
+      if(p.steps?.length)setSteps(p.steps.map(s=>s.trim()).filter(Boolean));
+      const nb=p.ingredients?.filter(i=>i.name)?.length||0,ns=p.steps?.length||0;
+      setScanMsg(`✨ ${multiPhotos.length} photos fusionnées — ${nb} ingr., ${ns} étapes`);setScanStatus("ok");setMultiMode(false);setMultiPhotos([]);
+    }catch(err){console.error(err);setScanMsg("❌ "+err.message);setScanStatus("error");}
+    setMerging(false);
+  }
   function togHave(i){const s=new Set(have);if(s.has(i))s.delete(i);else s.add(i);setHave(s);}
   function scaleQ(qty){const n=parseFloat(qty);if(isNaN(n))return qty;const r=n*scale;return r%1===0?String(r):r.toFixed(2).replace(/\.?0+$/,"");}
 
@@ -3411,16 +3384,11 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
     setDb(nd);showToast(isLiked?"💔 Retiré des favoris":"❤️ Ajouté aux favoris");
   }
 
-  function saveNote(){
-    const recipes=db.recipes.map(r=>r.id===recipe.id?{...r,note:noteText}:r);
-    setDb({...db,recipes});showToast("📝 Note sauvegardée");togglePanel(null);
-  }
-
   function handleFinishCooking({photo,note,stars}){
     const today=new Date().toLocaleDateString("fr-FR");
     const recipes=db.recipes.map(r=>{
       if(r.id!==recipe.id)return r;
-      const u={...r,lastCooked:today};
+      const u={...r,lastCooked:today,cookedCount:(r.cookedCount||0)+1};
       if(photo)u.photo=photo;
       if(note)u.note=note;
       if(stars)u.stars=stars;
@@ -3452,23 +3420,12 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
     setDb(nd);showToast("🏷️ Ajouté au thème");togglePanel(null);
   }
 
-  function handlePhotoUpload(e){
-    const file=e.target.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      const recipes=db.recipes.map(r=>r.id===recipe.id?{...r,photo:ev.target.result}:r);
-      setDb({...db,recipes});showToast("📸 Photo mise à jour !");
-    };
-    reader.readAsDataURL(file);e.target.value="";
-  }
-
   const diffLabel=RECIPE_DIFFICULTY.find(d=>d.id===recipe.difficulty)?.label;
 
   if(cooking)return<CookingMode recipe={recipe} onClose={()=>setCooking(false)} onFinish={handleFinishCooking}/>;
 
   return(
     <Modal open onClose={onClose} noPad>
-      <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhotoUpload} capture="environment"/>
 
       {/* ── HERO PHOTO ── */}
       <div style={{height:210,position:"relative",overflow:"hidden",background:`linear-gradient(135deg,${CREAM2},${BDR})`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -3502,18 +3459,24 @@ function RecipeView({recipe,priceDB,db,setDb,onClose,onEdit,onDel,onAdd,showToas
             {cost&&<div style={{background:"rgba(90,138,58,.4)",color:"#a8e878",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700,backdropFilter:"blur(4px)"}}>~{cost.total.toFixed(2)}€</div>}
           </div>
         </div>
+        {/* Bouton changer photo — sur le hero */}
+        <button style={{position:"absolute",bottom:8,left:14,background:"rgba(0,0,0,.42)",border:"none",color:"white",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer",fontWeight:600,backdropFilter:"blur(4px)"}} onClick={()=>photoRef.current.click()}>
+          📷 Changer la photo
+        </button>
       </div>
 
       {/* ── CONTENU SCROLLABLE ── */}
       <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px"}}>
 
-        {/* Étoiles + note perso */}
-        {recipe.stars>0&&(
-          <div style={{display:"flex",gap:2,marginBottom:recipe.note?6:10}}>
-            {[1,2,3,4,5].map(s=><span key={s} style={{fontSize:14,opacity:s<=recipe.stars?1:.2}}>⭐</span>)}
-            {recipe.lastCooked&&<span style={{fontSize:10,color:TXT3,marginLeft:6,alignSelf:"center"}}>Cuisiné {recipe.lastCooked}</span>}
+        {/* Étoiles + compteur cuissons — toujours visible */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:recipe.note?6:12}}>
+          <div style={{display:"flex",gap:2}}>
+            {[1,2,3,4,5].map(s=><span key={s} style={{fontSize:14,opacity:s<=(recipe.stars||0)?1:.2}}>⭐</span>)}
           </div>
-        )}
+          {cookedCount>0&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>Cuisiné {cookedCount}×</span>}
+        </div>
+
+        {/* Note perso — lecture seule */}
         {recipe.note&&(
           <div style={{fontSize:11,color:TXT2,padding:"8px 11px",background:CREAM,borderRadius:10,borderLeft:`2.5px solid ${CARAMEL2}`,marginBottom:12,lineHeight:1.55}}>
             📝 {recipe.note}
