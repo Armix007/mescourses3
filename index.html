@@ -5673,7 +5673,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     const pantryContext=allIngreds.length?"\nIngrédients disponibles (à utiliser en priorité) : "+allIngreds.join(", "):"";
     const wishContext=wish?.trim()?"\nSouhait / type de plat : "+wish:"";
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:"Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre."+pantryContext+wishContext+"\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}"}]})});
+      const calPrompt="Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre."
+        +pantryContext+wishContext
+        +"\nFormat: "+JSON.stringify({name:"",ingredients:[{name:"",qty:1,unit:"g"}],steps:[""],duration:"30 min",persons:2,difficulty:"easy"});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:calPrompt}]})});
       const data=await resp.json();const text=data.content?.[0]?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const recipe=JSON.parse(clean);
