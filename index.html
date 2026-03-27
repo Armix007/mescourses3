@@ -614,8 +614,10 @@ function FullPage({open,onClose,children,noPad}){
   },[open]);
   if(!open)return null;
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {children}
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflow:"hidden"}}>
+      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -3726,6 +3728,17 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
             <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Préférences <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
             <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, pour un repas léger…" value={varPref} onChange={e=>setVarPref(e.target.value)}/>
 
+            {/* Erreur visible dans le formulaire */}
+            {genError&&(
+              <div style={{background:"rgba(212,96,74,.1)",border:"1.5px solid rgba(212,96,74,.4)",borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <span style={{fontSize:18,flexShrink:0}}>⚠️</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:700,color:DNG,marginBottom:4}}>Erreur de génération</div>
+                  <div style={{fontSize:11,color:TXT2,lineHeight:1.5}}>{genError}</div>
+                  <button style={{fontSize:11,color:CARAMEL2,fontWeight:700,background:"none",border:"none",cursor:"pointer",padding:"4px 0",marginTop:4}} onClick={()=>setGenError(null)}>✕ Fermer</button>
+                </div>
+              </div>
+            )}
             <button style={{...btn("acc"),width:"100%",justifyContent:"center",padding:"14px",fontSize:14,borderRadius:13}} onClick={generate} disabled={generating}>
               {generating?"⏳ Génération en cours…":"✨ Générer ma recette"}
             </button>
