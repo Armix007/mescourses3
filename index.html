@@ -614,10 +614,8 @@ function FullPage({open,onClose,children,noPad}){
   },[open]);
   if(!open)return null;
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center"}}>
-      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
-        {children}
-      </div>
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      {children}
     </div>
   );
 }
@@ -3394,7 +3392,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
 
   async function generate(){
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){showToast("⚠️ Clé API requise — configurez via ⚙️");return;}
+    if(!apiKey){const msg="⚠️ Clé API requise — configurez via ⚙️";showToast(msg,5000);setGenError(msg);return;}
     const filters=[...dietFilters].join(", ");
     const dietNote=filters?`Contraintes alimentaires : ${filters}.`:"";
     // Validation avant génération
@@ -3416,15 +3414,21 @@ Propose aussi 3-5 ingrédients optionnels à acheter pour enrichir le plat sous 
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
 {"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}`;
     } else {
-      const baseInfo=varBaseRecipe
-        ?`Recette de base : "${varBaseRecipe.name}"\nIngrédients disponibles : ${varIngItems.map(i=>i.name+((i.quantities?.[0]?.qty>0)?` (${i.quantities[0].qty}${i.quantities[0].unit?" "+i.quantities[0].unit:""})`:"")).join(", ")}\nÉtapes originales : ${(varBaseRecipe.steps||[]).join(" | ")}`
-        :`Recette de base : "${varBaseText}"\nIngrédients disponibles : ${varIngItems.map(i=>i.name).join(", ")||"non précisés"}`;
-      const prefNote=varPref.trim()?`Préférences : ${varPref.trim()}.`:"";
-      prompt=`Tu es un chef cuisinier expert. ${dietNote} ${prefNote}
-${baseInfo}
-Propose une adaptation créative de cette recette. Indique quels ingrédients ont changé dans "changed_ingredients" (liste de noms) et quelles étapes ont changé dans "changed_steps" (liste d'index 0-based).
-RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
-{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}`;
+      const recipeName=varBaseRecipe?varBaseRecipe.name:varBaseText;
+      const ingListStr=varIngItems.map(i=>{
+        const q=i.quantities?.[0];
+        return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");
+      }).join(", ")||"non précisés";
+      const stepsStr=varBaseRecipe?(varBaseRecipe.steps||[]).slice(0,8).map((s,i)=>(i+1)+". "+s).join(" | "):"";
+      const prefNote=varPref.trim()?"Préférences : "+varPref.trim()+".":"";
+      const dietStr=dietNote;
+      prompt="Tu es un chef cuisinier expert. "+dietStr+" "+prefNote+"\n"
+        +"Recette de base : "+JSON.stringify(recipeName)+"\n"
+        +"Ingrédients disponibles : "+ingListStr+"\n"
+        +(stepsStr?"Étapes originales : "+stepsStr+"\n":"")
+        +"Propose une adaptation créative. Indique changed_ingredients (liste de noms modifiés) et changed_steps (liste d\'index 0-based modifiés).\n"
+        +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
+        +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
     }
 
     try{
@@ -3618,7 +3622,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
           {[{id:"frigo",emoji:"🥘",label:"Avec ce que j'ai",sub:"Mes ingrédients → recette"},
             {id:"variation",emoji:"✨",label:"Adapter une recette",sub:"Adapter une recette existante"}
           ].map(m=>(
-            <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);setExtraSugg(null);}}>
+            <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setGenError(null);setChatHistory([]);setExtraSugg(null);}}>
               <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
               <div style={{fontSize:11,fontWeight:800,color:mode===m.id?CARAMEL:TXT2}}>{m.label}</div>
               <div style={{fontSize:9,color:TXT3,marginTop:2}}>{m.sub}</div>
