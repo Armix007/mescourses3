@@ -3393,6 +3393,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
   function stopVocal(){vocalRef.current?.stop();setVocalActive(false);}
 
   async function generate(){
+    console.log("[WiselyFood] generate() appelé, mode="+mode+", apiKey present="+!!localStorage.getItem("ws_apikey"));
     const apiKey=localStorage.getItem("ws_apikey")||"";
     if(!apiKey){
       const msg="⚠️ Clé API requise — configurez via ⚙️ > Clé API";
@@ -3460,12 +3461,14 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
           messages:[{role:"user",content:prompt}]
         })
       });
+      console.log("[WiselyFood] fetch réponse HTTP:", resp.status, resp.ok);
       if(!resp.ok){
         let errMsg="Erreur HTTP "+resp.status;
         try{const errData=await resp.json();errMsg=errData?.error?.message||errMsg;}catch{}
         const msg="❌ "+errMsg;setGenError(msg);showToast(msg,5000);return;
       }
       const data=await resp.json();
+      console.log("[WiselyFood] data reçu:", JSON.stringify(data).slice(0,200));
       if(data.error){const msg="❌ "+data.error.message;setGenError(msg);showToast(msg,5000);return;}
       const rawText=(data.content||[]).map(blk=>blk.text||"").join("").trim();
       const text=rawText.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
