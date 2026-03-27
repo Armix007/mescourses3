@@ -613,11 +613,11 @@ function FullPage({open,onClose,children,noPad}){
     };
   },[open]);
   if(!open)return null;
-  // Le conteneur plein-écran : pas de maxWidth, pas de centrage
-  // La scrollbar apparaît ainsi à l'extrême droite de l'écran
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {children}
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center"}}>
+      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -1928,6 +1928,8 @@ function PageRecettes({db,setDb,showToast}){
   const [mealdbResults,setMealdbResults]=useState([]);
   const [mealdbLoading,setMealdbLoading]=useState(false);
   const mdbTimer=useRef(null);
+  const filterScrollRef=useRef(null);
+  function scrollFilters(dir){if(filterScrollRef.current) filterScrollRef.current.scrollBy({left:dir*120,behavior:"smooth"});}
 
   useEffect(()=>{
     if(!search.trim()||search.length<2){setMealdbResults([]);return;}
@@ -2240,28 +2242,21 @@ function PageRecettes({db,setDb,showToast}){
       {!search.trim()&&(
         <>
           {/* Filtres rapides scrollables avec boutons navigation */}
-          {(()=>{
-            const filterScrollRef=React.useRef(null);
-            const scrollFilters=(dir)=>{
-              if(filterScrollRef.current) filterScrollRef.current.scrollBy({left:dir*120,behavior:"smooth"});
-            };
-            return(
-              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
-                <button onClick={()=>scrollFilters(-1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>◀</button>
-                <div ref={filterScrollRef} style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",WebkitOverflowScrolling:"touch",flex:1}}>
-                  {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
-                    <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(setDietFilters,t)}>
-                      {t}
-                    </div>
-                  ))}
-                  <div style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:showFilters||activeFiltersCount>0?CARAMEL:"rgba(255,255,255,.75)",color:showFilters||activeFiltersCount>0?"white":TXT2,cursor:"pointer",border:`1px solid ${showFilters||activeFiltersCount>0?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFilters(f=>!f)}>
-                    🎚️{activeFiltersCount>0?` (${activeFiltersCount})`:""}
-                  </div>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
+            <button onClick={()=>scrollFilters(-1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>◀</button>
+            <div ref={filterScrollRef} style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",WebkitOverflowScrolling:"touch",flex:1}}>
+              {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
+                <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(setDietFilters,t)}>
+                  {t}
                 </div>
-                <button onClick={()=>scrollFilters(1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>▶</button>
+              ))}
+              <div style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:showFilters||activeFiltersCount>0?CARAMEL:"rgba(255,255,255,.75)",color:showFilters||activeFiltersCount>0?"white":TXT2,cursor:"pointer",border:`1px solid ${showFilters||activeFiltersCount>0?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFilters(f=>!f)}>
+                🎚️{activeFiltersCount>0?` (${activeFiltersCount})`:""}
               </div>
-            );
-          })()}
+            </div>
+            <button onClick={()=>scrollFilters(1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>▶</button>
+          </div>
+
 
           {/* Panel filtres avancés */}
           {showFilters&&(
@@ -3292,6 +3287,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
   // ── GENERATION
   const [generating,setGenerating]=useState(false);
   const [result,setResult]=useState(null);
+  const [genError,setGenError]=useState(null); // message d'erreur génération
   const [changedIngNames,setChangedIngNames]=useState(new Set()); // pour coloration verte
   const [changedStepIdxs,setChangedStepIdxs]=useState(new Set());
   const [chatMsg,setChatMsg]=useState("");
@@ -3405,7 +3401,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
     if(mode==="frigo"&&fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");return;}
     if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){showToast("⚠️ Entrez une recette de base ou ajoutez des ingrédients");return;}
 
-    setGenerating(true);setResult(null);setChatHistory([]);setExtraSugg(null);
+    setGenerating(true);setResult(null);setGenError(null);setChatHistory([]);setExtraSugg(null);
 
     let prompt;
     if(mode==="frigo"){
@@ -3434,11 +3430,11 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
     try{
       const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,messages:[{role:"user",content:prompt}]})});
       const data=await resp.json();
-      if(data.error){showToast("❌ "+data.error.message);return;}
+      if(data.error){const msg="❌ "+data.error.message;showToast(msg,5000);setGenError(msg);return;}
       let text=(data.content||[]).map(blk=>blk.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       let p;
-      try{p=JSON.parse(text);}catch(pe){showToast("❌ Réponse IA invalide — réessayez");console.error("JSON parse error:",text.slice(0,200));return;}
+      try{p=JSON.parse(text);}catch(pe){const msg="❌ Réponse IA invalide — réessayez";showToast(msg,5000);setGenError(msg);console.error("JSON parse error:",text.slice(0,200));return;}
       if(!p.title&&!p.ingredients){showToast("❌ Réponse incomplète — réessayez");return;}
       const r={id:Date.now(),name:p.title||"Recette IA",persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
       setResult(r);
@@ -3450,7 +3446,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
       } else {
         setChangedIngNames(new Set());setChangedStepIdxs(new Set());
       }
-    }catch(e){showToast("❌ "+e.message);console.error(e);}
+    }catch(e){const msg="❌ "+e.message;showToast(msg,5000);setGenError(msg);console.error(e);}
     finally{setGenerating(false);}
   }
 
@@ -3735,6 +3731,16 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
           </>
         ):(
           <>
+            {/* Erreur de génération */}
+            {genError&&(
+              <div style={{textAlign:"center",padding:"40px 20px"}}>
+                <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT,marginBottom:8}}>Génération échouée</div>
+                <div style={{fontSize:13,color:TXT3,marginBottom:20,lineHeight:1.6,padding:"0 16px"}}>{genError}</div>
+                <button style={{...btn("acc"),justifyContent:"center"}} onClick={()=>setGenError(null)}>↩ Réessayer</button>
+              </div>
+            )}
+            {!genError&&<>
             {/* Suggestions d'appoint */}
             {extraSugg&&!extraSugg.refused&&(
               <div style={{background:"rgba(90,138,58,.08)",border:"1.5px solid rgba(90,138,58,.3)",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
@@ -3840,6 +3846,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
                 <button style={{...btn("acc"),padding:"8px 12px",fontSize:12}} onClick={sendChat} disabled={chatLoading||!chatMsg.trim()}>{chatLoading?"⏳":"→"}</button>
               </div>
             </div>
+          </>}
           </>
         )}
       </div>
@@ -6185,7 +6192,7 @@ function App(){
     return()=>unsub();
   },[docId,fbReady]);
 
-  function showToast(msg){setToast(msg);clearTimeout(ttRef.current);ttRef.current=setTimeout(()=>setToast(""),2800);}
+  function showToast(msg,duration=2800){setToast(msg);clearTimeout(ttRef.current);ttRef.current=setTimeout(()=>setToast(""),duration);}
 
   // Sauvegarder dans Firestore + localStorage
   function setDbSync(newDb){
