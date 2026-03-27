@@ -3443,9 +3443,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
       }
 
       const raw=(data.content||[]).map(b=>b.text||"").join("").trim()
-        .replace(/^```[a-z]*
-?/i,"").replace(/
-?```$/i,"").trim();
+        .replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
 
       console.log("[AI] raw JSON:",raw.slice(0,150));
 
