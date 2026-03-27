@@ -3394,55 +3394,108 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
 
   async function generate(){
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){const msg="⚠️ Clé API requise — configurez via ⚙️";showToast(msg,5000);setGenError(msg);return;}
+    if(!apiKey){
+      const msg="⚠️ Clé API requise — configurez via ⚙️ > Clé API";
+      showToast(msg,5000);setGenError(msg);return;
+    }
     const filters=[...dietFilters].join(", ");
-    const dietNote=filters?`Contraintes alimentaires : ${filters}.`:"";
-    // Validation avant génération
-    if(mode==="frigo"&&fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");return;}
-    if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){showToast("⚠️ Entrez une recette de base ou ajoutez des ingrédients");return;}
+    const dietNote=filters?"Contraintes alimentaires : "+filters+".":"";
+    if(mode==="frigo"&&fridgeItems.length===0){
+      const msg="⚠️ Ajoutez au moins un ingrédient";
+      showToast(msg,3000);setGenError(msg);return;
+    }
+    if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){
+      const msg="⚠️ Entrez une recette de base ou ajoutez des ingrédients";
+      showToast(msg,3000);setGenError(msg);return;
+    }
 
     setGenerating(true);setResult(null);setGenError(null);setChatHistory([]);setExtraSugg(null);
 
     let prompt;
-    if(mode==="frigo"){
-      const ingList=fridgeItems.map(i=>{
-        const q=i.quantities?.[0];
-        return i.name+((q&&q.qty>0)?` (${q.qty}${q.unit?" "+q.unit:""})`:"");
-      }).join(", ");
-      prompt=`Tu es un chef cuisinier créatif. ${dietNote}
-Ingrédients disponibles : ${ingList}
-IMPORTANT : Utilise seulement les ingrédients les plus adaptés (pas tous obligatoirement). Tu peux ajouter 2-3 condiments courants (sel, huile…).
-Propose aussi 3-5 ingrédients optionnels à acheter pour enrichir le plat sous "extra_suggestions".
-RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
-{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}`;
-    } else {
-      const recipeName=varBaseRecipe?varBaseRecipe.name:varBaseText;
-      const ingListStr=varIngItems.map(i=>{
-        const q=i.quantities?.[0];
-        return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");
-      }).join(", ")||"non précisés";
-      const stepsStr=varBaseRecipe?(varBaseRecipe.steps||[]).slice(0,8).map((s,i)=>(i+1)+". "+s).join(" | "):"";
-      const prefNote=varPref.trim()?"Préférences : "+varPref.trim()+".":"";
-      const dietStr=dietNote;
-      prompt="Tu es un chef cuisinier expert. "+dietStr+" "+prefNote+"\n"
-        +"Recette de base : "+JSON.stringify(recipeName)+"\n"
-        +"Ingrédients disponibles : "+ingListStr+"\n"
-        +(stepsStr?"Étapes originales : "+stepsStr+"\n":"")
-        +"Propose une adaptation créative. Indique changed_ingredients (liste de noms modifiés) et changed_steps (liste d\'index 0-based modifiés).\n"
-        +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
-        +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
+    try{
+      if(mode==="frigo"){
+        const ingList=fridgeItems.map(i=>{
+          const q=i.quantities?.[0];
+          return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");
+        }).join(", ");
+        prompt="Tu es un chef cuisinier créatif. "+dietNote+"\n"
+          +"Ingrédients disponibles : "+ingList+"\n"
+          +"IMPORTANT : Utilise seulement les ingrédients les plus adaptés. Tu peux ajouter sel, huile, poivre.\n"
+          +"Propose aussi 2-3 ingrédients optionnels sous extra_suggestions.\n"
+          +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
+          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}';
+      } else {
+        const recipeName=varBaseRecipe?varBaseRecipe.name:varBaseText;
+        const ingListStr=varIngItems.length>0
+          ?varIngItems.map(i=>{const q=i.quantities?.[0];return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");}).join(", ")
+          :"non précisés";
+        const stepsStr=varBaseRecipe?(varBaseRecipe.steps||[]).slice(0,6).join(" | "):"";
+        const prefNote=varPref.trim()?"Préférences : "+varPref.trim()+".":"";
+        prompt="Tu es un chef cuisinier expert. "+dietNote+" "+prefNote+"\n"
+          +"Recette de base : "+JSON.stringify(recipeName)+"\n"
+          +"Ingrédients : "+ingListStr+"\n"
+          +(stepsStr?"Étapes originales : "+stepsStr+"\n":"")
+          +"Propose une adaptation. Indique changed_ingredients et changed_steps (index 0-based).\n"
+          +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
+          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
+      }
+    }catch(buildErr){
+      const msg="❌ Erreur construction prompt : "+buildErr.message;
+      setGenError(msg);console.error(msg,buildErr);
+      setGenerating(false);return;
     }
 
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,messages:[{role:"user",content:prompt}]})});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":apiKey,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-haiku-4-5-20251001",
+          max_tokens:2000,
+          messages:[{role:"user",content:prompt}]
+        })
+      });
+      if(!resp.ok){
+        let errMsg="Erreur HTTP "+resp.status;
+        try{const errData=await resp.json();errMsg=errData?.error?.message||errMsg;}catch{}
+        const msg="❌ "+errMsg;setGenError(msg);showToast(msg,5000);return;
+      }
       const data=await resp.json();
-      if(data.error){const msg="❌ "+data.error.message;showToast(msg,5000);setGenError(msg);return;}
-      let text=(data.content||[]).map(blk=>blk.text||"").join("").trim();
-      text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      if(data.error){const msg="❌ "+data.error.message;setGenError(msg);showToast(msg,5000);return;}
+      const rawText=(data.content||[]).map(blk=>blk.text||"").join("").trim();
+      const text=rawText.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       let p;
-      try{p=JSON.parse(text);}catch(pe){const msg="❌ Réponse IA invalide — réessayez";showToast(msg,5000);setGenError(msg);console.error("JSON parse error:",text.slice(0,200));return;}
-      if(!p.title&&!p.ingredients){showToast("❌ Réponse incomplète — réessayez");return;}
-      const r={id:Date.now(),name:p.title||"Recette IA",persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
+      try{p=JSON.parse(text);}
+      catch(pe){
+        const msg="❌ Réponse IA non parseable — réessayez";
+        setGenError(msg);showToast(msg,5000);
+        console.error("Parse error. Réponse brute:",rawText.slice(0,300));
+        return;
+      }
+      if(!p||(!p.title&&!p.ingredients)){
+        const msg="❌ Réponse IA incomplète — réessayez";
+        setGenError(msg);showToast(msg,5000);return;
+      }
+      const r={
+        id:Date.now(),
+        name:p.title||"Recette IA",
+        persons:p.persons||4,
+        duration:p.duration||"",
+        difficulty:p.difficulty||"",
+        mealType:p.meal_type||"",
+        diets:p.diets||[],
+        photo:null,
+        source:"ai",
+        ingredients:p.ingredients||[],
+        steps:p.steps||[],
+        tip:p.tip||"",
+        date:new Date().toLocaleDateString("fr-FR")
+      };
       setResult(r);
       setChatHistory([{role:"user",content:prompt},{role:"assistant",content:JSON.stringify(p)}]);
       if(p.extra_suggestions?.length>0) setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
@@ -3452,8 +3505,13 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
       } else {
         setChangedIngNames(new Set());setChangedStepIdxs(new Set());
       }
-    }catch(e){const msg="❌ "+e.message;showToast(msg,5000);setGenError(msg);console.error(e);}
-    finally{setGenerating(false);}
+    }catch(e){
+      const msg="❌ "+e.message;
+      setGenError(msg);showToast(msg,5000);
+      console.error("generate() error:",e);
+    }finally{
+      setGenerating(false);
+    }
   }
 
   async function sendChat(){
