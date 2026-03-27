@@ -613,11 +613,11 @@ function FullPage({open,onClose,children,noPad}){
     };
   },[open]);
   if(!open)return null;
+  // Le conteneur plein-écran : pas de maxWidth, pas de centrage
+  // La scrollbar apparaît ainsi à l'extrême droite de l'écran
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflow:"hidden"}}>
-      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"transparent"}}>
-        {children}
-      </div>
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      {children}
     </div>
   );
 }
@@ -3401,11 +3401,14 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
     if(!apiKey){showToast("⚠️ Clé API requise — configurez via ⚙️");return;}
     const filters=[...dietFilters].join(", ");
     const dietNote=filters?`Contraintes alimentaires : ${filters}.`:"";
+    // Validation avant génération
+    if(mode==="frigo"&&fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");return;}
+    if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){showToast("⚠️ Entrez une recette de base ou ajoutez des ingrédients");return;}
+
     setGenerating(true);setResult(null);setChatHistory([]);setExtraSugg(null);
 
     let prompt;
     if(mode==="frigo"){
-      if(fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");setGenerating(false);return;}
       const ingList=fridgeItems.map(i=>{
         const q=i.quantities?.[0];
         return i.name+((q&&q.qty>0)?` (${q.qty}${q.unit?" "+q.unit:""})`:"");
@@ -3431,10 +3434,13 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
     try{
       const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,messages:[{role:"user",content:prompt}]})});
       const data=await resp.json();
-      let text=(data.content||[]).map(c=>c.text||"").join("").trim();
+      if(data.error){showToast("❌ "+data.error.message);return;}
+      let text=(data.content||[]).map(blk=>blk.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
-      const p=JSON.parse(text);
-      const r={id:Date.now(),name:p.title,persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
+      let p;
+      try{p=JSON.parse(text);}catch(pe){showToast("❌ Réponse IA invalide — réessayez");console.error("JSON parse error:",text.slice(0,200));return;}
+      if(!p.title&&!p.ingredients){showToast("❌ Réponse incomplète — réessayez");return;}
+      const r={id:Date.now(),name:p.title||"Recette IA",persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
       setResult(r);
       setChatHistory([{role:"user",content:prompt},{role:"assistant",content:JSON.stringify(p)}]);
       if(p.extra_suggestions?.length>0) setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
@@ -3444,8 +3450,8 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
       } else {
         setChangedIngNames(new Set());setChangedStepIdxs(new Set());
       }
-    }catch(e){showToast("❌ "+e.message);}
-    setGenerating(false);
+    }catch(e){showToast("❌ "+e.message);console.error(e);}
+    finally{setGenerating(false);}
   }
 
   async function sendChat(){
