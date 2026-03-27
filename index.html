@@ -27,9 +27,9 @@ body{
 </head>
 <body>
 <div id="root"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js" crossorigin="anonymous"></script>
 <script type="module">
   import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import{getFirestore,doc,setDoc,onSnapshot,getDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -216,8 +216,8 @@ function getBestPrice(priceDB,name){
   return{shop:best[0],...best[1]};
 }
 
-function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
-function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
+function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||EMPTY_DB;}catch(_e){return EMPTY_DB;}}
+function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch(_e){}}
 function roundQ(n){return n%1===0?n:+n.toFixed(2);}
 function fmtQ(qty,unit){const n=parseFloat(qty);if(isNaN(n)||n===0)return unit?unit:"";const q=n%1===0?n:+n.toFixed(2);return unit?`${q} ${unit}`:`${q}`;}
 // ─── BASE PRODUITS (chargée depuis products.json) ────────────────────────────
@@ -556,7 +556,7 @@ function getCat(name){
 // getProductEmoji = emoji SPÉCIFIQUE du produit (ex: 🍋 pour citron, 🧂 pour sel)
 // Priorité : p.emoji du catalogue > emoji de la catégorie granulaire > fallback guessCat
 function getProductEmoji(name){
-  if(!name||typeof name!=="string")return"🥗";
+  if(!name)return"🥗";try{name=String(name);}catch(_e){return"🥗";}
   if(PRODUCTS_CATALOG.length > 0){
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'").trim();
     const raw = norm(name);
@@ -1960,7 +1960,7 @@ function PageRecettes({db,setDb,showToast}){
         const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(searchEN)}`);
         const d=await r.json();
         setMealdbResults((d.meals||[]).slice(0,5).map(m=>({id:"mdb_"+m.idMeal,mealdbId:m.idMeal,name:translateMealName(m.strMeal)||m.strMeal,nameEN:m.strMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,source:"mealdb"})));
-      }catch{setMealdbResults([]);}
+      }catch(_e){setMealdbResults([]);}
       setMealdbLoading(false);
     },300);
   },[search]);
@@ -2007,7 +2007,7 @@ function PageRecettes({db,setDb,showToast}){
       const ings=[];
       for(let i=1;i<=20;i++){const name=m[`strIngredient${i}`];const measure=m[`strMeasure${i}`];if(name?.trim()){const{qty,unit}=parseMealDBMeasure(measure||"");ings.push({name:name.trim(),qty,unit});}}
       importRecipe({id:Date.now(),name:translateMealName(m.strMeal)||m.strMeal,source:"mealdb",mealdbId:m.idMeal,photo:m.strMealThumb,category:CAT_FR[m.strCategory]||m.strCategory,area:AREA_FR[m.strArea]||m.strArea,ingredients:ings,steps:m.strInstructions?.split(/\r\n|\n/).filter(s=>s.trim()).map(s=>s.trim())||[],date:new Date().toLocaleDateString("fr-FR")});
-    }catch{showToast("❌ Erreur import");}
+    }catch(_e){showToast("❌ Erreur import");}
   }
 
   function getTimeLabel(r){const d=parseInt(r.duration);if(isNaN(d))return null;if(d<=30)return"fast";if(d<=60)return"medium";return"slow";}
@@ -2481,7 +2481,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       // 2. API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${encodeURIComponent(cat)}`);
       const d=await r.json();setResults(d.meals||[]);
-    }catch{showToast("❌ Erreur de connexion");}
+    }catch(_e){showToast("❌ Erreur de connexion");}
     setLoading(false);
   }
 
@@ -2505,7 +2505,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
       const d=await r.json();setResults(d.meals||[]);
       if(!d.meals?.length)showToast("Aucune recette trouvée");
-    }catch{showToast("❌ Erreur de connexion");}
+    }catch(_e){showToast("❌ Erreur de connexion");}
     setLoading(false);
   }
 
@@ -2527,7 +2527,7 @@ function MealDBSearch({onImport,onClose,showToast,initialMeal}){
       // 2. API en ligne
       const r=await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${encodeURIComponent(area)}`);
       const d=await r.json();setResults(d.meals||[]);
-    }catch{showToast("❌ Erreur de connexion");}
+    }catch(_e){showToast("❌ Erreur de connexion");}
     setLoading(false);
   }
 
@@ -3410,14 +3410,12 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
       let prompt="";
       if(mode==="frigo"){
         const ingList=fridgeItems.map(i=>i.name).join(", ");
-        prompt="Chef cuisinier. "+dietNote+" Ingrédients : "+ingList+". Propose une recette. JSON uniquement sans markdown :
-"
+        prompt="Chef cuisinier. "+dietNote+" Ingrédients : "+ingList+". Propose une recette. JSON uniquement sans markdown :\n"
           +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["etape"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}';
       } else {
         const base=String(varBaseRecipe?varBaseRecipe.name:varBaseText);
         const ings=varIngItems.length>0?varIngItems.map(i=>i.name).join(", "):"non précisés";
-        prompt="Chef cuisinier. "+dietNote+" Adapte la recette : "+base+". Ingrédients : "+ings+". JSON uniquement sans markdown :
-"
+        prompt="Chef cuisinier. "+dietNote+" Adapte la recette : "+base+". Ingrédients : "+ings+". JSON uniquement sans markdown :\n"
           +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["etape"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
       }
 
@@ -3453,7 +3451,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
 
       let p;
       try{p=JSON.parse(raw);}
-      catch{setGenError("❌ Réponse IA non parseable. Réessayez.");return;}
+      catch(_e){setGenError("❌ Réponse IA non parseable. Réessayez.");return;}
 
       if(!p||!p.title){setGenError("❌ Réponse incomplète. Réessayez.");return;}
 
@@ -6239,7 +6237,7 @@ function App(){
   function setDbSync(newDb){
     setDb(newDb);
     // localStorage fallback
-    try{localStorage.setItem("ws_r1",JSON.stringify(newDb));}catch{}
+    try{localStorage.setItem("ws_r1",JSON.stringify(newDb));}catch(_e){}
     // Firestore sync
     if(docId&&fbReady){
       localRef.current=true;
