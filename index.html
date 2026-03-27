@@ -5576,8 +5576,8 @@ function setSlotIds(calendar,dk,slot,ids){
 
 function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [weekOffset,setWeekOffset]=useState(0);
-  const [showPicker,setShowPicker]=useState(null); // {dk,slot,mode:"list"|"ai"|"free"}
-  const [showActions,setShowActions]=useState(null); // {dk,slot,recipeId}
+  const [showPicker,setShowPicker]=useState(null);
+  const [showActions,setShowActions]=useState(null);
   const [showWizard,setShowWizard]=useState(false);
   const [wizardQueue,setWizardQueue]=useState([]);
   const [wizardStep,setWizardStep]=useState(0);
@@ -5594,12 +5594,53 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [pickerFilterType,setPickerFilterType]=useState("");
   const [pickerFilterTime,setPickerFilterTime]=useState("");
   const [pickerSearch,setPickerSearch]=useState("");
+  // Listes affiliées aux jours
+  const [showListPicker,setShowListPicker]=useState(null); // dk
+  const [showDayList,setShowDayList]=useState(null); // {dk, listIdx}
+  const [dayListAddName,setDayListAddName]=useState("");
+  // Wizard → sauvegarder comme liste du jour
+  const [wizardSaveDk,setWizardSaveDk]=useState(null);
 
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
   const redItems=pantry.filter(i=>i.signal==="red");
   const weekDates=getWeekDates(weekOffset);
   const todayKey=dateKey(new Date());
+
+  // ── helpers listes affiliées ───────────────────────────────
+  function getLinkedListIdx(dk){
+    return calendar[dk]?.listIdx!=null?calendar[dk].listIdx:null;
+  }
+  function linkListToDay(dk,listIdx){
+    const newCal={...calendar,[dk]:{...(calendar[dk]||{}),listIdx}};
+    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);
+    setShowListPicker(null);showToast("🛒 Liste liée au jour !");
+  }
+  function unlinkListFromDay(dk){
+    const newCal={...calendar};
+    if(newCal[dk])delete newCal[dk].listIdx;
+    const nd={...db,calendar:newCal};setDb(nd);saveDB(nd);
+    showToast("🗑️ Liste détachée");
+  }
+  function addItemToDayList(dk,listIdx,name){
+    if(!name.trim())return;
+    const hist=[...(db.shoppingHistory||[])];
+    if(!hist[listIdx])return;
+    const newItem={id:Date.now()+Math.random(),name:name.trim(),category:getCat(name.trim()),quantities:[{qty:1,unit:"",source:"manuel"}],checked:false};
+    hist[listIdx]={...hist[listIdx],items:[...(hist[listIdx].items||[]),newItem],count:(hist[listIdx].items||[]).length+1};
+    const nd={...db,shoppingHistory:hist};setDb(nd);saveDB(nd);
+    setDayListAddName("");showToast("✅ "+name.trim()+" ajouté");
+  }
+  function saveWizardResultAsDayList(items,dk){
+    if(!dk||!items.length)return;
+    const label=new Date(dk).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+    const newEntry={date:"Courses — "+label,items:JSON.parse(JSON.stringify(items)),count:items.length};
+    const hist=[newEntry,...(db.shoppingHistory||[])].slice(0,20);
+    const listIdx=0; // toujours en tête
+    const newCal={...calendar,[dk]:{...(calendar[dk]||{}),listIdx}};
+    const nd={...db,shoppingHistory:hist,calendar:newCal};setDb(nd);saveDB(nd);
+    showToast("💾 Liste sauvegardée et liée à "+label);
+  }
 
   function addMealToSlot(dk,slot,recipeId){
     const ids=getSlotIds(calendar,dk,slot);
@@ -5617,7 +5658,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   async function addFreeTextMeal(dk,slot,name){
     if(!name.trim())return;
     const fakeRecipe={id:"free_"+Date.now(),name:name.trim(),source:"libre",ingredients:[],steps:[]};
-    // Si case cochée : enregistre comme vraie recette (sans ingrédients), sinon recette "libre" temporaire
     if(freeAddToRecipes) fakeRecipe.source="manual";
     const newRecipes=[...db.recipes,fakeRecipe];
     const ids=getSlotIds(calendar,dk,slot);
@@ -5630,10 +5670,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     const apiKey=localStorage.getItem("ws_apikey");if(!apiKey){showToast("⚠️ Clé API requise");return;}
     setCalAILoading(true);
     const allIngreds=[...pantryItems,...(manualIngreds.trim().split(/[,;]+/).map(s=>s.trim()).filter(Boolean))];
-    const pantryContext=allIngreds.length?`\nIngrédients disponibles (à utiliser en priorité) : ${allIngreds.join(", ")}`:"";
-    const wishContext=wish?.trim()?`\nSouhait / type de plat : ${wish}`:"";
+    const pantryContext=allIngreds.length?"\nIngrédients disponibles (à utiliser en priorité) : "+allIngreds.join(", "):"";
+    const wishContext=wish?.trim()?"\nSouhait / type de plat : "+wish:"";
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:`Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre.${pantryContext}${wishContext}\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}`}]})});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:"Génère une recette simple en JSON. Réponds UNIQUEMENT avec le JSON, rien d'autre."+pantryContext+wishContext+"\nFormat: {"name":"nom","ingredients":[{"name":"...","qty":1,"unit":"g"}],"steps":["..."],"duration":"30 min","persons":2,"difficulty":"easy"}"}]})});
       const data=await resp.json();const text=data.content?.[0]?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const recipe=JSON.parse(clean);
@@ -5643,7 +5683,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
       const nd={...db,recipes:[...db.recipes,recipe],calendar:newCal};
       setDb(nd);saveDB(nd);setShowPicker(null);setAIWish("");setAiManualIngreds("");setAIPantrySelected(new Set());
       showToast("🤖 "+recipe.name+" créé et planifié !");
-    }catch(e){showToast("❌ Erreur IA");}
+    }catch(_e){showToast("❌ Erreur IA");}
     setCalAILoading(false);
   }
   function generateShoppingList(){
@@ -5662,6 +5702,8 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     });
     if(!upcoming.length){showToast("⚠️ Aucun repas planifié à venir");return;}
     upcoming.sort((a,b)=>a.dk.localeCompare(b.dk)||MEAL_SLOTS.indexOf(a.slot)-MEAL_SLOTS.indexOf(b.slot));
+    // Récupérer le premier dk pour proposer de lier la liste
+    setWizardSaveDk(upcoming[0].dk);
     setWizardQueue(upcoming);setWizardStep(0);setWizardItems([...db.items]);setShowWizard(true);
   }
   function finishWizardStep(recipe,vp,haveIdxs,items){
@@ -5681,7 +5723,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   }
   const suggestions=antiGaspiSuggestions();
 
-  // Filtres picker appliqués aux recettes
   function applyPickerFilters(recipes){
     let list=recipes.filter(r=>r.source!=="libre");
     if(pickerSearch.trim()){
@@ -5711,14 +5752,27 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   }
   const hasPickerFilters=!!(pickerFilterDiet||pickerFilterDiff||pickerFilterType||pickerFilterTime);
 
+  // ── Résumé semaine : calcul remplissage midi/soir ─────────
+  const weekFill=weekDates.map(d=>{
+    const dk=dateKey(d);
+    return{
+      dk,
+      midi:getSlotIds(calendar,dk,"midi").length>0,
+      soir:getSlotIds(calendar,dk,"soir").length>0,
+    };
+  });
+  const midiCount=weekFill.filter(d=>d.midi).length;
+  const soirCount=weekFill.filter(d=>d.soir).length;
+
   return(
     <div style={{padding:14,paddingBottom:90}}>
+      {/* ── HEADER ── */}
       <div style={{...card,background:"rgba(255,255,255,.88)",padding:"14px 16px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT}}>📅 Planning repas</div>
           <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={generateShoppingList}>🛒 Ajouter à la liste</button>
         </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:13,fontWeight:700,color:TXT}}>
@@ -5727,6 +5781,22 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             <div style={{fontSize:10,color:TXT3}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
           </div>
           <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
+        </div>
+        {/* ── Résumé remplissage midi/soir ── */}
+        <div style={{borderTop:`1px solid ${BDR}`,paddingTop:10}}>
+          {[{slot:"midi",label:"☀️ Midi",count:midiCount,fill:weekFill.map(d=>d.midi)},
+            {slot:"soir",label:"🌙 Soir",count:soirCount,fill:weekFill.map(d=>d.soir)}
+          ].map(row=>(
+            <div key={row.slot} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+              <div style={{fontSize:10,fontWeight:700,color:TXT3,width:52,flexShrink:0}}>{row.label}</div>
+              <div style={{display:"flex",gap:3,flex:1}}>
+                {row.fill.map((filled,i)=>(
+                  <div key={i} title={DAY_NAMES[i]} style={{flex:1,height:8,borderRadius:4,background:filled?CARAMEL:"rgba(0,0,0,.08)",transition:"background .2s"}}/>
+                ))}
+              </div>
+              <div style={{fontSize:10,fontWeight:800,color:row.count===7?SUC:row.count>0?CARAMEL:TXT3,width:28,textAlign:"right",flexShrink:0}}>{row.count}/7</div>
+            </div>
+          ))}
         </div>
         {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:8,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Retour à cette semaine</button>}
       </div>
@@ -5757,15 +5827,46 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
         const dk=dateKey(d);
         const isToday=dk===todayKey;
         const isPast=new Date(dk)<new Date(new Date().setHours(0,0,0,0));
+        const linkedIdx=getLinkedListIdx(dk);
+        const linkedList=linkedIdx!=null?(db.shoppingHistory||[])[linkedIdx]:null;
+        const midiDone=getSlotIds(calendar,dk,"midi").length>0;
+        const soirDone=getSlotIds(calendar,dk,"soir").length>0;
         return(
           <div key={dk} style={{...card,background:isToday?"rgba(200,132,90,.08)":isPast?"rgba(255,255,255,.6)":"rgba(255,255,255,.88)",marginBottom:6,border:isToday?`1.5px solid ${CARAMEL2}`:`1px solid ${BDR}`,opacity:isPast&&!isToday?.75:1}}>
+            {/* En-tête jour */}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{width:36,height:36,borderRadius:10,background:isToday?`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`:"rgba(200,132,90,.1)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <div style={{fontSize:8,fontWeight:800,color:isToday?"rgba(255,255,255,.8)":TXT3,letterSpacing:.5}}>{DAY_NAMES[di]}</div>
                 <div style={{fontSize:15,fontWeight:900,color:isToday?"white":TXT,fontFamily:"'Fraunces',serif",lineHeight:1}}>{d.getDate()}</div>
               </div>
-              <div style={{fontSize:12,fontWeight:700,color:isToday?CARAMEL:TXT2}}>{DAY_NAMES_FULL[di]}{isToday&&<span style={{fontSize:10,color:CARAMEL2,marginLeft:6,fontWeight:600}}>· Aujourd'hui</span>}</div>
+              {/* Nom du jour + indicateurs midi/soir */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:700,color:isToday?CARAMEL:TXT2,marginBottom:2}}>
+                  {DAY_NAMES_FULL[di]}{isToday&&<span style={{fontSize:10,color:CARAMEL2,marginLeft:6,fontWeight:600}}>· Aujourd'hui</span>}
+                </div>
+                <div style={{display:"flex",gap:4}}>
+                  <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:20,background:midiDone?"rgba(90,138,58,.15)":"rgba(0,0,0,.06)",color:midiDone?SUC:TXT3}}>
+                    {midiDone?"☀️✓":"☀️○"}
+                  </span>
+                  <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:20,background:soirDone?"rgba(90,138,58,.15)":"rgba(0,0,0,.06)",color:soirDone?SUC:TXT3}}>
+                    {soirDone?"🌙✓":"🌙○"}
+                  </span>
+                </div>
+              </div>
+              {/* Chip liste du jour */}
+              {linkedList?(
+                <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(90,138,58,.1)",border:`1px solid rgba(90,138,58,.25)`,borderRadius:20,padding:"3px 8px",cursor:"pointer",flexShrink:0}} onClick={()=>setShowDayList({dk,listIdx:linkedIdx})}>
+                  <span style={{fontSize:11}}>🛒</span>
+                  <span style={{fontSize:9,fontWeight:700,color:SUC,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{linkedList.date}</span>
+                </div>
+              ):(
+                <div style={{display:"flex",alignItems:"center",gap:3,border:`1px dashed ${BDR}`,borderRadius:20,padding:"3px 8px",cursor:"pointer",flexShrink:0}} onClick={()=>setShowListPicker(dk)}>
+                  <span style={{fontSize:11,color:TXT3}}>🛒</span>
+                  <span style={{fontSize:9,fontWeight:600,color:TXT3}}>+liste</span>
+                </div>
+              )}
             </div>
+            {/* Créneaux */}
             <div style={{display:"flex",gap:6}}>
               {MEAL_SLOTS.map(slot=>{
                 const recipeIds=getSlotIds(calendar,dk,slot);
@@ -5790,13 +5891,92 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
       })}
       <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Plusieurs recettes possibles par créneau — appuyez sur + pour en ajouter</div>
 
+      {/* ── PICKER LISTE DU JOUR ── */}
+      {showListPicker&&(
+        <Modal open onClose={()=>setShowListPicker(null)}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:4,color:TXT}}>🛒 Lier une liste</div>
+          <div style={{fontSize:11,color:TXT3,marginBottom:12}}>
+            {new Date(showListPicker).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}
+          </div>
+          {!(db.shoppingHistory||[]).length?(
+            <div style={{textAlign:"center",padding:"20px",color:TXT3,fontSize:12}}>
+              <div style={{fontSize:32,marginBottom:8}}>📭</div>
+              Aucune liste sauvegardée. Créez d'abord une liste de courses.
+            </div>
+          ):(
+            <div style={{maxHeight:300,overflowY:"auto"}}>
+              {(db.shoppingHistory||[]).map((sess,idx)=>(
+                <div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",borderBottom:`1px solid ${BDR}`,cursor:"pointer"}} onClick={()=>linkListToDay(showListPicker,idx)}>
+                  <span style={{fontSize:20}}>🛒</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:TXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sess.date}</div>
+                    <div style={{fontSize:10,color:TXT3}}>{(sess.items||[]).length} articles</div>
+                  </div>
+                  <span style={{color:TXT3,fontSize:16}}>›</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* ── AFFICHAGE LISTE DU JOUR ── */}
+      {showDayList&&(()=>{
+        const{dk,listIdx}=showDayList;
+        const sess=(db.shoppingHistory||[])[listIdx];
+        if(!sess){setShowDayList(null);return null;}
+        const dayLabel=new Date(dk).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+        return(
+          <FullPage open onClose={()=>setShowDayList(null)}>
+            {/* Header */}
+            <div style={{background:"rgba(184,112,58,.92)",backdropFilter:"blur(10px)",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+              <button style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontSize:18}} onClick={()=>setShowDayList(null)}>←</button>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"white"}}>🛒 {sess.date}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.75)",marginTop:1}}>{dayLabel} · {(sess.items||[]).length} articles</div>
+              </div>
+              <button style={{background:"rgba(212,96,74,.25)",border:"none",borderRadius:10,padding:"5px 10px",color:"white",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={()=>{unlinkListFromDay(dk);setShowDayList(null);}}>Détacher</button>
+            </div>
+            {/* Articles */}
+            <div style={{flex:1,overflowY:"auto",padding:"12px 16px 20px"}}>
+              {(sess.items||[]).length===0?(
+                <div style={{textAlign:"center",padding:"40px 20px",color:TXT3,fontSize:13}}>Liste vide</div>
+              ):(
+                (sess.items||[]).map((item,i)=>(
+                  <div key={item.id||i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<sess.items.length-1?`1px solid ${BDR}`:"none"}}>
+                    <EmojiImg emoji={getProductEmoji(item.name)} size={18} style={{flexShrink:0}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:TXT}}>{item.name}</div>
+                      {(item.quantities||[]).filter(q=>q.qty>0||q.unit).length>0&&(
+                        <div style={{fontSize:10,color:TXT3}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).filter(Boolean).join(" + ")}</div>
+                      )}
+                    </div>
+                    <span style={{fontSize:10,color:TXT3}}>{(item.category||getCat(item.name)).split(" ")[0]}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            {/* Ajouter un article */}
+            <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 16px",background:"rgba(253,248,240,.97)",flexShrink:0}}>
+              <div style={{fontSize:10,fontWeight:700,color:TXT3,marginBottom:6,textTransform:"uppercase",letterSpacing:.6}}>Ajouter un article</div>
+              <div style={{display:"flex",gap:8}}>
+                <input style={{...inp,flex:1,fontSize:13,padding:"9px 12px"}} placeholder="Nom de l'article…" value={dayListAddName}
+                  onChange={e=>setDayListAddName(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&addItemToDayList(dk,listIdx,dayListAddName)}
+                />
+                <button style={{...btn("acc"),padding:"9px 16px",flexShrink:0}} onClick={()=>addItemToDayList(dk,listIdx,dayListAddName)}>+</button>
+              </div>
+            </div>
+          </FullPage>
+        );
+      })()}
+
       {showPicker&&(
-        <Modal open onClose={()=>{setShowPicker(null);setFreeText("");setAIWish("");setAiManualIngreds("");setAIPantrySelected(new Set());setPickerSearch("");setPickerFilterDiet("");setPickerFilterDiff("");setPickerFilterType("");setPickerFilterTime("");}}>          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Que planifier ?</div>
+        <Modal open onClose={()=>{setShowPicker(null);setFreeText("");setAIWish("");setAiManualIngreds("");setAIPantrySelected(new Set());setPickerSearch("");setPickerFilterDiet("");setPickerFilterDiff("");setPickerFilterType("");setPickerFilterTime("");}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:17,marginBottom:4,color:TXT}}>Que planifier ?</div>
           <div style={{fontSize:11,color:TXT3,marginBottom:10}}>
             {DAY_NAMES_FULL[new Date(showPicker.dk).getDay()===0?6:new Date(showPicker.dk).getDay()-1]} · {MEAL_LABELS[showPicker.slot]}
           </div>
-
-          {/* ── FILTRES + RECHERCHE EN AMONT DES 3 MODES ── */}
           <div style={{marginBottom:10}}>
             <div style={{position:"relative",marginBottom:7}}>
               <input style={{...inp,paddingLeft:30,fontSize:12,padding:"9px 9px 9px 30px"}} placeholder="Chercher par nom ou ingrédient…" value={pickerSearch} onChange={e=>setPickerSearch(e.target.value)}/>
@@ -5824,15 +6004,11 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               ))}
             </div>
           </div>
-
-          {/* Tabs 3 modes */}
           <div style={{display:"flex",gap:5,marginBottom:12}}>
             {[{id:"list",label:"📖 Mes recettes"},{id:"ai",label:"🤖 Créer via IA"},{id:"free",label:"✏️ Nom libre"}].map(m=>(
               <div key={m.id} style={{flex:1,textAlign:"center",padding:"7px 4px",borderRadius:10,fontSize:10,fontWeight:700,cursor:"pointer",background:(showPicker.mode||"list")===m.id?CARAMEL:CREAM2,color:(showPicker.mode||"list")===m.id?"white":TXT2,border:`1px solid ${(showPicker.mode||"list")===m.id?CARAMEL:BDR}`}} onClick={()=>setShowPicker(p=>({...p,mode:m.id}))}>{m.label}</div>
             ))}
           </div>
-
-          {/* MODE LISTE */}
           {(showPicker.mode||"list")==="list"&&(()=>{
             const filtered=applyPickerFilters(db.recipes||[]);
             if(!(db.recipes||[]).filter(r=>r.source!=="libre").length){
@@ -5871,8 +6047,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               </div>
             );
           })()}
-
-          {/* MODE IA */}
           {(showPicker.mode)==="ai"&&(
             <div>
               {pantry.length>0&&(
@@ -5911,8 +6085,6 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               )}
             </div>
           )}
-
-          {/* MODE NOM LIBRE */}
           {(showPicker.mode)==="free"&&(
             <div>
               <div style={{fontSize:12,color:TXT2,marginBottom:8}}>Entrez simplement le nom du repas :</div>
@@ -5968,6 +6140,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               if(isLast){
                 const nd={...db,items:newItems};setDb(nd);saveDB(nd);
                 setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
+                // Proposer de sauvegarder comme liste du jour
+                if(wizardSaveDk&&newItems.length){
+                  saveWizardResultAsDayList(newItems,wizardSaveDk);
+                }
                 goToListe();showToast("✅ Liste générée ! Bon shopping 🛒");
               } else {setWizardItems(newItems);setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));}
             }}
@@ -5986,6 +6162,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     </div>
   );
 }
+
 
 // ─── WIZARD STEP (flux guidé Ajouter à la liste) ────────────────
 function WizardStep({recipe,dayLabel,slot,stepNum,totalSteps,isLast,priceDB,onNext,onPrev,onSkip,onCancel}){
