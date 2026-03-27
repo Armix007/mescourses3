@@ -556,6 +556,7 @@ function getCat(name){
 // getProductEmoji = emoji SPÉCIFIQUE du produit (ex: 🍋 pour citron, 🧂 pour sel)
 // Priorité : p.emoji du catalogue > emoji de la catégorie granulaire > fallback guessCat
 function getProductEmoji(name){
+  if(!name||typeof name!=="string")return"🥗";
   if(PRODUCTS_CATALOG.length > 0){
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/['']/g,"'").trim();
     const raw = norm(name);
@@ -3393,60 +3394,35 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
   function stopVocal(){vocalRef.current?.stop();setVocalActive(false);}
 
   async function generate(){
-    console.log("[WiselyFood] generate() appelé, mode="+mode+", apiKey present="+!!localStorage.getItem("ws_apikey"));
+    console.log("[AI] generate() start, mode="+mode);
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){
-      const msg="⚠️ Clé API requise — configurez via ⚙️ > Clé API";
-      showToast(msg,5000);setGenError(msg);return;
-    }
-    const filters=[...dietFilters].join(", ");
-    const dietNote=filters?"Contraintes alimentaires : "+filters+".":"";
-    if(mode==="frigo"&&fridgeItems.length===0){
-      const msg="⚠️ Ajoutez au moins un ingrédient";
-      showToast(msg,3000);setGenError(msg);return;
-    }
-    if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){
-      const msg="⚠️ Entrez une recette de base ou ajoutez des ingrédients";
-      showToast(msg,3000);setGenError(msg);return;
-    }
+    if(!apiKey){setGenError("⚠️ Clé API requise — configurez via ⚙️");return;}
+    if(mode==="frigo"&&fridgeItems.length===0){setGenError("⚠️ Ajoutez au moins un ingrédient");return;}
+    if(mode==="variation"&&!varBaseText.trim()&&varIngItems.length===0){setGenError("⚠️ Entrez une recette de base");return;}
 
     setGenerating(true);setResult(null);setGenError(null);setChatHistory([]);setExtraSugg(null);
 
-    let prompt;
     try{
-      if(mode==="frigo"){
-        const ingList=fridgeItems.map(i=>{
-          const q=i.quantities?.[0];
-          return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");
-        }).join(", ");
-        prompt="Tu es un chef cuisinier créatif. "+dietNote+"\n"
-          +"Ingrédients disponibles : "+ingList+"\n"
-          +"IMPORTANT : Utilise seulement les ingrédients les plus adaptés. Tu peux ajouter sel, huile, poivre.\n"
-          +"Propose aussi 2-3 ingrédients optionnels sous extra_suggestions.\n"
-          +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
-          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}';
-      } else {
-        const recipeName=varBaseRecipe?varBaseRecipe.name:varBaseText;
-        const ingListStr=varIngItems.length>0
-          ?varIngItems.map(i=>{const q=i.quantities?.[0];return i.name+((q&&q.qty>0)?" ("+q.qty+(q.unit?" "+q.unit:"")+")" :"");}).join(", ")
-          :"non précisés";
-        const stepsStr=varBaseRecipe?(varBaseRecipe.steps||[]).slice(0,6).join(" | "):"";
-        const prefNote=varPref.trim()?"Préférences : "+varPref.trim()+".":"";
-        prompt="Tu es un chef cuisinier expert. "+dietNote+" "+prefNote+"\n"
-          +"Recette de base : "+JSON.stringify(recipeName)+"\n"
-          +"Ingrédients : "+ingListStr+"\n"
-          +(stepsStr?"Étapes originales : "+stepsStr+"\n":"")
-          +"Propose une adaptation. Indique changed_ingredients et changed_steps (index 0-based).\n"
-          +"RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n"
-          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
-      }
-    }catch(buildErr){
-      const msg="❌ Erreur construction prompt : "+buildErr.message;
-      setGenError(msg);console.error(msg,buildErr);
-      setGenerating(false);return;
-    }
+      console.log("[AI] construction prompt...");
+      const dietStr=[...dietFilters].join(", ");
+      const dietNote=dietStr?"Contraintes : "+dietStr+".":"";
 
-    try{
+      let prompt="";
+      if(mode==="frigo"){
+        const ingList=fridgeItems.map(i=>i.name).join(", ");
+        prompt="Chef cuisinier. "+dietNote+" Ingrédients : "+ingList+". Propose une recette. JSON uniquement sans markdown :
+"
+          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["etape"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}';
+      } else {
+        const base=String(varBaseRecipe?varBaseRecipe.name:varBaseText);
+        const ings=varIngItems.length>0?varIngItems.map(i=>i.name).join(", "):"non précisés";
+        prompt="Chef cuisinier. "+dietNote+" Adapte la recette : "+base+". Ingrédients : "+ings+". JSON uniquement sans markdown :
+"
+          +'{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["etape"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}';
+      }
+
+      console.log("[AI] prompt ok, longueur="+prompt.length+", envoi API...");
+
       const resp=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{
@@ -3455,63 +3431,50 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
           "anthropic-version":"2023-06-01",
           "anthropic-dangerous-direct-browser-access":"true"
         },
-        body:JSON.stringify({
-          model:"claude-haiku-4-5-20251001",
-          max_tokens:2000,
-          messages:[{role:"user",content:prompt}]
-        })
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:prompt}]})
       });
-      console.log("[WiselyFood] fetch réponse HTTP:", resp.status, resp.ok);
-      if(!resp.ok){
-        let errMsg="Erreur HTTP "+resp.status;
-        try{const errData=await resp.json();errMsg=errData?.error?.message||errMsg;}catch{}
-        const msg="❌ "+errMsg;setGenError(msg);showToast(msg,5000);return;
-      }
+
+      console.log("[AI] réponse HTTP:",resp.status);
+
       const data=await resp.json();
-      console.log("[WiselyFood] data reçu:", JSON.stringify(data).slice(0,200));
-      if(data.error){const msg="❌ "+data.error.message;setGenError(msg);showToast(msg,5000);return;}
-      const rawText=(data.content||[]).map(blk=>blk.text||"").join("").trim();
-      const text=rawText.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
+      console.log("[AI] data:",JSON.stringify(data).slice(0,150));
+
+      if(!resp.ok||data.error){
+        const msg="❌ "+(data?.error?.message||"Erreur HTTP "+resp.status);
+        setGenError(msg);return;
+      }
+
+      const raw=(data.content||[]).map(b=>b.text||"").join("").trim()
+        .replace(/^```[a-z]*
+?/i,"").replace(/
+?```$/i,"").trim();
+
+      console.log("[AI] raw JSON:",raw.slice(0,150));
+
       let p;
-      try{p=JSON.parse(text);}
-      catch(pe){
-        const msg="❌ Réponse IA non parseable — réessayez";
-        setGenError(msg);showToast(msg,5000);
-        console.error("Parse error. Réponse brute:",rawText.slice(0,300));
-        return;
-      }
-      if(!p||(!p.title&&!p.ingredients)){
-        const msg="❌ Réponse IA incomplète — réessayez";
-        setGenError(msg);showToast(msg,5000);return;
-      }
-      const r={
-        id:Date.now(),
-        name:p.title||"Recette IA",
-        persons:p.persons||4,
-        duration:p.duration||"",
-        difficulty:p.difficulty||"",
-        mealType:p.meal_type||"",
-        diets:p.diets||[],
-        photo:null,
-        source:"ai",
-        ingredients:p.ingredients||[],
-        steps:p.steps||[],
-        tip:p.tip||"",
-        date:new Date().toLocaleDateString("fr-FR")
-      };
-      setResult(r);
-      setChatHistory([{role:"user",content:prompt},{role:"assistant",content:JSON.stringify(p)}]);
-      if(p.extra_suggestions?.length>0) setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
+      try{p=JSON.parse(raw);}
+      catch{setGenError("❌ Réponse IA non parseable. Réessayez.");return;}
+
+      if(!p||!p.title){setGenError("❌ Réponse incomplète. Réessayez.");return;}
+
+      setResult({
+        id:Date.now(),name:p.title,persons:p.persons||4,duration:p.duration||"",
+        difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],
+        photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],
+        tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")
+      });
+      setChatHistory([{role:"user",content:prompt},{role:"assistant",content:raw}]);
+      const cleanExtra=(p.extra_suggestions||[]).filter(x=>x&&x.name&&typeof x.name==="string");if(cleanExtra.length>0) setExtraSugg({items:cleanExtra,accepted:new Set(),refused:false});
       if(mode==="variation"){
         setChangedIngNames(new Set(p.changed_ingredients||[]));
         setChangedStepIdxs(new Set((p.changed_steps||[]).map(Number)));
       } else {
         setChangedIngNames(new Set());setChangedStepIdxs(new Set());
       }
+      console.log("[AI] succès !");
     }catch(e){
-      const msg="❌ "+e.message;
-      setGenError(msg);showToast(msg,5000);
-      console.error("generate() error:",e);
+      console.error("[AI] ERREUR:",e.name,e.message,e.stack);
+      setGenError("❌ "+e.message);
     }finally{
       setGenerating(false);
     }
@@ -3827,7 +3790,7 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
                   <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,fontWeight:600,padding:"2px 6px"}} onClick={()=>setExtraSugg(p=>({...p,refused:true}))}>✕ Ignorer</button>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {extraSugg.items.map((item,i)=>{
+                  {(extraSugg.items||[]).filter(item=>item&&item.name).map((item,i)=>{
                     const acc=extraSugg.accepted.has(i);
                     return(
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:10,background:acc?"rgba(90,138,58,.12)":"rgba(255,255,255,.8)",border:`1px solid ${acc?"rgba(90,138,58,.3)":BDR}`,cursor:"pointer"}}
