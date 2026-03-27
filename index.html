@@ -219,7 +219,7 @@ function getBestPrice(priceDB,name){
 function loadDB(){try{return JSON.parse(localStorage.getItem("ws_r1")||"null")||EMPTY_DB;}catch{return EMPTY_DB;}}
 function saveDB(db){try{localStorage.setItem("ws_r1",JSON.stringify(db));}catch{}}
 function roundQ(n){return n%1===0?n:+n.toFixed(2);}
-function fmtQ(qty,unit){const n=parseFloat(qty);const q=isNaN(n)?qty:(n%1===0?n:+n.toFixed(2));return unit?`${q} ${unit}`:`${q} pcs`;}
+function fmtQ(qty,unit){const n=parseFloat(qty);if(isNaN(n)||n===0)return unit?unit:"";const q=n%1===0?n:+n.toFixed(2);return unit?`${q} ${unit}`:`${q}`;}
 // ─── BASE PRODUITS (chargée depuis products.json) ────────────────────────────
 let PRODUCTS_CATALOG = []; // rempli au chargement
 
@@ -881,9 +881,10 @@ function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty}){
         <div style={{fontSize:10,fontWeight:700,color:TXT,textAlign:"center",textDecoration:item.checked?"line-through":"none",lineHeight:1.2,width:"100%"}}>{shortName}</div>
         {/* Quantités cliquables */}
         <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
-          {(item.quantities||[]).map((q,qi)=>(
-            <span key={qi} style={{fontSize:8,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 5px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}</span>
-          ))}
+          {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>{
+            const label=fmtQ(q.qty,q.unit);
+            return label?<span key={qi} style={{fontSize:8,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 5px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{label}</span>:null;
+          })}
           <span style={{fontSize:8,border:`1px dashed ${BDR}`,borderRadius:20,padding:"1px 5px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onAqty&&onAqty(item.id)}>+</span>
         </div>
       </div>
@@ -1187,7 +1188,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
     const n=name.trim();if(!n)return;
     // Si le panneau quantité est ouvert → utilise qty/unit choisis
     // Sinon → ajoute avec qty=1 sans unité (l'utilisateur pourra ajuster via + qté)
-    const useQty=showQtyPanel?qty:1;
+    const useQty=showQtyPanel?qty:0;
     const useUnit=showQtyPanel?unit:"";
     const ni=mergeItem(db.items,n,useQty,useUnit,"manuel",cat);
     const ph={...db.productHistory};
@@ -1327,42 +1328,27 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           </div>
         )}
 
-        {/* Languette "Ajouter une quantité" — apparaît quand un nom est saisi */}
-        {name.trim()&&(
-          <div style={{marginBottom:showQtyPanel?8:0}}>
-            <div
-              onClick={()=>setShowQtyPanel(p=>!p)}
-              style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:showQtyPanel?CARAMEL2:TXT2,fontWeight:700,background:showQtyPanel?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${showQtyPanel?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:showQtyPanel?8:0,transition:"all .15s",userSelect:"none"}}>
-              <span style={{fontSize:14}}>{showQtyPanel?"▾":"▸"}</span>
-              Ajouter une quantité
+        {/* Languette "+ Quantité et catégorie" — toujours visible, toggle le panneau */}
+        <div style={{marginTop:4}}>
+          <div
+            onClick={()=>setShowQtyPanel(p=>!p)}
+            style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:showQtyPanel?CARAMEL2:TXT2,fontWeight:700,background:showQtyPanel?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${showQtyPanel?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:showQtyPanel?10:0,transition:"all .15s",userSelect:"none"}}>
+            <span style={{fontSize:13}}>{showQtyPanel?"▾":"▸"}</span>
+            + Quantité et catégorie
+          </div>
+          {showQtyPanel&&(
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <Stepper value={qty} onChange={setQty}/>
+              <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
+                {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
+              </select>
+              <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>
+                {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-            {/* Panneau qty/cat — toggle par la languette */}
-            {showQtyPanel&&(
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                <Stepper value={qty} onChange={setQty}/>
-                <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
-                  {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
-                </select>
-                <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>
-                  {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Panneau qty/cat permanent quand aucun nom */}
-        {!name.trim()&&(
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            <Stepper value={qty} onChange={setQty}/>
-            <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
-              {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
-            </select>
-            <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>
-              {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Validation vocale en attente */}
@@ -1552,9 +1538,10 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
             {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}} onClick={e=>e.stopPropagation()}>
-            {(item.quantities||[]).map((q,qi)=>{
+            {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>{
               const isR=q.source&&q.source!=="manuel"&&q.source!=="historique";
-              return<span key={qi} style={{fontSize:10,background:isR?"rgba(200,132,90,.12)":CREAM2,border:isR?`1px solid rgba(200,132,90,.3)`:`1px solid ${BDR}`,borderRadius:20,padding:"2px 8px",color:isR?CARAMEL2:TXT3,cursor:"pointer",whiteSpace:"nowrap",fontWeight:600}} onClick={()=>onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}{isR?" 🍽️":""}</span>;
+              const label=fmtQ(q.qty,q.unit);
+              return label?<span key={qi} style={{fontSize:10,background:isR?"rgba(200,132,90,.12)":CREAM2,border:isR?`1px solid rgba(200,132,90,.3)`:`1px solid ${BDR}`,borderRadius:20,padding:"2px 8px",color:isR?CARAMEL2:TXT3,cursor:"pointer",whiteSpace:"nowrap",fontWeight:600}} onClick={()=>onEqty(item.id,qi)}>{label}{isR?" 🍽️":""}</span>:null;
             })}
             <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"2px 8px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onAqty(item.id)}>+ qté</span>
           </div>
@@ -1638,9 +1625,10 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onA
         </div>
         <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none",lineHeight:1.3,wordBreak:"break-word"}}>{item.name}</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:2}} onClick={e=>e.stopPropagation()}>
-          {(item.quantities||[]).map((q,qi)=>{
+          {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>{
             const isR=q.source&&q.source!=="manuel"&&q.source!=="historique";
-            return<span key={qi} style={{fontSize:10,background:isR?"rgba(200,132,90,.12)":CREAM2,border:isR?`1px solid rgba(200,132,90,.3)`:`1px solid ${BDR}`,borderRadius:20,padding:"2px 7px",color:isR?CARAMEL2:TXT3,cursor:"pointer",whiteSpace:"nowrap",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}{isR?" 🍽️":""}</span>;
+            const label=fmtQ(q.qty,q.unit);
+            return label?<span key={qi} style={{fontSize:10,background:isR?"rgba(200,132,90,.12)":CREAM2,border:isR?`1px solid rgba(200,132,90,.3)`:`1px solid ${BDR}`,borderRadius:20,padding:"2px 7px",color:isR?CARAMEL2:TXT3,cursor:"pointer",whiteSpace:"nowrap",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{label}{isR?" 🍽️":""}</span>:null;
           })}
           <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"2px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onAqty&&onAqty(item.id)}>+ qté</span>
         </div>
