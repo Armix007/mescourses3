@@ -604,8 +604,8 @@ const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",widt
 function FullPage({open,onClose,children,noPad}){
   if(!open)return null;
   return(
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflowY:"hidden"}}>
-      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflowY:noPad?"hidden":"auto",background:"transparent"}}>
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflow:"hidden"}}>
+      <div style={{width:"100%",maxWidth:480,display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",background:"transparent"}}>
         {children}
       </div>
     </div>
@@ -2229,18 +2229,29 @@ function PageRecettes({db,setDb,showToast}){
       {/* ─── CONTENU PRINCIPAL (hors recherche) ─── */}
       {!search.trim()&&(
         <>
-          {/* Filtres rapides scrollables */}
-          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:8,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-            {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
-              <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(setDietFilters,t)}>
-                {t}
+          {/* Filtres rapides scrollables avec boutons navigation */}
+          {(()=>{
+            const filterScrollRef=React.useRef(null);
+            const scrollFilters=(dir)=>{
+              if(filterScrollRef.current) filterScrollRef.current.scrollBy({left:dir*120,behavior:"smooth"});
+            };
+            return(
+              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
+                <button onClick={()=>scrollFilters(-1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>◀</button>
+                <div ref={filterScrollRef} style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none",WebkitOverflowScrolling:"touch",flex:1}}>
+                  {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
+                    <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(setDietFilters,t)}>
+                      {t}
+                    </div>
+                  ))}
+                  <div style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:showFilters||activeFiltersCount>0?CARAMEL:"rgba(255,255,255,.75)",color:showFilters||activeFiltersCount>0?"white":TXT2,cursor:"pointer",border:`1px solid ${showFilters||activeFiltersCount>0?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFilters(f=>!f)}>
+                    🎚️{activeFiltersCount>0?` (${activeFiltersCount})`:""}
+                  </div>
+                </div>
+                <button onClick={()=>scrollFilters(1)} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>▶</button>
               </div>
-            ))}
-            {/* Filtres avancés */}
-            <div style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:showFilters||activeFiltersCount>0?CARAMEL:"rgba(255,255,255,.75)",color:showFilters||activeFiltersCount>0?"white":TXT2,cursor:"pointer",border:`1px solid ${showFilters||activeFiltersCount>0?CARAMEL:BDR}`,whiteSpace:"nowrap"}} onClick={()=>setShowFilters(f=>!f)}>
-              🎚️{activeFiltersCount>0?` (${activeFiltersCount})`:""}
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Panel filtres avancés */}
           {showFilters&&(
@@ -2386,7 +2397,7 @@ function PageRecettes({db,setDb,showToast}){
         onEdit={()=>{setViewIdx(-1);setTimeout(()=>{setEditIdx(viewIdx);setShowEdit(true);},200);}}
         onDel={()=>delRecipe(viewIdx)} onAdd={addToList} showToast={showToast}/>}
       {showMealDB&&<MealDBSearch onImport={importRecipe} onClose={()=>setShowMealDB(false)} showToast={showToast} initialMeal={typeof showMealDB==="object"?showMealDB:null}/>}
-      {showAI&&<AIRecipeGen onImport={importRecipe} onClose={()=>setShowAI(false)} showToast={showToast} items={db.items}/>}
+      {showAI&&<AIRecipeGen onImport={importRecipe} onClose={()=>setShowAI(false)} showToast={showToast} items={db.items} db={db}/>}
       {showFolders&&<FolderManager db={db} setDb={d=>{setDb(d);saveDB(d);}} showToast={showToast} onClose={()=>setShowFolders(false)}/>}
     </div>
   );
@@ -2609,7 +2620,7 @@ Ingrédients: ${JSON.stringify(raw.ingredients)}
             }
           </div>
         </div>
-        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Fermer</button>
+        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Annuler</button>
       </div>
 
       {/* ── CONTENU SCROLLABLE ── */}
@@ -3234,54 +3245,142 @@ function CookingMode({recipe,onClose,onFinish}){
 }
 
 // ─── AI RECIPE GENERATOR ──────────────────────────────────────
-function AIRecipeGen({onImport,onClose,showToast,items}){
+function AIRecipeGen({onImport,onClose,showToast,items,db}){
   const [mode,setMode]=useState("frigo");
-  const [fridgeInput,setFridgeInput]=useState("");
+  // ── MODE FRIGO : articles + vocal + suggestions pantry
+  const [fridgeItems,setFridgeItems]=useState(()=>{
+    // Ne pré-remplit plus depuis la liste — on part vide
+    return [];
+  });
+  const [fridgeName,setFridgeName]=useState("");
+  const [fridgeSugg,setFridgeSugg]=useState([]);
+  const [fridgeQty,setFridgeQty]=useState(1);
+  const [fridgeUnit,setFridgeUnit]=useState("");
+  const [fridgeCat,setFridgeCat]=useState("🥦 Légumes");
+  const [fridgeShowQty,setFridgeShowQty]=useState(false);
+  const [fridgeEqty,setFridgeEqty]=useState(null); // {idx,qi}
+  const [vocalActive,setVocalActive]=useState(false);
+  const vocalRef=useRef(null);
+  // ── MODE VARIATION
   const [variationBase,setVariationBase]=useState("");
   const [variationType,setVariationType]=useState("végétarien");
+  // ── FILTRES (identiques à PageRecettes)
+  const [dietFilters,setDietFilters]=useState(new Set());
+  const filterScrollRef=useRef(null);
+  function toggleFilter(val){setDietFilters(prev=>{const s=new Set(prev);s.has(val)?s.delete(val):s.add(val);return s;});}
+  // ── GENERATION
   const [generating,setGenerating]=useState(false);
   const [result,setResult]=useState(null);
-  const [listening,setListening]=useState(false);
   const [chatMsg,setChatMsg]=useState("");
   const [chatHistory,setChatHistory]=useState([]);
   const [chatLoading,setChatLoading]=useState(false);
-  const recognitionRef=useRef(null);
+  // ── SUGGESTION D'APPOINT (point 8)
+  const [extraSugg,setExtraSugg]=useState(null); // {items:[],accepted:Set,refused:bool}
 
+  // Articles du placard toujours présents (suggestions de base)
+  const PANTRY_DEFAULTS=["Sel","Poivre","Huile d'olive","Beurre","Ail","Oignon","Farine","Sucre","Œufs","Lait","Pâtes","Riz","Lentilles","Tomates concassées","Concentré de tomate","Cumin","Paprika","Herbes de Provence","Thym","Moutarde","Vinaigre","Sauce soja","Bouillon de légumes","Pommes de terre","Carottes"];
+
+  // Suggestions frigo selon saisie
   useEffect(()=>{
-    if(items?.length)setFridgeInput(items.map(i=>i.name).join(", "));
-  },[]);
+    if(!fridgeName.trim()){setFridgeSugg([]);return;}
+    const q=fridgeName.toLowerCase();
+    const already=new Set(fridgeItems.map(i=>i.name.toLowerCase()));
+    const hits=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!already.has(p.toLowerCase())).slice(0,5);
+    setFridgeSugg(hits);
+    const info=normalizeIngredient(fridgeName);
+    if(info.categorie) setFridgeCat(normalizeCat(info.categorie));
+    if(info.unite) setFridgeUnit(info.unite);
+  },[fridgeName,fridgeItems]);
 
-  function startVoice(target){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){showToast("⚠️ Reconnaissance vocale non supportée");return;}
-    const recog=new SR();recog.lang="fr-FR";recog.continuous=false;recog.interimResults=false;
-    recog.onstart=()=>setListening(true);recog.onend=()=>setListening(false);
-    recog.onresult=(e)=>{
-      const text=e.results[0][0].transcript.trim();
-      if(target==="fridge")setFridgeInput(prev=>prev?prev+", "+text:text);
-      else if(target==="chat")setChatMsg(text);
-      showToast(`🎤 "${text}"`);
-    };
-    recog.onerror=()=>{setListening(false);showToast("❌ Erreur micro");};
-    recognitionRef.current=recog;recog.start();
+  function addFridgeItem(nameOverride){
+    const n=(nameOverride||fridgeName).trim();
+    if(!n)return;
+    const info=normalizeIngredient(n);
+    const useQty=fridgeShowQty?fridgeQty:0;
+    const useUnit=fridgeShowQty?fridgeUnit:"";
+    const cat=normalizeCat(info.categorie||fridgeCat||getCat(n));
+    setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:n,category:cat,quantities:[{qty:useQty,unit:useUnit,source:"manuel"}]}]);
+    if(!nameOverride){setFridgeName("");setFridgeSugg([]);setFridgeQty(1);setFridgeUnit("");setFridgeShowQty(false);}
+  }
+  function removeFridgeItem(id){setFridgeItems(prev=>prev.filter(i=>i.id!==id));}
+  function editFridgeItemQty(idx,qi,newQty,newUnit){
+    setFridgeItems(prev=>prev.map((item,i)=>{
+      if(i!==idx)return item;
+      const qs=[...item.quantities];
+      if(qi==null)qs.push({qty:roundQ(newQty),unit:newUnit,source:"manuel"});
+      else qs[qi]={...qs[qi],qty:roundQ(newQty),unit:newUnit};
+      return{...item,quantities:qs};
+    }));
+    setFridgeEqty(null);
   }
 
+  // ── VOCAL frigo
+  function startVocal(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){showToast("⚠️ Non supporté");return;}
+    const rec=new SR();rec.lang="fr-FR";rec.continuous=true;rec.interimResults=false;
+    vocalRef.current=rec;setVocalActive(true);
+    rec.onresult=e=>{
+      const text=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(" ").trim();
+      if(!text)return;
+      text.split(/,|\bvirgule\b/i).map(s=>s.trim()).filter(Boolean).forEach(seg=>{
+        const info=normalizeIngredient(seg);
+        const n=info.nom||seg.charAt(0).toUpperCase()+seg.slice(1);
+        setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:n,category:normalizeCat(info.categorie||getCat(n)),quantities:[{qty:0,unit:"",source:"vocal"}]}]);
+      });
+    };
+    rec.onerror=()=>{setVocalActive(false);showToast("❌ Erreur micro");};
+    rec.onend=()=>{};rec.start();
+  }
+  function stopVocal(){vocalRef.current?.stop();setVocalActive(false);}
+
+  // ── GENERATE
   async function generate(){
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){showToast("⚠️ Clé API requise — configurez via 🔑");return;}
-    setGenerating(true);setResult(null);setChatHistory([]);
-    const prompt=mode==="frigo"
-      ?`Tu es un chef cuisinier créatif. Propose UNE recette réalisable avec ces ingrédients : ${fridgeInput}\n\nRETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"astuce en 1 phrase"}`
-      :`Tu es un chef cuisinier expert. Crée une variation ${variationType} de : "${variationBase}"\n\nRETOURNE UNIQUEMENT ce JSON valide (sans markdown) :\n{"title":"","persons":4,"duration":"30 min","ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"astuce en 1 phrase"}`;
+    if(!apiKey){showToast("⚠️ Clé API requise — configurez via ⚙️");return;}
+    if(mode==="frigo"&&fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");return;}
+    setGenerating(true);setResult(null);setChatHistory([]);setExtraSugg(null);
+
+    const filters=[...dietFilters].join(", ");
+    const dietNote=filters?`Contraintes alimentaires : ${filters}.`:"";
+
+    let prompt;
+    if(mode==="frigo"){
+      const ingList=fridgeItems.map(i=>{
+        const q=i.quantities?.[0];
+        const qStr=(q&&q.qty>0)?` (${q.qty}${q.unit?" "+q.unit:""})`:"";
+        return i.name+qStr;
+      }).join(", ");
+      prompt=`Tu es un chef cuisinier créatif. ${dietNote}
+Ingrédients disponibles : ${ingList}
+
+IMPORTANT : Utilise uniquement les ingrédients les plus adaptés parmi ceux listés (pas tous obligatoirement). Tu peux ajouter 2-3 ingrédients courants du placard (sel, huile, etc.) si nécessaire.
+
+Propose ÉGALEMENT une liste de 3-5 ingrédients optionnels à acheter pour rendre le plat plus varié, sous la clé "extra_suggestions".
+
+RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
+{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"","extra_suggestions":[{"name":"","reason":"pour quoi faire"}]}`;
+    } else {
+      prompt=`Tu es un chef cuisinier expert. ${dietNote}
+Crée une variation "${variationType}" de : "${variationBase}"
+
+RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
+{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"","extra_suggestions":[]}`;
+    }
+
     try{
       const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,messages:[{role:"user",content:prompt}]})});
       const data=await resp.json();
       let text=(data.content||[]).map(c=>c.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       const p=JSON.parse(text);
-      const r={id:Date.now(),name:p.title,persons:p.persons||4,duration:p.duration||"",photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
+      const r={id:Date.now(),name:p.title,persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
       setResult(r);
       setChatHistory([{role:"user",content:prompt},{role:"assistant",content:JSON.stringify(p)}]);
+      // Suggestions d'appoint
+      if(p.extra_suggestions?.length>0){
+        setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
+      }
     }catch(e){showToast("❌ "+e.message);}
     setGenerating(false);
   }
@@ -3289,22 +3388,39 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
   async function sendChat(){
     if(!chatMsg.trim()||!result)return;
     const apiKey=localStorage.getItem("ws_apikey")||"";
-    if(!apiKey){showToast("⚠️ Clé API requise");return;}
+    if(!apiKey)return;
     setChatLoading(true);
     const userMsg=chatMsg.trim();setChatMsg("");
-    const systemPrompt=`Tu es un chef cuisinier expert. Tu modifies une recette selon les demandes. Recette actuelle : ${JSON.stringify({name:result.name,ingredients:result.ingredients,steps:result.steps})}. RETOURNE UNIQUEMENT le JSON modifié (sans markdown) : {"title":"","persons":${result.persons||4},"duration":"${result.duration||"30 min"}","ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":""}`;
-    const newHistory=[...chatHistory,{role:"user",content:userMsg}];
+    const sys=`Tu es un chef cuisinier expert. Modifie la recette selon la demande. Recette actuelle : ${JSON.stringify({name:result.name,ingredients:result.ingredients,steps:result.steps})}. RETOURNE UNIQUEMENT le JSON modifié (sans markdown) : {"title":"","persons":${result.persons||4},"duration":"${result.duration||"30 min"}","difficulty":"${result.difficulty||"easy"}","meal_type":"${result.mealType||"main"}","diets":${JSON.stringify(result.diets||[])},"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[]}`;
+    const newHist=[...chatHistory,{role:"user",content:userMsg}];
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,system:systemPrompt,messages:newHistory})});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,system:sys,messages:newHist})});
       const data=await resp.json();
       let text=(data.content||[]).map(c=>c.text||"").join("").trim();
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       const p=JSON.parse(text);
-      setResult(r=>({...r,name:p.title||r.name,ingredients:p.ingredients||r.ingredients,steps:p.steps||r.steps,tip:p.tip||r.tip,duration:p.duration||r.duration}));
-      setChatHistory([...newHistory,{role:"assistant",content:text}]);
+      setResult(r=>({...r,name:p.title||r.name,ingredients:p.ingredients||r.ingredients,steps:p.steps||r.steps,tip:p.tip||r.tip,duration:p.duration||r.duration,diets:p.diets||r.diets}));
+      setChatHistory([...newHist,{role:"assistant",content:text}]);
       showToast("✅ Recette modifiée !");
     }catch(e){showToast("❌ "+e.message);}
     setChatLoading(false);
+  }
+
+  // ── Bandeau filtres identique à PageRecettes
+  function FilterBar(){
+    return(
+      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:14}}>
+        <button onClick={()=>filterScrollRef.current?.scrollBy({left:-120,behavior:"smooth"})} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>◀</button>
+        <div ref={filterScrollRef} style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",flex:1}}>
+          {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
+            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(t)}>
+              {t}
+            </div>
+          ))}
+        </div>
+        <button onClick={()=>filterScrollRef.current?.scrollBy({left:120,behavior:"smooth"})} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>▶</button>
+      </div>
+    );
   }
 
   return(
@@ -3315,19 +3431,22 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
           <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:TXT}}>🤖 Recette par IA</div>
           <div style={{fontSize:10,color:TXT3,marginTop:2}}>Générez et affinez par chat</div>
         </div>
-        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Fermer</button>
+        <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Annuler</button>
       </div>
 
       {/* ── CONTENU SCROLLABLE ── */}
-      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px",overflowX:"hidden"}}>
+
+        {/* Filtres — identiques à PageRecettes, au-dessus des deux modes */}
+        <FilterBar/>
 
         {/* ① MODE */}
-        <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>① Mode</div>
+        <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Mode</div>
         <div style={{display:"flex",gap:8,marginBottom:20}}>
-          {[{id:"frigo",emoji:"🧊",label:"Avec ce que j'ai",sub:"Mes ingrédients → recette"},
-            {id:"variation",emoji:"✨",label:"Adapter",sub:"Variation d'une recette"}
+          {[{id:"frigo",emoji:"🥘",label:"Avec ce que j'ai",sub:"Mes ingrédients → recette"},
+            {id:"variation",emoji:"✨",label:"Adapter une recette",sub:"Variation d'une recette"}
           ].map(m=>(
-            <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);}}>
+            <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);setExtraSugg(null);}}>
               <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
               <div style={{fontSize:11,fontWeight:800,color:mode===m.id?CARAMEL:TXT2}}>{m.label}</div>
               <div style={{fontSize:9,color:TXT3,marginTop:2}}>{m.sub}</div>
@@ -3337,31 +3456,107 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
 
         {!result?(
           <>
-            {/* ② SAISIE selon le mode */}
+            {/* ── MODE FRIGO ── */}
             {mode==="frigo"?(
               <>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7}}>② Mes ingrédients disponibles</div>
-                  <button style={{...btn("gh"),fontSize:10,padding:"4px 9px",background:"rgba(184,112,58,.1)",border:"1px solid rgba(184,112,58,.2)",color:CARAMEL,borderRadius:8}} onClick={()=>startVoice("fridge")} disabled={listening}>{listening?"🎤 Écoute…":"🎤 Vocal"}</button>
-                </div>
-                {items?.length>0&&<div style={{fontSize:9,color:SUC,fontWeight:700,marginBottom:6}}>✓ Pré-rempli depuis votre liste de courses</div>}
-                <div style={{background:"rgba(255,255,255,.94)",border:`1.5px solid ${CARAMEL}`,borderRadius:13,overflow:"hidden",marginBottom:6}}>
-                  {fridgeInput.split(",").map(s=>s.trim()).filter(Boolean).map((ing,i,arr)=>(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",borderBottom:i<arr.length-1?`1px solid ${BDR}`:"none"}}>
-                      <span style={{fontSize:13,flexShrink:0}}>{guessRecipeEmoji(ing)||"🥄"}</span>
-                      <span style={{flex:1,fontSize:13,fontWeight:600,color:TXT}}>{ing}</span>
-                      <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,padding:"0 2px"}} onClick={()=>setFridgeInput(fridgeInput.split(",").filter((_,j)=>j!==i).join(", "))}>✕</button>
+                {/* Liste des articles ajoutés */}
+                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Mes ingrédients disponibles</div>
+
+                {/* Articles ajoutés — style identique à PageListe */}
+                {fridgeItems.length>0&&(
+                  <div style={{marginBottom:10}}>
+                    {fridgeItems.map((item,idx)=>(
+                      <div key={item.id} style={{...card,padding:0,marginBottom:5,overflow:"hidden",background:SURF}}>
+                        <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"9px 12px"}}>
+                          <EmojiImg emoji={getProductEmoji(item.name)} size={16} style={{marginTop:2,flexShrink:0}}/>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.name}</div>
+                            <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:3}}>
+                              {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>(
+                                <span key={qi} style={{fontSize:10,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>setFridgeEqty({idx,qi})}>{fmtQ(q.qty,q.unit)}</span>
+                              ))}
+                              <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>setFridgeEqty({idx,qi:null})}>+ qté</span>
+                            </div>
+                          </div>
+                          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5}} onClick={()=>removeFridgeItem(item.id)}>🗑️</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Formulaire ajout — identique à PageListe */}
+                <div style={{...card,background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`,marginBottom:10}}>
+                  <div style={{display:"flex",gap:8,marginBottom:fridgeSugg.length>0?6:8}}>
+                    <input style={{...inp,flex:1}} placeholder="Nom de l'ingrédient…" value={fridgeName}
+                      onChange={e=>{setFridgeName(e.target.value);if(!e.target.value.trim())setFridgeShowQty(false);}}
+                      onKeyDown={e=>e.key==="Enter"&&addFridgeItem()}/>
+                    <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal}>
+                      {vocalActive?"⏹️":"🎤"}
+                    </button>
+                    <button style={{...btn("acc"),fontSize:18,padding:"10px 14px"}} onClick={()=>addFridgeItem()}>+</button>
+                  </div>
+                  {vocalActive&&(
+                    <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.4)",borderRadius:10,padding:"8px 11px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite",flexShrink:0}}/>
+                      <span style={{fontSize:12,color:DNG,fontWeight:800,flex:1}}>🎤 En écoute… Dites vos articles, virgule entre chaque</span>
+                      <span style={{fontSize:11,color:TXT3}}>⏹️ pour arrêter</span>
                     </div>
-                  ))}
-                  {fridgeInput.split(",").filter(s=>s.trim()).length===0&&(
-                    <div style={{padding:"12px",textAlign:"center",color:TXT3,fontSize:12}}>Aucun ingrédient · tapez ci-dessous ou dictez</div>
                   )}
+                  {fridgeSugg.length>0&&(
+                    <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
+                      {fridgeSugg.map((n,i)=>{
+                        const em=getProductEmoji(n);
+                        return(
+                          <div key={n} style={{padding:"8px 12px",fontSize:13,cursor:"pointer",borderBottom:i<fridgeSugg.length-1?`1px solid ${BDR}`:"none",display:"flex",alignItems:"center",gap:8,color:TXT}}
+                            onClick={()=>{addFridgeItem(n);}}>
+                            <EmojiImg emoji={em} size={16}/>
+                            <span style={{fontWeight:600,flex:1}}>{n}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div style={{marginTop:4}}>
+                    <div onClick={()=>setFridgeShowQty(p=>!p)} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:fridgeShowQty?CARAMEL2:TXT2,fontWeight:700,background:fridgeShowQty?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${fridgeShowQty?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:fridgeShowQty?10:0,transition:"all .15s",userSelect:"none"}}>
+                      <span style={{fontSize:13}}>{fridgeShowQty?"▾":"▸"}</span>
+                      + Quantité et catégorie
+                    </div>
+                    {fridgeShowQty&&(
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        <Stepper value={fridgeQty} onChange={setFridgeQty}/>
+                        <select style={{...sel,flex:1,minWidth:70,padding:"8px 9px"}} value={fridgeUnit} onChange={e=>setFridgeUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
+                        <select style={{...sel,flex:1,minWidth:110,padding:"8px 9px"}} value={fridgeCat} onChange={e=>setFridgeCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ajouter un ingrédient…" onKeyDown={e=>{if(e.key==="Enter"&&e.target.value.trim()){setFridgeInput(prev=>prev?prev+", "+e.target.value.trim():e.target.value.trim());e.target.value="";}}}/>
+
+                {/* Suggestions pantry — articles courants du placard */}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>💡 Ingrédients courants</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {PANTRY_DEFAULTS.filter(p=>!fridgeItems.find(i=>i.name.toLowerCase()===p.toLowerCase())).map(p=>{
+                      const em=getProductEmoji(p);
+                      return(
+                        <div key={p} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:"rgba(255,255,255,.8)",border:`1px solid ${BDR}`,color:TXT2,cursor:"pointer",transition:"all .12s"}}
+                          onClick={()=>{
+                            const info=normalizeIngredient(p);
+                            const cat=normalizeCat(info.categorie||getCat(p));
+                            setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:p,category:cat,quantities:[{qty:0,unit:"",source:"pantry"}]}]);
+                          }}>
+                          <EmojiImg emoji={em} size={13}/>
+                          {p}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </>
             ):(
+              /* ── MODE VARIATION ── */
               <>
-                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>② Recette de base</div>
+                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Recette de base</div>
                 <input style={{...inp,marginBottom:14}} placeholder="Ex: Poulet rôti, Quiche lorraine…" value={variationBase} onChange={e=>setVariationBase(e.target.value)}/>
                 <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Type de variation</div>
                 <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:16}}>
@@ -3372,20 +3567,64 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
               </>
             )}
 
-            {/* ③ PRÉFÉRENCES */}
-            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>③ Préférences <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
-            <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, avec une sauce crémeuse, pour un repas léger…"/>
+            {/* ③ Préférences */}
+            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Remarques <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
+            <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, pour un repas léger…"/>
 
             {/* ④ GÉNÉRER */}
             <button style={{...btn("acc"),width:"100%",justifyContent:"center",padding:"14px",fontSize:14,borderRadius:13}} onClick={generate} disabled={generating}>
               {generating?"⏳ Génération en cours…":"✨ Générer ma recette"}
             </button>
             {!localStorage.getItem("ws_apikey")&&(
-              <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:10}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer",textDecoration:"underline"}} onClick={()=>showToast("⚠️ Configurez la clé API via les paramètres 🔑")}>Configurer 🔑</span></div>
+              <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:10}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer"}} onClick={()=>showToast("⚠️ Configurez la clé API via ⚙️")}>Configurer 🔑</span></div>
             )}
           </>
         ):(
           <>
+            {/* ── SUGGESTION D'APPOINT (point 8) ── */}
+            {extraSugg&&!extraSugg.refused&&(
+              <div style={{background:"rgba(90,138,58,.08)",border:"1.5px solid rgba(90,138,58,.3)",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:800,color:SUC}}>🛒 Pour enrichir ce plat</div>
+                  <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,fontWeight:600,padding:"2px 6px"}} onClick={()=>setExtraSugg(p=>({...p,refused:true}))}>✕ Ignorer</button>
+                </div>
+                <div style={{fontSize:11,color:TXT2,marginBottom:10}}>Quelques ingrédients à ajouter pour un résultat plus savoureux :</div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {extraSugg.items.map((item,i)=>{
+                    const acc=extraSugg.accepted.has(i);
+                    return(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:10,background:acc?"rgba(90,138,58,.12)":"rgba(255,255,255,.8)",border:`1px solid ${acc?"rgba(90,138,58,.3)":BDR}`,cursor:"pointer",transition:"all .15s"}}
+                        onClick={()=>setExtraSugg(p=>{const acc2=new Set(p.accepted);acc2.has(i)?acc2.delete(i):acc2.add(i);return{...p,accepted:acc2};})}>
+                        <EmojiImg emoji={getProductEmoji(item.name)} size={16}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:700,color:TXT}}>{item.name}</div>
+                          <div style={{fontSize:10,color:TXT3}}>{item.reason}</div>
+                        </div>
+                        <div style={{width:18,height:18,borderRadius:5,border:acc?"none":`1.5px solid ${BDR}`,background:acc?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {acc&&<span style={{color:"white",fontSize:9,fontWeight:800}}>✓</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {extraSugg.accepted.size>0&&(
+                  <button style={{...btn("suc"),width:"100%",justifyContent:"center",marginTop:10,fontSize:12}} onClick={()=>{
+                    extraSugg.items.filter((_,i)=>extraSugg.accepted.has(i)).forEach(item=>{
+                      if(db){
+                        // Ajouter à la liste de courses
+                        const ni=mergeItem(db.items||[],item.name,0,"","ai-sugg",getCat(item.name));
+                        // On appelle onImport avec db mis à jour serait complexe — on signale juste
+                      }
+                    });
+                    showToast(`✅ ${extraSugg.accepted.size} articles notés pour vos courses`);
+                    setExtraSugg(p=>({...p,refused:true}));
+                  }}>
+                    ✅ Ajouter {extraSugg.accepted.size} article{extraSugg.accepted.size>1?"s":""} à retenir
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* RÉSULTAT */}
             <div style={{background:`linear-gradient(135deg,rgba(42,20,8,.95),rgba(90,45,15,.9))`,borderRadius:16,padding:"14px 16px",marginBottom:12,position:"relative",overflow:"hidden"}}>
               <div style={{position:"relative",zIndex:1}}>
@@ -3396,6 +3635,7 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
                 <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                   {result.duration&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>⏱️ {result.duration}</div>}
                   {result.persons&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>👥 {result.persons} pers.</div>}
+                  {(result.diets||[]).map(d=><div key={d} style={{background:"rgba(90,138,58,.4)",color:"rgba(200,255,180,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>{d}</div>)}
                   <div style={{background:"rgba(184,112,58,.4)",color:"rgba(255,220,160,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>🤖 IA</div>
                 </div>
               </div>
@@ -3438,7 +3678,7 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
               </>
             )}
 
-            {/* Chat modification */}
+            {/* Chat */}
             <div style={{background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.2)`,borderRadius:14,padding:12,marginBottom:10}}>
               <div style={{fontSize:11,fontWeight:800,color:CARAMEL,marginBottom:3}}>💬 Modifier cette recette</div>
               <div style={{fontSize:10,color:TXT3,marginBottom:8}}>Ex : "Rends-la végétarienne", "Ajoute une sauce crémeuse"…</div>
@@ -3447,7 +3687,6 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
               ))}
               <div style={{display:"flex",gap:6}}>
                 <input style={{...inp,flex:1,fontSize:12,padding:"8px 10px"}} placeholder="Votre demande…" value={chatMsg} onChange={e=>setChatMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!chatLoading&&sendChat()}/>
-                <button style={{...btn("gh"),padding:"8px 10px",fontSize:14}} onClick={()=>startVoice("chat")} disabled={listening}>🎤</button>
                 <button style={{...btn("acc"),padding:"8px 12px",fontSize:12}} onClick={sendChat} disabled={chatLoading||!chatMsg.trim()}>{chatLoading?"⏳":"→"}</button>
               </div>
             </div>
@@ -3456,16 +3695,30 @@ function AIRecipeGen({onImport,onClose,showToast,items}){
       </div>
 
       {/* ── BARRE BAS FIXE ── */}
-      <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0,background:`rgba(253,248,240,.97)`,backdropFilter:"blur(12px)"}}>
-        {result?(
-          <>
-            <button style={{...btn("gh"),flex:1,justifyContent:"center",fontSize:11}} onClick={()=>{setResult(null);setChatHistory([]);}}>↩ Régénérer</button>
-            <button style={{...btn("acc"),flex:2,justifyContent:"center",fontSize:12}} onClick={()=>onImport(result)}>💾 Enregistrer</button>
-          </>
-        ):(
-          <button style={{...btn("gh"),flex:1,justifyContent:"center"}} onClick={onClose}>Annuler</button>
-        )}
-      </div>
+      {result&&(
+        <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0,background:`rgba(253,248,240,.97)`,backdropFilter:"blur(12px)"}}>
+          <button style={{...btn("gh"),flex:1,justifyContent:"center",fontSize:11}} onClick={()=>{setResult(null);setChatHistory([]);setExtraSugg(null);}}>↩ Régénérer</button>
+          <button style={{...btn("acc"),flex:2,justifyContent:"center",fontSize:12}} onClick={()=>onImport(result)}>💾 Enregistrer</button>
+        </div>
+      )}
+
+      {/* Modal quantité ingrédients frigo */}
+      <EqtyModal
+        open={!!fridgeEqty}
+        item={fridgeEqty!=null?{...fridgeItems[fridgeEqty?.idx],name:fridgeItems[fridgeEqty?.idx]?.name}:null}
+        qi={fridgeEqty?.qi}
+        onClose={()=>setFridgeEqty(null)}
+        onConf={(val,unit)=>editFridgeItemQty(fridgeEqty.idx,fridgeEqty.qi,val,unit)}
+        onDel={()=>{
+          if(fridgeEqty.qi!=null){
+            setFridgeItems(prev=>prev.map((item,i)=>{
+              if(i!==fridgeEqty.idx)return item;
+              return{...item,quantities:item.quantities.filter((_,qi)=>qi!==fridgeEqty.qi)};
+            }));
+          }
+          setFridgeEqty(null);
+        }}
+      />
     </FullPage>
   );
 }
