@@ -847,7 +847,7 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
 // ═══════════════════════════════════════════════════════════════
 // ITEM MINI (vue grille 3 colonnes ultra-compact)
 // ═══════════════════════════════════════════════════════════════
-function ItemMini({item,onToggle,onDel,onNameChange}){
+function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty}){
   const catEmoji=getProductEmoji(item.name);
   const shortName=item.name.length>12?item.name.slice(0,11)+"…":item.name;
   const [showEdit,setShowEdit]=useState(false);
@@ -869,11 +869,8 @@ function ItemMini({item,onToggle,onDel,onNameChange}){
   return(
     <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:item.checked?CARAMEL:BDR}`,borderRadius:10,boxShadow:"0 1px 4px rgba(160,90,40,.05)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
       <div style={{padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
-        {/* Ligne haut : checkbox | emoji | actions */}
+        {/* Ligne haut : emoji | actions */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}}>
-          <div style={{width:15,height:15,borderRadius:4,border:item.checked?"none":`1.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {item.checked&&<span style={{color:"white",fontSize:8,fontWeight:800}}>✓</span>}
-          </div>
           <EmojiImg emoji={catEmoji} size={18}/>
           <div style={{display:"flex",gap:1}} onClick={e=>e.stopPropagation()}>
             <button style={{background:"none",border:"none",color:showEdit?CARAMEL2:TXT3,cursor:"pointer",fontSize:10,padding:"1px 2px",opacity:showEdit?1:.5}} onClick={openEdit}>✏️</button>
@@ -882,8 +879,13 @@ function ItemMini({item,onToggle,onDel,onNameChange}){
         </div>
         {/* Nom */}
         <div style={{fontSize:10,fontWeight:700,color:TXT,textAlign:"center",textDecoration:item.checked?"line-through":"none",lineHeight:1.2,width:"100%"}}>{shortName}</div>
-        {/* Quantité */}
-        <div style={{fontSize:9,color:TXT3,fontWeight:600,textAlign:"center"}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join("+")}</div>
+        {/* Quantités cliquables */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
+          {(item.quantities||[]).map((q,qi)=>(
+            <span key={qi} style={{fontSize:8,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 5px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}</span>
+          ))}
+          <span style={{fontSize:8,border:`1px dashed ${BDR}`,borderRadius:20,padding:"1px 5px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onAqty&&onAqty(item.id)}>+</span>
+        </div>
       </div>
       {/* Panneau édition inline mini */}
       {showEdit&&(
@@ -1050,6 +1052,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   const [showSavedLists,setShowSavedLists]=useState(false);
   const [showSaveModal,setShowSaveModal]=useState(false);
   const [saveName,setSaveName]=useState("");
+  const [showQtyPanel,setShowQtyPanel]=useState(false);
   const showPriceVisible=localStorage.getItem("ws_prices_visible")!=="false";
   // Vocal
   const [vocalActive,setVocalActive]=useState(false);
@@ -1182,12 +1185,17 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   // ──────────────────────────────────────────────────────
   function addItem(){
     const n=name.trim();if(!n)return;
-    const ni=mergeItem(db.items,n,qty,unit,"manuel",cat);
+    // Si le panneau quantité est ouvert → utilise qty/unit choisis
+    // Sinon → ajoute avec qty=1 sans unité (l'utilisateur pourra ajuster via + qté)
+    const useQty=showQtyPanel?qty:1;
+    const useUnit=showQtyPanel?unit:"";
+    const ni=mergeItem(db.items,n,useQty,useUnit,"manuel",cat);
     const ph={...db.productHistory};
-    if(!ph[n])ph[n]={count:0,category:cat,lastUnit:unit};
-    ph[n].count++;ph[n].category=cat;ph[n].lastUnit=unit;
+    if(!ph[n])ph[n]={count:0,category:cat,lastUnit:useUnit};
+    ph[n].count++;ph[n].category=cat;ph[n].lastUnit=useUnit;
     const nd={...db,items:ni,productHistory:ph};setDb(nd);saveDB(nd);
-    setName("");setQty(1);setSugg([]);showToast("✅ "+n+" ajouté");
+    setName("");setQty(1);setUnit("");setSugg([]);setShowQtyPanel(false);
+    showToast("✅ "+n+" ajouté");
   }
   function toggle(id){const ni=db.items.map(i=>i.id===id?{...i,checked:!i.checked}:i);const nd={...db,items:ni};setDb(nd);saveDB(nd);}
   function del(id){const ni=db.items.filter(i=>i.id!==id);const nd={...db,items:ni};setDb(nd);saveDB(nd);}
@@ -1264,13 +1272,19 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
       {/* Add form */}
       <div style={{...card,background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`,boxShadow:"0 2px 12px rgba(184,112,58,.10)"}}>
-        <div style={{display:"flex",gap:8,marginBottom:8}}>
-          <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addItem()}/>
-          <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal} title={vocalActive?"Arrêter la reconnaissance vocale":"Démarrer la reconnaissance vocale"}>
+        {/* Ligne saisie + boutons */}
+        <div style={{display:"flex",gap:8,marginBottom:sugg.length>0?6:8}}>
+          <input style={{...inp,flex:1}} placeholder="Nom de l'article…" value={name}
+            onChange={e=>{setName(e.target.value);if(!e.target.value.trim())setShowQtyPanel(false);}}
+            onKeyDown={e=>e.key==="Enter"&&addItem()}/>
+          <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}}
+            onClick={vocalActive?stopVocal:startVocal}>
             {vocalActive?"⏹️":"🎤"}
           </button>
           <button style={{...btn("acc"),fontSize:18,padding:"10px 16px"}} onClick={addItem}>+</button>
         </div>
+
+        {/* Indicateur vocal */}
         {vocalActive&&(
           <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.5)",borderRadius:10,padding:"10px 13px",marginBottom:8,display:"flex",flexDirection:"column",gap:6}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1281,62 +1295,74 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             <div style={{background:"rgba(212,96,74,.12)",borderRadius:8,padding:"7px 10px",fontSize:12,color:DNG,fontWeight:700,textAlign:"center",lineHeight:1.5}}>
               Dites vos articles puis <span style={{background:DNG,color:"white",borderRadius:5,padding:"1px 6px",fontWeight:900}}>« virgule »</span> entre chaque
             </div>
-            <div style={{fontSize:10,color:TXT3,textAlign:"center"}}>Ex : "tomates virgule lait virgule œufs"</div>
           </div>
         )}
-        {/* ── SUGGESTIONS : clic → pré-remplit + languette quantité ── */}
+
+        {/* Suggestions dropdown */}
         {sugg.length>0&&(
           <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
             {sugg.slice(0,6).map(([n,d])=>{
               const catInfo=normalizeIngredient(n);
               const catDisplay=(d.category||catInfo.categorie||getCat(n)).split(" ")[0];
               const unitDisplay=d.lastUnit||catInfo.unite||"";
-              const isSelected=name===n;
               return(
-                <div key={n} style={{borderBottom:`1px solid ${BDR}`}}>
-                  <div style={{padding:"9px 13px",fontSize:13,cursor:"pointer",display:"flex",justifyContent:"space-between",color:TXT,background:isSelected?"rgba(200,132,90,.08)":"transparent"}}
-                    onClick={()=>{
-                      const info=normalizeIngredient(n);
-                      const catV=normalizeCat(info.categorie||d.category||getCat(n));
-                      const unitV=info.unite||d.lastUnit||"";
-                      setName(n);setCat(catV);setUnit(unitV);setSugg([]);
-                    }}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:14}}>{catDisplay}</span>
-                      <span style={{fontWeight:600}}>{n}</span>
-                    </div>
-                    <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{d.count>0?`${d.count}× · `:""}{UL[unitDisplay]||"pcs"}</span>
+                <div key={n} style={{padding:"9px 13px",fontSize:13,cursor:"pointer",borderBottom:`1px solid ${BDR}`,display:"flex",justifyContent:"space-between",color:TXT,background:name===n?"rgba(200,132,90,.08)":"transparent"}}
+                  onClick={()=>{
+                    const info=normalizeIngredient(n);
+                    const catV=normalizeCat(info.categorie||d.category||getCat(n));
+                    const unitV=info.unite||d.lastUnit||"";
+                    setName(n);setCat(catV);setUnit(unitV);setSugg([]);
+                    // Ne pas ouvrir le panneau auto → l'utilisateur voit la languette
+                  }}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:14}}>{catDisplay}</span>
+                    <span style={{fontWeight:600}}>{n}</span>
                   </div>
+                  <span style={{fontSize:10,color:TXT3,background:CREAM2,padding:"2px 8px",borderRadius:20,fontWeight:600}}>
+                    {d.count>0?`${d.count}× · `:""}{UL[unitDisplay]||"pcs"}
+                  </span>
                 </div>
               );
             })}
           </div>
         )}
-        {/* ── Languette quantité : visible quand un nom est pré-rempli ── */}
+
+        {/* Languette "Ajouter une quantité" — apparaît quand un nom est saisi */}
         {name.trim()&&(
-          <div style={{marginBottom:8}}>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-              <div style={{fontSize:11,color:TXT2,fontWeight:700,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"4px 12px",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}
-                onClick={()=>{/* panneau qty déjà visible dessous */}}>
-                ＋ Quantité / catégorie
+          <div style={{marginBottom:showQtyPanel?8:0}}>
+            <div
+              onClick={()=>setShowQtyPanel(p=>!p)}
+              style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:showQtyPanel?CARAMEL2:TXT2,fontWeight:700,background:showQtyPanel?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${showQtyPanel?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:showQtyPanel?8:0,transition:"all .15s",userSelect:"none"}}>
+              <span style={{fontSize:14}}>{showQtyPanel?"▾":"▸"}</span>
+              Ajouter une quantité
+            </div>
+            {/* Panneau qty/cat — toggle par la languette */}
+            {showQtyPanel&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <Stepper value={qty} onChange={setQty}/>
+                <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
+                  {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
+                </select>
+                <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>
+                  {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
-              <div style={{flex:1,fontSize:11,color:TXT3}}>ou <strong>+</strong> pour ajouter 1 pcs directement</div>
-            </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
-              <Stepper value={qty} onChange={setQty}/>
-              <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
-              <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
-            </div>
-          </div>
-        )}
-        {!name.trim()&&(
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            <Stepper value={qty} onChange={setQty}/>
-            <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
-            <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+            )}
           </div>
         )}
 
+        {/* Panneau qty/cat permanent quand aucun nom */}
+        {!name.trim()&&(
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <Stepper value={qty} onChange={setQty}/>
+            <select style={{...sel,flex:1,minWidth:75,padding:"8px 10px"}} value={unit} onChange={e=>setUnit(e.target.value)}>
+              {UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}
+            </select>
+            <select style={{...sel,flex:1,minWidth:115,padding:"8px 10px"}} value={cat} onChange={e=>setCat(e.target.value)}>
+              {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Validation vocale en attente */}
@@ -1406,7 +1432,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <div key={c}>
                   <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
-                    {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem}/>)}
+                    {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
                   </div>
                 </div>
               ))}
@@ -1414,7 +1440,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <>
                   <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
-                    {chk.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem}/>)}
+                    {chk.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
                   </div>
                 </>
               )}
@@ -1426,7 +1452,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <div key={c}>
                   <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem}/>)}
+                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
                   </div>
                 </div>
               ))}
@@ -1434,7 +1460,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <>
                   <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem}/>)}
+                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
                   </div>
                 </>
               )}
@@ -1519,9 +1545,6 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
     <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:item.checked?.5:1,background:item.checked?CREAM2:SURF}}>
       {/* Ligne principale - clic zone entière pour cocher */}
       <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
-        <div style={{width:24,height:24,borderRadius:8,border:item.checked?"none":`2.5px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,boxShadow:item.checked?`0 2px 8px rgba(184,112,58,.35)`:"none"}}>
-          {item.checked&&<span style={{color:"white",fontSize:11,fontWeight:800}}>✓</span>}
-        </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
@@ -1583,7 +1606,7 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
 }
 
 // ─── ITEM CARD (vue grille 2 colonnes) ───────────────────────
-function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange}){
+function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onAqty}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   const catEmoji=getProductEmoji(item.name);
   const [showEdit,setShowEdit]=useState(false);
@@ -1607,9 +1630,6 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange}){
       {/* Carte principale - clic zone entière pour cocher */}
       <div style={{padding:"10px 11px",display:"flex",flexDirection:"column",gap:6,cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{width:22,height:22,borderRadius:7,border:item.checked?"none":`2px solid ${BDR}`,background:item.checked?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:item.checked?`0 2px 6px rgba(184,112,58,.35)`:"none"}}>
-            {item.checked&&<span style={{color:"white",fontSize:10,fontWeight:800}}>✓</span>}
-          </div>
           <EmojiImg emoji={catEmoji} size={20}/>
           <div style={{display:"flex",gap:2}} onClick={e=>e.stopPropagation()}>
             <button style={{background:"none",border:"none",color:showEdit?CARAMEL2:TXT3,cursor:"pointer",fontSize:11,padding:"1px 3px",opacity:showEdit?1:.5}} onClick={openEdit}>✏️</button>
@@ -1617,7 +1637,13 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange}){
           </div>
         </div>
         <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none",lineHeight:1.3,wordBreak:"break-word"}}>{item.name}</div>
-        <div style={{fontSize:11,color:TXT3,fontWeight:600}}>{(item.quantities||[]).map(q=>fmtQ(q.qty,q.unit)).join(" + ")}</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:2}} onClick={e=>e.stopPropagation()}>
+          {(item.quantities||[]).map((q,qi)=>{
+            const isR=q.source&&q.source!=="manuel"&&q.source!=="historique";
+            return<span key={qi} style={{fontSize:10,background:isR?"rgba(200,132,90,.12)":CREAM2,border:isR?`1px solid rgba(200,132,90,.3)`:`1px solid ${BDR}`,borderRadius:20,padding:"2px 7px",color:isR?CARAMEL2:TXT3,cursor:"pointer",whiteSpace:"nowrap",fontWeight:600}} onClick={()=>onEqty&&onEqty(item.id,qi)}>{fmtQ(q.qty,q.unit)}{isR?" 🍽️":""}</span>;
+          })}
+          <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"2px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onAqty&&onAqty(item.id)}>+ qté</span>
+        </div>
         {bestPrice&&<div style={{fontSize:10,color:TXT3}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€</div>}
       </div>
       {/* Panneau édition inline grille */}
