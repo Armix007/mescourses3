@@ -602,6 +602,16 @@ const mdl={background:SURF,borderRadius:"20px 20px 0 0",padding:"18px 16px",widt
 
 // Composant plein écran (pour MealDBSearch, RecipeEdit)
 function FullPage({open,onClose,children,noPad}){
+  useEffect(()=>{
+    if(open){
+      document.body.style.overflow="hidden";
+      document.documentElement.style.overflow="hidden";
+    }
+    return()=>{
+      document.body.style.overflow="";
+      document.documentElement.style.overflow="";
+    };
+  },[open]);
   if(!open)return null;
   return(
     <div style={{position:"fixed",inset:0,zIndex:200,background:"linear-gradient(180deg,#b86a3a 0%,#c8785a 6%,#dea878 22%,#f0d4a8 42%,#fdf8f2 62%,#fff 100%)",display:"flex",justifyContent:"center",overflow:"hidden"}}>
@@ -3247,71 +3257,123 @@ function CookingMode({recipe,onClose,onFinish}){
 // ─── AI RECIPE GENERATOR ──────────────────────────────────────
 function AIRecipeGen({onImport,onClose,showToast,items,db}){
   const [mode,setMode]=useState("frigo");
-  // ── MODE FRIGO : articles + vocal + suggestions pantry
-  const [fridgeItems,setFridgeItems]=useState(()=>{
-    // Ne pré-remplit plus depuis la liste — on part vide
-    return [];
-  });
+
+  // ── MODE FRIGO
+  const [fridgeItems,setFridgeItems]=useState([]);
   const [fridgeName,setFridgeName]=useState("");
   const [fridgeSugg,setFridgeSugg]=useState([]);
   const [fridgeQty,setFridgeQty]=useState(1);
   const [fridgeUnit,setFridgeUnit]=useState("");
   const [fridgeCat,setFridgeCat]=useState("🥦 Légumes");
   const [fridgeShowQty,setFridgeShowQty]=useState(false);
-  const [fridgeEqty,setFridgeEqty]=useState(null); // {idx,qi}
+  const [fridgeEqty,setFridgeEqty]=useState(null);
   const [vocalActive,setVocalActive]=useState(false);
   const vocalRef=useRef(null);
+
   // ── MODE VARIATION
-  const [variationBase,setVariationBase]=useState("");
-  const [variationType,setVariationType]=useState("végétarien");
-  // ── FILTRES (identiques à PageRecettes)
+  const [varBaseText,setVarBaseText]=useState("");       // texte libre
+  const [varBaseRecipe,setVarBaseRecipe]=useState(null); // recette choisie {name,photo,ingredients,steps}
+  const [showPickRecipe,setShowPickRecipe]=useState(false); // sélecteur de recette
+  const [varIngItems,setVarIngItems]=useState([]);       // ingrédients de la recette de base (modifiables)
+  const [varIngName,setVarIngName]=useState("");
+  const [varIngSugg,setVarIngSugg]=useState([]);
+  const [varIngQty,setVarIngQty]=useState(1);
+  const [varIngUnit,setVarIngUnit]=useState("");
+  const [varIngCat,setVarIngCat]=useState("🥦 Légumes");
+  const [varIngShowQty,setVarIngShowQty]=useState(false);
+  const [varIngEqty,setVarIngEqty]=useState(null);
+  const [varPref,setVarPref]=useState("");
+
+  // ── FILTRES
   const [dietFilters,setDietFilters]=useState(new Set());
   const filterScrollRef=useRef(null);
   function toggleFilter(val){setDietFilters(prev=>{const s=new Set(prev);s.has(val)?s.delete(val):s.add(val);return s;});}
+
   // ── GENERATION
   const [generating,setGenerating]=useState(false);
   const [result,setResult]=useState(null);
+  const [changedIngNames,setChangedIngNames]=useState(new Set()); // pour coloration verte
+  const [changedStepIdxs,setChangedStepIdxs]=useState(new Set());
   const [chatMsg,setChatMsg]=useState("");
   const [chatHistory,setChatHistory]=useState([]);
   const [chatLoading,setChatLoading]=useState(false);
-  // ── SUGGESTION D'APPOINT (point 8)
-  const [extraSugg,setExtraSugg]=useState(null); // {items:[],accepted:Set,refused:bool}
+  const [extraSugg,setExtraSugg]=useState(null);
 
-  // Articles du placard toujours présents (suggestions de base)
   const PANTRY_DEFAULTS=["Sel","Poivre","Huile d'olive","Beurre","Ail","Oignon","Farine","Sucre","Œufs","Lait","Pâtes","Riz","Lentilles","Tomates concassées","Concentré de tomate","Cumin","Paprika","Herbes de Provence","Thym","Moutarde","Vinaigre","Sauce soja","Bouillon de légumes","Pommes de terre","Carottes"];
 
-  // Suggestions frigo selon saisie
+  // Suggestions frigo
   useEffect(()=>{
     if(!fridgeName.trim()){setFridgeSugg([]);return;}
     const q=fridgeName.toLowerCase();
     const already=new Set(fridgeItems.map(i=>i.name.toLowerCase()));
-    const hits=PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!already.has(p.toLowerCase())).slice(0,5);
-    setFridgeSugg(hits);
+    setFridgeSugg(PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!already.has(p.toLowerCase())).slice(0,5));
     const info=normalizeIngredient(fridgeName);
     if(info.categorie) setFridgeCat(normalizeCat(info.categorie));
     if(info.unite) setFridgeUnit(info.unite);
   },[fridgeName,fridgeItems]);
 
+  // Suggestions ingr variation
+  useEffect(()=>{
+    if(!varIngName.trim()){setVarIngSugg([]);return;}
+    const q=varIngName.toLowerCase();
+    const already=new Set(varIngItems.map(i=>i.name.toLowerCase()));
+    setVarIngSugg(PRODUCTS_DB.filter(p=>p.toLowerCase().includes(q)&&!already.has(p.toLowerCase())).slice(0,5));
+    const info=normalizeIngredient(varIngName);
+    if(info.categorie) setVarIngCat(normalizeCat(info.categorie));
+    if(info.unite) setVarIngUnit(info.unite);
+  },[varIngName,varIngItems]);
+
   function addFridgeItem(nameOverride){
-    const n=(nameOverride||fridgeName).trim();
-    if(!n)return;
+    const n=(nameOverride||fridgeName).trim(); if(!n)return;
     const info=normalizeIngredient(n);
-    const useQty=fridgeShowQty?fridgeQty:0;
-    const useUnit=fridgeShowQty?fridgeUnit:"";
-    const cat=normalizeCat(info.categorie||fridgeCat||getCat(n));
-    setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:n,category:cat,quantities:[{qty:useQty,unit:useUnit,source:"manuel"}]}]);
+    const useQty=fridgeShowQty?fridgeQty:0; const useUnit=fridgeShowQty?fridgeUnit:"";
+    setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:n,category:normalizeCat(info.categorie||fridgeCat||getCat(n)),quantities:[{qty:useQty,unit:useUnit,source:"manuel"}]}]);
     if(!nameOverride){setFridgeName("");setFridgeSugg([]);setFridgeQty(1);setFridgeUnit("");setFridgeShowQty(false);}
   }
   function removeFridgeItem(id){setFridgeItems(prev=>prev.filter(i=>i.id!==id));}
-  function editFridgeItemQty(idx,qi,newQty,newUnit){
+  function editFridgeQty(idx,qi,v,u){
     setFridgeItems(prev=>prev.map((item,i)=>{
       if(i!==idx)return item;
       const qs=[...item.quantities];
-      if(qi==null)qs.push({qty:roundQ(newQty),unit:newUnit,source:"manuel"});
-      else qs[qi]={...qs[qi],qty:roundQ(newQty),unit:newUnit};
+      if(qi==null)qs.push({qty:roundQ(v),unit:u,source:"manuel"});
+      else qs[qi]={...qs[qi],qty:roundQ(v),unit:u};
       return{...item,quantities:qs};
     }));
     setFridgeEqty(null);
+  }
+
+  function addVarIng(nameOverride){
+    const n=(nameOverride||varIngName).trim(); if(!n)return;
+    const info=normalizeIngredient(n);
+    const useQty=varIngShowQty?varIngQty:0; const useUnit=varIngShowQty?varIngUnit:"";
+    setVarIngItems(prev=>[...prev,{id:Date.now()+Math.random(),name:n,category:normalizeCat(info.categorie||varIngCat||getCat(n)),quantities:[{qty:useQty,unit:useUnit,source:"manuel"}]}]);
+    if(!nameOverride){setVarIngName("");setVarIngSugg([]);setVarIngQty(1);setVarIngUnit("");setVarIngShowQty(false);}
+  }
+  function removeVarIng(id){setVarIngItems(prev=>prev.filter(i=>i.id!==id));}
+  function editVarIngQty(idx,qi,v,u){
+    setVarIngItems(prev=>prev.map((item,i)=>{
+      if(i!==idx)return item;
+      const qs=[...item.quantities];
+      if(qi==null)qs.push({qty:roundQ(v),unit:u,source:"manuel"});
+      else qs[qi]={...qs[qi],qty:roundQ(v),unit:u};
+      return{...item,quantities:qs};
+    }));
+    setVarIngEqty(null);
+  }
+
+  // Quand une recette est sélectionnée dans le picker
+  function selectBaseRecipe(recipe){
+    setVarBaseRecipe(recipe);
+    // Convertir ses ingrédients
+    const ings=(recipe.ingredients||[]).map(ing=>({
+      id:Date.now()+Math.random(),
+      name:ing.name,
+      category:getCat(ing.name),
+      quantities:[{qty:parseFloat(ing.qty)||0,unit:ing.unit||"",source:"base"}]
+    }));
+    setVarIngItems(ings);
+    setVarBaseText(recipe.name);
+    setShowPickRecipe(false);
   }
 
   // ── VOCAL frigo
@@ -3334,38 +3396,36 @@ function AIRecipeGen({onImport,onClose,showToast,items,db}){
   }
   function stopVocal(){vocalRef.current?.stop();setVocalActive(false);}
 
-  // ── GENERATE
   async function generate(){
     const apiKey=localStorage.getItem("ws_apikey")||"";
     if(!apiKey){showToast("⚠️ Clé API requise — configurez via ⚙️");return;}
-    if(mode==="frigo"&&fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");return;}
-    setGenerating(true);setResult(null);setChatHistory([]);setExtraSugg(null);
-
     const filters=[...dietFilters].join(", ");
     const dietNote=filters?`Contraintes alimentaires : ${filters}.`:"";
+    setGenerating(true);setResult(null);setChatHistory([]);setExtraSugg(null);
 
     let prompt;
     if(mode==="frigo"){
+      if(fridgeItems.length===0){showToast("⚠️ Ajoutez au moins un ingrédient");setGenerating(false);return;}
       const ingList=fridgeItems.map(i=>{
         const q=i.quantities?.[0];
-        const qStr=(q&&q.qty>0)?` (${q.qty}${q.unit?" "+q.unit:""})`:"";
-        return i.name+qStr;
+        return i.name+((q&&q.qty>0)?` (${q.qty}${q.unit?" "+q.unit:""})`:"");
       }).join(", ");
       prompt=`Tu es un chef cuisinier créatif. ${dietNote}
 Ingrédients disponibles : ${ingList}
-
-IMPORTANT : Utilise uniquement les ingrédients les plus adaptés parmi ceux listés (pas tous obligatoirement). Tu peux ajouter 2-3 ingrédients courants du placard (sel, huile, etc.) si nécessaire.
-
-Propose ÉGALEMENT une liste de 3-5 ingrédients optionnels à acheter pour rendre le plat plus varié, sous la clé "extra_suggestions".
-
+IMPORTANT : Utilise seulement les ingrédients les plus adaptés (pas tous obligatoirement). Tu peux ajouter 2-3 condiments courants (sel, huile…).
+Propose aussi 3-5 ingrédients optionnels à acheter pour enrichir le plat sous "extra_suggestions".
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
-{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"","extra_suggestions":[{"name":"","reason":"pour quoi faire"}]}`;
+{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[{"name":"","reason":""}]}`;
     } else {
-      prompt=`Tu es un chef cuisinier expert. ${dietNote}
-Crée une variation "${variationType}" de : "${variationBase}"
-
+      const baseInfo=varBaseRecipe
+        ?`Recette de base : "${varBaseRecipe.name}"\nIngrédients disponibles : ${varIngItems.map(i=>i.name+((i.quantities?.[0]?.qty>0)?` (${i.quantities[0].qty}${i.quantities[0].unit?" "+i.quantities[0].unit:""})`:"")).join(", ")}\nÉtapes originales : ${(varBaseRecipe.steps||[]).join(" | ")}`
+        :`Recette de base : "${varBaseText}"\nIngrédients disponibles : ${varIngItems.map(i=>i.name).join(", ")||"non précisés"}`;
+      const prefNote=varPref.trim()?`Préférences : ${varPref.trim()}.`:"";
+      prompt=`Tu es un chef cuisinier expert. ${dietNote} ${prefNote}
+${baseInfo}
+Propose une adaptation créative de cette recette. Indique quels ingrédients ont changé dans "changed_ingredients" (liste de noms) et quelles étapes ont changé dans "changed_steps" (liste d'index 0-based).
 RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
-{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète en français"],"tip":"","extra_suggestions":[]}`;
+{"title":"","persons":4,"duration":"30 min","difficulty":"easy","meal_type":"main","diets":[],"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}`;
     }
 
     try{
@@ -3377,9 +3437,12 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
       const r={id:Date.now(),name:p.title,persons:p.persons||4,duration:p.duration||"",difficulty:p.difficulty||"",mealType:p.meal_type||"",diets:p.diets||[],photo:null,source:"ai",ingredients:p.ingredients||[],steps:p.steps||[],tip:p.tip||"",date:new Date().toLocaleDateString("fr-FR")};
       setResult(r);
       setChatHistory([{role:"user",content:prompt},{role:"assistant",content:JSON.stringify(p)}]);
-      // Suggestions d'appoint
-      if(p.extra_suggestions?.length>0){
-        setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
+      if(p.extra_suggestions?.length>0) setExtraSugg({items:p.extra_suggestions,accepted:new Set(),refused:false});
+      if(mode==="variation"){
+        setChangedIngNames(new Set(p.changed_ingredients||[]));
+        setChangedStepIdxs(new Set((p.changed_steps||[]).map(Number)));
+      } else {
+        setChangedIngNames(new Set());setChangedStepIdxs(new Set());
       }
     }catch(e){showToast("❌ "+e.message);}
     setGenerating(false);
@@ -3391,7 +3454,7 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
     if(!apiKey)return;
     setChatLoading(true);
     const userMsg=chatMsg.trim();setChatMsg("");
-    const sys=`Tu es un chef cuisinier expert. Modifie la recette selon la demande. Recette actuelle : ${JSON.stringify({name:result.name,ingredients:result.ingredients,steps:result.steps})}. RETOURNE UNIQUEMENT le JSON modifié (sans markdown) : {"title":"","persons":${result.persons||4},"duration":"${result.duration||"30 min"}","difficulty":"${result.difficulty||"easy"}","meal_type":"${result.mealType||"main"}","diets":${JSON.stringify(result.diets||[])},"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[]}`;
+    const sys=`Tu es un chef cuisinier expert. Modifie la recette selon la demande. Recette actuelle : ${JSON.stringify({name:result.name,ingredients:result.ingredients,steps:result.steps})}. RETOURNE UNIQUEMENT le JSON modifié (sans markdown) : {"title":"","persons":${result.persons||4},"duration":"${result.duration||"30 min"}","difficulty":"${result.difficulty||"easy"}","meal_type":"${result.mealType||"main"}","diets":${JSON.stringify(result.diets||[])},"ingredients":[{"name":"","qty":"","unit":""}],"steps":["étape complète"],"tip":"","extra_suggestions":[],"changed_ingredients":[],"changed_steps":[]}`;
     const newHist=[...chatHistory,{role:"user",content:userMsg}];
     try{
       const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,system:sys,messages:newHist})});
@@ -3400,22 +3463,22 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
       text=text.replace(/^```[a-z]*\n?/i,"").replace(/\n?```$/i,"").trim();
       const p=JSON.parse(text);
       setResult(r=>({...r,name:p.title||r.name,ingredients:p.ingredients||r.ingredients,steps:p.steps||r.steps,tip:p.tip||r.tip,duration:p.duration||r.duration,diets:p.diets||r.diets}));
+      setChangedIngNames(new Set(p.changed_ingredients||[]));
+      setChangedStepIdxs(new Set((p.changed_steps||[]).map(Number)));
       setChatHistory([...newHist,{role:"assistant",content:text}]);
       showToast("✅ Recette modifiée !");
     }catch(e){showToast("❌ "+e.message);}
     setChatLoading(false);
   }
 
-  // ── Bandeau filtres identique à PageRecettes
+  // ── Bandeau filtres
   function FilterBar(){
     return(
       <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:14}}>
         <button onClick={()=>filterScrollRef.current?.scrollBy({left:-120,behavior:"smooth"})} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>◀</button>
         <div ref={filterScrollRef} style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",flex:1}}>
           {["🌱 Végétarien","🌿 Vegan","⚡ Rapide","🐟 Poisson","🥩 Viande","🚫🌾 Sans gluten","🥛 Sans lactose"].map(t=>(
-            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(t)}>
-              {t}
-            </div>
+            <div key={t} style={{flexShrink:0,padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:dietFilters.has(t)?CARAMEL:"rgba(255,255,255,.75)",color:dietFilters.has(t)?"white":TXT2,cursor:"pointer",border:`1px solid ${dietFilters.has(t)?CARAMEL:BDR}`,whiteSpace:"nowrap",transition:"all .15s"}} onClick={()=>toggleFilter(t)}>{t}</div>
           ))}
         </div>
         <button onClick={()=>filterScrollRef.current?.scrollBy({left:120,behavior:"smooth"})} style={{background:"rgba(255,255,255,.85)",border:`1px solid ${BDR}`,borderRadius:20,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:12,color:TXT2}}>▶</button>
@@ -3423,9 +3486,120 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
     );
   }
 
+  // ── Formulaire d'ajout d'ingrédient réutilisable
+  function IngForm({ingItems,ingName,setIngName,ingSugg,setIngSugg,ingQty,setIngQty,ingUnit,setIngUnit,ingCat,setIngCat,ingShowQty,setIngShowQty,onAdd,vocalOk,placeholder}){
+    return(
+      <div style={{...card,background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`,marginBottom:10}}>
+        <div style={{display:"flex",gap:8,marginBottom:ingSugg.length>0?6:8}}>
+          <input style={{...inp,flex:1}} placeholder={placeholder||"Nom de l'ingrédient…"} value={ingName}
+            onChange={e=>{setIngName(e.target.value);if(!e.target.value.trim())setIngShowQty(false);}}
+            onKeyDown={e=>e.key==="Enter"&&onAdd()}/>
+          {vocalOk&&<button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal}>{vocalActive?"⏹️":"🎤"}</button>}
+          <button style={{...btn("acc"),fontSize:18,padding:"10px 14px"}} onClick={()=>onAdd()}>+</button>
+        </div>
+        {vocalActive&&vocalOk&&(
+          <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.4)",borderRadius:10,padding:"8px 11px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite",flexShrink:0}}/>
+            <span style={{fontSize:12,color:DNG,fontWeight:800,flex:1}}>🎤 En écoute… virgule entre chaque article</span>
+            <span style={{fontSize:11,color:TXT3}}>⏹️</span>
+          </div>
+        )}
+        {ingSugg.length>0&&(
+          <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
+            {ingSugg.map((n,i)=>(
+              <div key={n} style={{padding:"8px 12px",fontSize:13,cursor:"pointer",borderBottom:i<ingSugg.length-1?`1px solid ${BDR}`:"none",display:"flex",alignItems:"center",gap:8,color:TXT}}
+                onClick={()=>onAdd(n)}>
+                <EmojiImg emoji={getProductEmoji(n)} size={16}/>
+                <span style={{fontWeight:600,flex:1}}>{n}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{marginTop:4}}>
+          <div onClick={()=>setIngShowQty(p=>!p)} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:ingShowQty?CARAMEL2:TXT2,fontWeight:700,background:ingShowQty?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${ingShowQty?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:ingShowQty?10:0,transition:"all .15s",userSelect:"none"}}>
+            <span style={{fontSize:13}}>{ingShowQty?"▾":"▸"}</span>
+            + Quantité et catégorie
+          </div>
+          {ingShowQty&&(
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <Stepper value={ingQty} onChange={setIngQty}/>
+              <select style={{...sel,flex:1,minWidth:70,padding:"8px 9px"}} value={ingUnit} onChange={e=>setIngUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
+              <select style={{...sel,flex:1,minWidth:110,padding:"8px 9px"}} value={ingCat} onChange={e=>setIngCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Liste d'ingrédients (style liste) avec chips qty
+  function IngList({ingItems,onRemove,onEqty}){
+    if(ingItems.length===0)return null;
+    return(
+      <div style={{marginBottom:10}}>
+        {ingItems.map((item,idx)=>(
+          <div key={item.id} style={{...card,padding:0,marginBottom:5,overflow:"hidden",background:SURF}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"9px 12px"}}>
+              <EmojiImg emoji={getProductEmoji(item.name)} size={16} style={{marginTop:2,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.name}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:3}}>
+                  {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>(
+                    <span key={qi} style={{fontSize:10,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onEqty({idx,qi})}>{fmtQ(q.qty,q.unit)}</span>
+                  ))}
+                  <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>onEqty({idx,qi:null})}>+ qté</span>
+                </div>
+              </div>
+              <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5}} onClick={()=>onRemove(item.id)}>🗑️</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Sélecteur de recette (page pleine)
+  if(showPickRecipe){
+    const allRecipes=db?.recipes||[];
+    return(
+      <FullPage open onClose={()=>setShowPickRecipe(false)}>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px 12px",borderBottom:`1px solid ${BDR}`,flexShrink:0}}>
+          <button style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:CARAMEL,fontSize:18}} onClick={()=>setShowPickRecipe(false)}>←</button>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:TXT}}>Choisir une recette</div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"14px 16px 40px"}}>
+          {allRecipes.length===0?(
+            <div style={{textAlign:"center",padding:"40px 20px",color:TXT3}}>
+              <div style={{fontSize:40,marginBottom:12}}>📭</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,marginBottom:6}}>Aucune recette sauvegardée</div>
+              <div style={{fontSize:13}}>Importez des recettes depuis TheMealDB ou créez les vôtres</div>
+            </div>
+          ):(
+            <>
+              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8}}>Mes recettes</div>
+              {allRecipes.map((r,i)=>(
+                <div key={r.id||i} style={{...card,padding:0,overflow:"hidden",marginBottom:6,cursor:"pointer"}} onClick={()=>selectBaseRecipe(r)}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
+                    <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {r.photo?<img src={r.photo} alt={r.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<EmojiImg emoji={guessRecipeEmoji(r.name)} size={22}/>}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:700,color:CARAMEL,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                      <div style={{fontSize:10,color:TXT3,marginTop:2}}>{(r.ingredients||[]).length} ingr. · {r.duration||"—"}</div>
+                    </div>
+                    <span style={{color:TXT3,fontSize:16}}>›</span>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </FullPage>
+    );
+  }
+
   return(
     <FullPage open onClose={onClose}>
-      {/* ── HEADER ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 14px 10px",borderBottom:`1px solid ${BDR}`,flexShrink:0}}>
         <div>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:TXT}}>🤖 Recette par IA</div>
@@ -3434,17 +3608,13 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
         <button style={{...btn("gh"),padding:"8px 12px",fontSize:12}} onClick={onClose}>✕ Annuler</button>
       </div>
 
-      {/* ── CONTENU SCROLLABLE ── */}
       <div style={{flex:1,overflowY:"auto",padding:"14px 14px 100px",overflowX:"hidden"}}>
-
-        {/* Filtres — identiques à PageRecettes, au-dessus des deux modes */}
         <FilterBar/>
 
-        {/* ① MODE */}
         <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Mode</div>
         <div style={{display:"flex",gap:8,marginBottom:20}}>
           {[{id:"frigo",emoji:"🥘",label:"Avec ce que j'ai",sub:"Mes ingrédients → recette"},
-            {id:"variation",emoji:"✨",label:"Adapter une recette",sub:"Variation d'une recette"}
+            {id:"variation",emoji:"✨",label:"Adapter une recette",sub:"Adapter une recette existante"}
           ].map(m=>(
             <div key={m.id} style={{flex:1,padding:"11px 8px",textAlign:"center",borderRadius:13,cursor:"pointer",border:`2px solid ${mode===m.id?CARAMEL:BDR}`,background:mode===m.id?`rgba(184,112,58,.07)`:"rgba(255,255,255,.75)",transition:"all .15s"}} onClick={()=>{setMode(m.id);setResult(null);setChatHistory([]);setExtraSugg(null);}}>
               <div style={{fontSize:22,marginBottom:4}}>{m.emoji}</div>
@@ -3456,100 +3626,28 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
 
         {!result?(
           <>
-            {/* ── MODE FRIGO ── */}
             {mode==="frigo"?(
               <>
-                {/* Liste des articles ajoutés */}
                 <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Mes ingrédients disponibles</div>
-
-                {/* Articles ajoutés — style identique à PageListe */}
-                {fridgeItems.length>0&&(
-                  <div style={{marginBottom:10}}>
-                    {fridgeItems.map((item,idx)=>(
-                      <div key={item.id} style={{...card,padding:0,marginBottom:5,overflow:"hidden",background:SURF}}>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"9px 12px"}}>
-                          <EmojiImg emoji={getProductEmoji(item.name)} size={16} style={{marginTop:2,flexShrink:0}}/>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:13,fontWeight:700,color:TXT}}>{item.name}</div>
-                            <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:3}}>
-                              {(item.quantities||[]).filter(q=>q.qty>0||q.unit).map((q,qi)=>(
-                                <span key={qi} style={{fontSize:10,background:CREAM2,border:`1px solid ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>setFridgeEqty({idx,qi})}>{fmtQ(q.qty,q.unit)}</span>
-                              ))}
-                              <span style={{fontSize:10,border:`1px dashed ${BDR}`,borderRadius:20,padding:"1px 7px",color:TXT3,cursor:"pointer",fontWeight:600}} onClick={()=>setFridgeEqty({idx,qi:null})}>+ qté</span>
-                            </div>
-                          </div>
-                          <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5}} onClick={()=>removeFridgeItem(item.id)}>🗑️</button>
-                        </div>
+                <IngList ingItems={fridgeItems} onRemove={removeFridgeItem} onEqty={setFridgeEqty}/>
+                <IngForm
+                  ingItems={fridgeItems} ingName={fridgeName} setIngName={setFridgeName}
+                  ingSugg={fridgeSugg} setIngSugg={setFridgeSugg}
+                  ingQty={fridgeQty} setIngQty={setFridgeQty}
+                  ingUnit={fridgeUnit} setIngUnit={setFridgeUnit}
+                  ingCat={fridgeCat} setIngCat={setFridgeCat}
+                  ingShowQty={fridgeShowQty} setIngShowQty={setFridgeShowQty}
+                  onAdd={addFridgeItem} vocalOk={true}
+                />
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>💡 Ingrédients courants du placard</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {PANTRY_DEFAULTS.filter(p=>!fridgeItems.find(i=>i.name.toLowerCase()===p.toLowerCase())).map(p=>(
+                      <div key={p} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:"rgba(255,255,255,.8)",border:`1px solid ${BDR}`,color:TXT2,cursor:"pointer"}}
+                        onClick={()=>{const info=normalizeIngredient(p);setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:p,category:normalizeCat(info.categorie||getCat(p)),quantities:[{qty:0,unit:"",source:"pantry"}]}]);}}>
+                        <EmojiImg emoji={getProductEmoji(p)} size={13}/>{p}
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* Formulaire ajout — identique à PageListe */}
-                <div style={{...card,background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`,marginBottom:10}}>
-                  <div style={{display:"flex",gap:8,marginBottom:fridgeSugg.length>0?6:8}}>
-                    <input style={{...inp,flex:1}} placeholder="Nom de l'ingrédient…" value={fridgeName}
-                      onChange={e=>{setFridgeName(e.target.value);if(!e.target.value.trim())setFridgeShowQty(false);}}
-                      onKeyDown={e=>e.key==="Enter"&&addFridgeItem()}/>
-                    <button style={{...btn(vocalActive?"dng":"gh"),padding:"10px 12px",fontSize:16,flexShrink:0}} onClick={vocalActive?stopVocal:startVocal}>
-                      {vocalActive?"⏹️":"🎤"}
-                    </button>
-                    <button style={{...btn("acc"),fontSize:18,padding:"10px 14px"}} onClick={()=>addFridgeItem()}>+</button>
-                  </div>
-                  {vocalActive&&(
-                    <div style={{background:"rgba(212,96,74,.1)",border:"2px solid rgba(212,96,74,.4)",borderRadius:10,padding:"8px 11px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:DNG,animation:"pulse 1s infinite",flexShrink:0}}/>
-                      <span style={{fontSize:12,color:DNG,fontWeight:800,flex:1}}>🎤 En écoute… Dites vos articles, virgule entre chaque</span>
-                      <span style={{fontSize:11,color:TXT3}}>⏹️ pour arrêter</span>
-                    </div>
-                  )}
-                  {fridgeSugg.length>0&&(
-                    <div style={{background:CREAM2,border:`1px solid ${BDR}`,borderRadius:12,overflow:"hidden",marginBottom:8}}>
-                      {fridgeSugg.map((n,i)=>{
-                        const em=getProductEmoji(n);
-                        return(
-                          <div key={n} style={{padding:"8px 12px",fontSize:13,cursor:"pointer",borderBottom:i<fridgeSugg.length-1?`1px solid ${BDR}`:"none",display:"flex",alignItems:"center",gap:8,color:TXT}}
-                            onClick={()=>{addFridgeItem(n);}}>
-                            <EmojiImg emoji={em} size={16}/>
-                            <span style={{fontWeight:600,flex:1}}>{n}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div style={{marginTop:4}}>
-                    <div onClick={()=>setFridgeShowQty(p=>!p)} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:fridgeShowQty?CARAMEL2:TXT2,fontWeight:700,background:fridgeShowQty?"rgba(200,132,90,.12)":CREAM2,border:`1.5px solid ${fridgeShowQty?CARAMEL2:BDR}`,borderRadius:20,padding:"5px 14px",cursor:"pointer",marginBottom:fridgeShowQty?10:0,transition:"all .15s",userSelect:"none"}}>
-                      <span style={{fontSize:13}}>{fridgeShowQty?"▾":"▸"}</span>
-                      + Quantité et catégorie
-                    </div>
-                    {fridgeShowQty&&(
-                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                        <Stepper value={fridgeQty} onChange={setFridgeQty}/>
-                        <select style={{...sel,flex:1,minWidth:70,padding:"8px 9px"}} value={fridgeUnit} onChange={e=>setFridgeUnit(e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{UL[u]}</option>)}</select>
-                        <select style={{...sel,flex:1,minWidth:110,padding:"8px 9px"}} value={fridgeCat} onChange={e=>setFridgeCat(e.target.value)}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Suggestions pantry — articles courants du placard */}
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>💡 Ingrédients courants</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                    {PANTRY_DEFAULTS.filter(p=>!fridgeItems.find(i=>i.name.toLowerCase()===p.toLowerCase())).map(p=>{
-                      const em=getProductEmoji(p);
-                      return(
-                        <div key={p} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:"rgba(255,255,255,.8)",border:`1px solid ${BDR}`,color:TXT2,cursor:"pointer",transition:"all .12s"}}
-                          onClick={()=>{
-                            const info=normalizeIngredient(p);
-                            const cat=normalizeCat(info.categorie||getCat(p));
-                            setFridgeItems(prev=>[...prev,{id:Date.now()+Math.random(),name:p,category:cat,quantities:[{qty:0,unit:"",source:"pantry"}]}]);
-                          }}>
-                          <EmojiImg emoji={em} size={13}/>
-                          {p}
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
               </>
@@ -3557,50 +3655,99 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
               /* ── MODE VARIATION ── */
               <>
                 <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Recette de base</div>
-                <input style={{...inp,marginBottom:14}} placeholder="Ex: Poulet rôti, Quiche lorraine…" value={variationBase} onChange={e=>setVariationBase(e.target.value)}/>
-                <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Type de variation</div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:16}}>
-                  {["végétarien","vegan","sans gluten","sans lactose","plus rapide","version légère","version enfants"].map(v=>(
-                    <div key={v} style={{padding:"5px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:variationType===v?CARAMEL:"rgba(255,255,255,.75)",color:variationType===v?"white":TXT2,border:`1.5px solid ${variationType===v?CARAMEL:BDR}`,cursor:"pointer"}} onClick={()=>setVariationType(v)}>{v}</div>
-                  ))}
-                </div>
+
+                {/* Recette choisie — affichage en liste avec photo + suppression */}
+                {varBaseRecipe?(
+                  <div style={{...card,padding:0,overflow:"hidden",marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
+                      <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,${CREAM2},${BDR})`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {varBaseRecipe.photo?<img src={varBaseRecipe.photo} alt={varBaseRecipe.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<EmojiImg emoji={guessRecipeEmoji(varBaseRecipe.name)} size={22}/>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Fraunces',serif",fontSize:13,fontWeight:700,color:CARAMEL}}>{varBaseRecipe.name}</div>
+                        <div style={{fontSize:10,color:TXT3,marginTop:2}}>{(varBaseRecipe.ingredients||[]).length} ingr.</div>
+                      </div>
+                      <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:16,opacity:.5}} onClick={()=>{setVarBaseRecipe(null);setVarIngItems([]);setVarBaseText("");}}>🗑️</button>
+                    </div>
+                  </div>
+                ):(
+                  <div style={{marginBottom:10}}>
+                    <input style={{...inp,marginBottom:8}} placeholder="Nom d'une recette… (ex: Poulet rôti)" value={varBaseText} onChange={e=>setVarBaseText(e.target.value)}/>
+                    <button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setShowPickRecipe(true)}>
+                      📚 Choisir dans mes recettes
+                    </button>
+                  </div>
+                )}
+
+                {/* Ingrédients de la recette de base — modifiables */}
+                {varIngItems.length>0&&(
+                  <>
+                    <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>
+                      Ingrédients {varBaseRecipe?"de la recette":"disponibles"}
+                      <span style={{fontWeight:600,textTransform:"none",color:TXT3,fontSize:9,marginLeft:4}}>(modifiable)</span>
+                    </div>
+                    <IngList ingItems={varIngItems} onRemove={removeVarIng} onEqty={setVarIngEqty}/>
+                  </>
+                )}
+                <IngForm
+                  ingItems={varIngItems} ingName={varIngName} setIngName={setVarIngName}
+                  ingSugg={varIngSugg} setIngSugg={setVarIngSugg}
+                  ingQty={varIngQty} setIngQty={setVarIngQty}
+                  ingUnit={varIngUnit} setIngUnit={setVarIngUnit}
+                  ingCat={varIngCat} setIngCat={setVarIngCat}
+                  ingShowQty={varIngShowQty} setIngShowQty={setVarIngShowQty}
+                  onAdd={addVarIng} vocalOk={false} placeholder="Ajouter un ingrédient…"
+                />
+
+                {/* Étapes de la recette de base — lecture seule */}
+                {varBaseRecipe&&(varBaseRecipe.steps||[]).length>0&&(
+                  <>
+                    <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Étapes originales <span style={{fontWeight:500,textTransform:"none",color:TXT3,fontSize:9}}>(lecture seule)</span></div>
+                    <div style={{...card,padding:"10px 12px",marginBottom:14,background:"rgba(255,255,255,.7)"}}>
+                      {(varBaseRecipe.steps||[]).map((step,i)=>(
+                        <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:11,lineHeight:1.5,color:TXT2,padding:"5px 0",borderBottom:i<(varBaseRecipe.steps.length-1)?`1px solid ${BDR}`:"none"}}>
+                          <div style={{width:18,height:18,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
+                          <div>{step}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             )}
 
-            {/* ③ Préférences */}
-            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Remarques <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
-            <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, pour un repas léger…"/>
+            {/* Préférences */}
+            <div style={{fontSize:9,fontWeight:800,color:TXT2,textTransform:"uppercase",letterSpacing:.7,marginBottom:8}}>Préférences <span style={{fontWeight:600,color:TXT3,textTransform:"none",fontSize:9}}>(optionnel)</span></div>
+            <input style={{...inp,fontSize:12,marginBottom:16}} placeholder="Ex: pas trop épicé, pour un repas léger…" value={varPref} onChange={e=>setVarPref(e.target.value)}/>
 
-            {/* ④ GÉNÉRER */}
             <button style={{...btn("acc"),width:"100%",justifyContent:"center",padding:"14px",fontSize:14,borderRadius:13}} onClick={generate} disabled={generating}>
               {generating?"⏳ Génération en cours…":"✨ Générer ma recette"}
             </button>
             {!localStorage.getItem("ws_apikey")&&(
-              <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:10}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer"}} onClick={()=>showToast("⚠️ Configurez la clé API via ⚙️")}>Configurer 🔑</span></div>
+              <div style={{fontSize:10,color:TXT3,textAlign:"center",marginTop:10}}>⚠️ Clé API requise · <span style={{color:CARAMEL2,fontWeight:700,cursor:"pointer"}} onClick={()=>showToast("⚠️ Configurez via ⚙️")}>Configurer 🔑</span></div>
             )}
           </>
         ):(
           <>
-            {/* ── SUGGESTION D'APPOINT (point 8) ── */}
+            {/* Suggestions d'appoint */}
             {extraSugg&&!extraSugg.refused&&(
               <div style={{background:"rgba(90,138,58,.08)",border:"1.5px solid rgba(90,138,58,.3)",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                   <div style={{fontSize:12,fontWeight:800,color:SUC}}>🛒 Pour enrichir ce plat</div>
                   <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:12,fontWeight:600,padding:"2px 6px"}} onClick={()=>setExtraSugg(p=>({...p,refused:true}))}>✕ Ignorer</button>
                 </div>
-                <div style={{fontSize:11,color:TXT2,marginBottom:10}}>Quelques ingrédients à ajouter pour un résultat plus savoureux :</div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
                   {extraSugg.items.map((item,i)=>{
                     const acc=extraSugg.accepted.has(i);
                     return(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:10,background:acc?"rgba(90,138,58,.12)":"rgba(255,255,255,.8)",border:`1px solid ${acc?"rgba(90,138,58,.3)":BDR}`,cursor:"pointer",transition:"all .15s"}}
-                        onClick={()=>setExtraSugg(p=>{const acc2=new Set(p.accepted);acc2.has(i)?acc2.delete(i):acc2.add(i);return{...p,accepted:acc2};})}>
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:10,background:acc?"rgba(90,138,58,.12)":"rgba(255,255,255,.8)",border:`1px solid ${acc?"rgba(90,138,58,.3)":BDR}`,cursor:"pointer"}}
+                        onClick={()=>setExtraSugg(p=>{const a=new Set(p.accepted);a.has(i)?a.delete(i):a.add(i);return{...p,accepted:a};})}>
                         <EmojiImg emoji={getProductEmoji(item.name)} size={16}/>
                         <div style={{flex:1}}>
                           <div style={{fontSize:12,fontWeight:700,color:TXT}}>{item.name}</div>
                           <div style={{fontSize:10,color:TXT3}}>{item.reason}</div>
                         </div>
-                        <div style={{width:18,height:18,borderRadius:5,border:acc?"none":`1.5px solid ${BDR}`,background:acc?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <div style={{width:18,height:18,borderRadius:5,border:acc?"none":`1.5px solid ${BDR}`,background:acc?SUC:"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
                           {acc&&<span style={{color:"white",fontSize:9,fontWeight:800}}>✓</span>}
                         </div>
                       </div>
@@ -3608,36 +3755,24 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
                   })}
                 </div>
                 {extraSugg.accepted.size>0&&(
-                  <button style={{...btn("suc"),width:"100%",justifyContent:"center",marginTop:10,fontSize:12}} onClick={()=>{
-                    extraSugg.items.filter((_,i)=>extraSugg.accepted.has(i)).forEach(item=>{
-                      if(db){
-                        // Ajouter à la liste de courses
-                        const ni=mergeItem(db.items||[],item.name,0,"","ai-sugg",getCat(item.name));
-                        // On appelle onImport avec db mis à jour serait complexe — on signale juste
-                      }
-                    });
-                    showToast(`✅ ${extraSugg.accepted.size} articles notés pour vos courses`);
-                    setExtraSugg(p=>({...p,refused:true}));
-                  }}>
-                    ✅ Ajouter {extraSugg.accepted.size} article{extraSugg.accepted.size>1?"s":""} à retenir
+                  <button style={{...btn("suc"),width:"100%",justifyContent:"center",marginTop:10,fontSize:12}} onClick={()=>{showToast(`✅ ${extraSugg.accepted.size} articles notés`);setExtraSugg(p=>({...p,refused:true}));}}>
+                    ✅ Retenir {extraSugg.accepted.size} article{extraSugg.accepted.size>1?"s":""}
                   </button>
                 )}
               </div>
             )}
 
-            {/* RÉSULTAT */}
-            <div style={{background:`linear-gradient(135deg,rgba(42,20,8,.95),rgba(90,45,15,.9))`,borderRadius:16,padding:"14px 16px",marginBottom:12,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"relative",zIndex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                  <span style={{fontSize:34}}>{guessRecipeEmoji(result.name)||"🥘"}</span>
-                  <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:"white",lineHeight:1.25}}>{result.name}</div>
-                </div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                  {result.duration&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>⏱️ {result.duration}</div>}
-                  {result.persons&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>👥 {result.persons} pers.</div>}
-                  {(result.diets||[]).map(d=><div key={d} style={{background:"rgba(90,138,58,.4)",color:"rgba(200,255,180,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>{d}</div>)}
-                  <div style={{background:"rgba(184,112,58,.4)",color:"rgba(255,220,160,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>🤖 IA</div>
-                </div>
+            {/* En-tête résultat */}
+            <div style={{background:`linear-gradient(135deg,rgba(42,20,8,.95),rgba(90,45,15,.9))`,borderRadius:16,padding:"14px 16px",marginBottom:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <span style={{fontSize:34}}>{guessRecipeEmoji(result.name)||"🥘"}</span>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:"white",lineHeight:1.25}}>{result.name}</div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {result.duration&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>⏱️ {result.duration}</div>}
+                {result.persons&&<div style={{background:"rgba(255,255,255,.15)",color:"white",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>👥 {result.persons} pers.</div>}
+                {(result.diets||[]).map(d=><div key={d} style={{background:"rgba(90,138,58,.4)",color:"rgba(200,255,180,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>{d}</div>)}
+                <div style={{background:"rgba(184,112,58,.4)",color:"rgba(255,220,160,.9)",fontSize:10,borderRadius:20,padding:"2px 9px",fontWeight:700}}>🤖 IA</div>
               </div>
             </div>
 
@@ -3648,19 +3783,25 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
               </div>
             )}
 
+            {/* Ingrédients — modifiés en vert */}
             <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
               Ingrédients <span style={{fontSize:9,background:CREAM2,color:TXT3,padding:"1px 7px",borderRadius:10,fontWeight:700}}>{result.ingredients.length}</span>
+              {changedIngNames.size>0&&<span style={{fontSize:9,background:"rgba(90,138,58,.15)",color:SUC,padding:"1px 7px",borderRadius:10,fontWeight:700}}>🟢 = modifié</span>}
               <div style={{flex:1,height:1,background:BDR}}/>
             </div>
             <div style={{...card,padding:0,overflow:"hidden",marginBottom:12}}>
-              {result.ingredients.map((ing,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderBottom:i<result.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12}}>
-                  <span style={{color:TXT,fontWeight:600}}>{ing.name}</span>
-                  <span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
-                </div>
-              ))}
+              {result.ingredients.map((ing,i)=>{
+                const changed=changedIngNames.has(ing.name);
+                return(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderBottom:i<result.ingredients.length-1?`1px solid ${BDR}`:"none",fontSize:12,background:changed?"rgba(90,138,58,.06)":"transparent"}}>
+                    <span style={{color:changed?SUC:TXT,fontWeight:changed?700:600}}>{changed&&"🟢 "}{ing.name}</span>
+                    <span style={{color:TXT3}}>{ing.qty}{ing.unit?" "+ing.unit:""}</span>
+                  </div>
+                );
+              })}
             </div>
 
+            {/* Étapes — modifiées en vert */}
             {result.steps?.length>0&&(
               <>
                 <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:1,color:TXT2,marginBottom:8,display:"flex",alignItems:"center",gap:7}}>
@@ -3668,12 +3809,15 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
                   <div style={{flex:1,height:1,background:BDR}}/>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
-                  {result.steps.map((step,i)=>(
-                    <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,lineHeight:1.6,color:TXT2}}>
-                      <div style={{width:22,height:22,background:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>{i+1}</div>
-                      <div>{step}</div>
-                    </div>
-                  ))}
+                  {result.steps.map((step,i)=>{
+                    const changed=changedStepIdxs.has(i);
+                    return(
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,lineHeight:1.6,background:changed?"rgba(90,138,58,.06)":"transparent",borderRadius:changed?8:0,padding:changed?"6px 8px":"0"}}>
+                        <div style={{width:22,height:22,background:changed?SUC:CARAMEL2,color:"white",borderRadius:"50%",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>{i+1}</div>
+                        <div style={{color:changed?SUC:TXT2,fontWeight:changed?600:400}}>{step}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -3694,7 +3838,6 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
         )}
       </div>
 
-      {/* ── BARRE BAS FIXE ── */}
       {result&&(
         <div style={{borderTop:`1px solid ${BDR}`,padding:"10px 14px",display:"flex",gap:8,flexShrink:0,background:`rgba(253,248,240,.97)`,backdropFilter:"blur(12px)"}}>
           <button style={{...btn("gh"),flex:1,justifyContent:"center",fontSize:11}} onClick={()=>{setResult(null);setChatHistory([]);setExtraSugg(null);}}>↩ Régénérer</button>
@@ -3702,26 +3845,20 @@ RETOURNE UNIQUEMENT ce JSON valide (sans markdown) :
         </div>
       )}
 
-      {/* Modal quantité ingrédients frigo */}
-      <EqtyModal
-        open={!!fridgeEqty}
-        item={fridgeEqty!=null?{...fridgeItems[fridgeEqty?.idx],name:fridgeItems[fridgeEqty?.idx]?.name}:null}
-        qi={fridgeEqty?.qi}
+      <EqtyModal open={!!fridgeEqty} item={fridgeEqty!=null?fridgeItems[fridgeEqty?.idx]:null} qi={fridgeEqty?.qi}
         onClose={()=>setFridgeEqty(null)}
-        onConf={(val,unit)=>editFridgeItemQty(fridgeEqty.idx,fridgeEqty.qi,val,unit)}
-        onDel={()=>{
-          if(fridgeEqty.qi!=null){
-            setFridgeItems(prev=>prev.map((item,i)=>{
-              if(i!==fridgeEqty.idx)return item;
-              return{...item,quantities:item.quantities.filter((_,qi)=>qi!==fridgeEqty.qi)};
-            }));
-          }
-          setFridgeEqty(null);
-        }}
+        onConf={(v,u)=>editFridgeQty(fridgeEqty.idx,fridgeEqty.qi,v,u)}
+        onDel={()=>{if(fridgeEqty.qi!=null)setFridgeItems(prev=>prev.map((item,i)=>i!==fridgeEqty.idx?item:{...item,quantities:item.quantities.filter((_,qi)=>qi!==fridgeEqty.qi)}));setFridgeEqty(null);}}
+      />
+      <EqtyModal open={!!varIngEqty} item={varIngEqty!=null?varIngItems[varIngEqty?.idx]:null} qi={varIngEqty?.qi}
+        onClose={()=>setVarIngEqty(null)}
+        onConf={(v,u)=>editVarIngQty(varIngEqty.idx,varIngEqty.qi,v,u)}
+        onDel={()=>{if(varIngEqty.qi!=null)setVarIngItems(prev=>prev.map((item,i)=>i!==varIngEqty.idx?item:{...item,quantities:item.quantities.filter((_,qi)=>qi!==varIngEqty.qi)}));setVarIngEqty(null);}}
       />
     </FullPage>
   );
 }
+
 
 // ─── FOLDER MANAGER ───────────────────────────────────────────
 function FolderManager({db,setDb,showToast,onClose}){
