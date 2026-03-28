@@ -5768,142 +5768,164 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const soirCount=weekFill.filter(d=>d.soir).length;
 
   return(
-    <div style={{padding:14,paddingBottom:90}}>
-      {/* ── HEADER ── */}
-      <div style={{...card,background:"rgba(255,255,255,.88)",padding:"14px 16px",marginBottom:10}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,color:TXT}}>📅 Planning repas</div>
-          <button style={{...btn("acc"),fontSize:11,padding:"7px 12px"}} onClick={generateShoppingList}>🛒 Ajouter à la liste</button>
-        </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:13,fontWeight:700,color:TXT}}>
-              {weekOffset===0?"Cette semaine":weekOffset===1?"Semaine prochaine":weekOffset===-1?"Semaine dernière":`Semaine du ${weekDates[0].getDate()}/${weekDates[0].getMonth()+1}`}
+    <div style={{padding:"10px 14px",paddingBottom:90}}>
+
+      {/* ══ HEADER COMPACT ══════════════════════════════════ */}
+      <div style={{marginBottom:12}}>
+
+        {/* Ligne 1 : titre + navigation semaine */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          <button style={{background:"rgba(255,255,255,.7)",border:`1px solid ${BDR}`,borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:TXT2,flexShrink:0}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
+          <div style={{flex:1,textAlign:"center"}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:TXT,lineHeight:1.1}}>
+              {weekOffset===0?"Cette semaine":weekOffset===1?"Semaine prochaine":weekOffset===-1?"Semaine dernière":`Sem. ${weekDates[0].getDate()}/${weekDates[0].getMonth()+1}`}
             </div>
-            <div style={{fontSize:10,color:TXT3}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
+            <div style={{fontSize:10,color:TXT3,marginTop:1}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
           </div>
-          <button style={{...btn("gh"),padding:"6px 14px",fontSize:18}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
+          <button style={{background:"rgba(255,255,255,.7)",border:`1px solid ${BDR}`,borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:TXT2,flexShrink:0}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
         </div>
-        {/* ── Résumé remplissage midi/soir ── */}
-        <div style={{borderTop:`1px solid ${BDR}`,paddingTop:10}}>
-          {/* Grille : lettre du jour + pastille midi + pastille soir */}
-          <div style={{display:"flex",gap:4,alignItems:"flex-end"}}>
-            {/* Labels colonne gauche */}
-            <div style={{display:"flex",flexDirection:"column",gap:3,width:20,flexShrink:0,paddingTop:14}}>
-              <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
-                <span style={{fontSize:9,color:TXT3,fontWeight:700}}>☀️</span>
+
+        {/* Ligne 2 : grille résumé midi/soir */}
+        <div style={{background:"rgba(255,255,255,.7)",borderRadius:12,border:`1px solid ${BDR}`,padding:"8px 10px"}}>
+          <div style={{display:"flex",gap:3,alignItems:"flex-end"}}>
+            {/* Labels gauche */}
+            <div style={{display:"flex",flexDirection:"column",gap:3,width:18,flexShrink:0,paddingTop:16}}>
+              <div style={{height:9,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
+                <span style={{fontSize:8,color:TXT3}}>☀️</span>
               </div>
-              <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
-                <span style={{fontSize:9,color:TXT3,fontWeight:700}}>🌙</span>
+              <div style={{height:9,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
+                <span style={{fontSize:8,color:TXT3}}>🌙</span>
               </div>
             </div>
-            {/* Colonnes par jour */}
+            {/* 7 colonnes */}
             {weekFill.map((day,i)=>{
               const isToday=day.dk===todayKey;
               return(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                  <div style={{fontSize:9,fontWeight:800,color:isToday?CARAMEL:TXT3,letterSpacing:.2}}>{DAY_NAMES[i][0]}</div>
-                  <div style={{width:"100%",height:10,borderRadius:3,background:day.midi?CARAMEL:"rgba(0,0,0,.08)",transition:"background .2s",border:isToday?`1px solid ${CARAMEL2}`:"none"}}/>
-                  <div style={{width:"100%",height:10,borderRadius:3,background:day.soir?"rgba(90,58,25,.55)":"rgba(0,0,0,.08)",transition:"background .2s",border:isToday?`1px solid ${CARAMEL2}`:"none"}}/>
+                  <div style={{fontSize:9,fontWeight:isToday?900:600,color:isToday?CARAMEL:TXT3}}>{DAY_NAMES[i][0]}</div>
+                  <div style={{width:"100%",height:9,borderRadius:3,background:day.midi?CARAMEL:"rgba(0,0,0,.07)",outline:isToday&&!day.midi?`1.5px solid ${CARAMEL2}`:"none"}}/>
+                  <div style={{width:"100%",height:9,borderRadius:3,background:day.soir?"rgba(80,45,15,.5)":"rgba(0,0,0,.07)",outline:isToday&&!day.soir?`1.5px solid ${CARAMEL2}`:"none"}}/>
                 </div>
               );
             })}
             {/* Compteurs droite */}
-            <div style={{display:"flex",flexDirection:"column",gap:3,width:22,flexShrink:0,paddingTop:14}}>
-              <div style={{height:10,display:"flex",alignItems:"center"}}>
-                <span style={{fontSize:9,fontWeight:800,color:midiCount===7?SUC:midiCount>0?CARAMEL:TXT3}}>{midiCount}/7</span>
+            <div style={{display:"flex",flexDirection:"column",gap:3,width:20,flexShrink:0,paddingTop:16}}>
+              <div style={{height:9,display:"flex",alignItems:"center",paddingLeft:2}}>
+                <span style={{fontSize:8,fontWeight:800,color:midiCount===7?SUC:midiCount>0?CARAMEL:TXT3}}>{midiCount}/7</span>
               </div>
-              <div style={{height:10,display:"flex",alignItems:"center"}}>
-                <span style={{fontSize:9,fontWeight:800,color:soirCount===7?SUC:soirCount>0?CARAMEL:TXT3}}>{soirCount}/7</span>
+              <div style={{height:9,display:"flex",alignItems:"center",paddingLeft:2}}>
+                <span style={{fontSize:8,fontWeight:800,color:soirCount===7?SUC:soirCount>0?CARAMEL:TXT3}}>{soirCount}/7</span>
               </div>
             </div>
           </div>
         </div>
-        {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:8,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Retour à cette semaine</button>}
+
+        {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:8,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Aujourd'hui</button>}
       </div>
 
+      {/* Alerte anti-gaspi */}
       {redItems.length>0&&suggestions.length>0&&(
-        <div style={{background:"rgba(212,96,74,.08)",border:"1.5px solid rgba(212,96,74,.25)",borderRadius:12,padding:"10px 14px",marginBottom:10}}>
-          <div style={{fontSize:12,fontWeight:700,color:DNG,marginBottom:6}}>⚠️ Produits à utiliser vite — recettes suggérées :</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <div style={{background:"rgba(212,96,74,.07)",border:"1px solid rgba(212,96,74,.2)",borderRadius:10,padding:"8px 12px",marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:DNG,marginBottom:5}}>⚠️ À utiliser vite :</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {suggestions.map(r=>(
-              <div key={r.id} style={{fontSize:11,background:SURF,border:`1px solid ${BDR}`,borderRadius:20,padding:"4px 10px",color:TXT2,cursor:"pointer",fontWeight:600}} onClick={()=>{
+              <div key={r.id} style={{fontSize:11,background:SURF,border:`1px solid ${BDR}`,borderRadius:20,padding:"3px 9px",color:TXT2,cursor:"pointer",fontWeight:600}} onClick={()=>{
                 let placed=false;
-                for(const d of weekDates){
-                  for(const slot of MEAL_SLOTS){
-                    const dk=dateKey(d);
-                    const ids=getSlotIds(calendar,dk,slot);
-                    if(ids.length===0){addMealToSlot(dk,slot,r.id);placed=true;break;}
-                  }
-                  if(placed)break;
-                }
-                if(!placed)showToast("⚠️ Toutes les cases ont déjà des recettes");
-              }}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={13} style={{marginRight:3,verticalAlign:"middle"}}/>{r.name}</div>
+                for(const d of weekDates){for(const slot of MEAL_SLOTS){const dk=dateKey(d);if(getSlotIds(calendar,dk,slot).length===0){addMealToSlot(dk,slot,r.id);placed=true;break;}}if(placed)break;}
+                if(!placed)showToast("⚠️ Toutes les cases sont prises");
+              }}><EmojiImg emoji={guessRecipeEmoji(r.name)} size={12} style={{marginRight:3,verticalAlign:"middle"}}/>{r.name}</div>
             ))}
           </div>
         </div>
       )}
 
+      {/* ══ JOURS ═══════════════════════════════════════════ */}
       {weekDates.map((d,di)=>{
         const dk=dateKey(d);
         const isToday=dk===todayKey;
         const isPast=new Date(dk)<new Date(new Date().setHours(0,0,0,0));
         const linkedIdx=getLinkedListIdx(dk);
         const linkedList=linkedIdx!=null?(db.shoppingHistory||[])[linkedIdx]:null;
-        const midiDone=getSlotIds(calendar,dk,"midi").length>0;
-        const soirDone=getSlotIds(calendar,dk,"soir").length>0;
+        const midiIds=getSlotIds(calendar,dk,"midi");
+        const soirIds=getSlotIds(calendar,dk,"soir");
+        const hasAny=midiIds.length>0||soirIds.length>0;
+
         return(
-          <div key={dk} style={{...card,background:isToday?"rgba(200,132,90,.08)":isPast?"rgba(255,255,255,.6)":"rgba(255,255,255,.88)",marginBottom:6,border:isToday?`1.5px solid ${CARAMEL2}`:`1px solid ${BDR}`,opacity:isPast&&!isToday?.75:1}}>
-            {/* En-tête jour */}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{width:36,height:36,borderRadius:10,background:isToday?`linear-gradient(135deg,${CARAMEL},${CARAMEL2})`:"rgba(200,132,90,.1)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <div style={{fontSize:8,fontWeight:800,color:isToday?"rgba(255,255,255,.8)":TXT3,letterSpacing:.5}}>{DAY_NAMES[di]}</div>
-                <div style={{fontSize:15,fontWeight:900,color:isToday?"white":TXT,fontFamily:"'Fraunces',serif",lineHeight:1}}>{d.getDate()}</div>
-              </div>
-              {/* Nom du jour + indicateurs midi/soir */}
+          <div key={dk} style={{
+            marginBottom:6,
+            borderRadius:14,
+            border:isToday?`2px solid ${CARAMEL2}`:hasAny?`1px solid ${BDR}`:`1px solid rgba(232,212,184,.5)`,
+            background:isToday?"rgba(200,132,90,.07)":hasAny?"rgba(255,255,255,.9)":"rgba(255,255,255,.5)",
+            opacity:isPast&&!isToday?.65:1,
+            overflow:"hidden"
+          }}>
+
+            {/* En-tête : date + nom + chip liste */}
+            <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderBottom:hasAny?`1px solid ${BDR}`:"none"}}>
+              {/* Date */}
+              <div style={{
+                fontFamily:"'Fraunces',serif",fontSize:isToday?20:16,fontWeight:900,
+                color:isToday?CARAMEL:isPast?TXT3:TXT,
+                minWidth:26,textAlign:"center",flexShrink:0,lineHeight:1
+              }}>{d.getDate()}</div>
+              {/* Séparateur vertical */}
+              <div style={{width:1,height:20,background:isToday?CARAMEL2:BDR,flexShrink:0}}/>
+              {/* Nom du jour */}
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:12,fontWeight:700,color:isToday?CARAMEL:TXT2,marginBottom:2}}>
-                  {DAY_NAMES_FULL[di]}{isToday&&<span style={{fontSize:10,color:CARAMEL2,marginLeft:6,fontWeight:600}}>· Aujourd'hui</span>}
-                </div>
-                <div style={{display:"flex",gap:4}}>
-                  <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:20,background:midiDone?"rgba(90,138,58,.15)":"rgba(0,0,0,.06)",color:midiDone?SUC:TXT3}}>
-                    {midiDone?"☀️✓":"☀️○"}
-                  </span>
-                  <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:20,background:soirDone?"rgba(90,138,58,.15)":"rgba(0,0,0,.06)",color:soirDone?SUC:TXT3}}>
-                    {soirDone?"🌙✓":"🌙○"}
-                  </span>
-                </div>
+                <span style={{fontSize:13,fontWeight:isToday?800:600,color:isToday?CARAMEL:hasAny?TXT:TXT3}}>
+                  {DAY_NAMES_FULL[di]}
+                </span>
+                {isToday&&<span style={{fontSize:10,color:CARAMEL2,fontWeight:600,marginLeft:6}}>· Aujourd'hui</span>}
               </div>
-              {/* Chip liste du jour */}
+              {/* Chip liste */}
               {linkedList?(
-                <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(90,138,58,.1)",border:`1px solid rgba(90,138,58,.25)`,borderRadius:20,padding:"3px 8px",cursor:"pointer",flexShrink:0}} onClick={()=>setShowDayList({dk,listIdx:linkedIdx})}>
-                  <span style={{fontSize:11}}>🛒</span>
-                  <span style={{fontSize:9,fontWeight:700,color:SUC,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{linkedList.date}</span>
+                <div style={{display:"flex",alignItems:"center",gap:3,background:"rgba(90,138,58,.1)",border:"1px solid rgba(90,138,58,.25)",borderRadius:16,padding:"2px 7px",cursor:"pointer",flexShrink:0}} onClick={()=>setShowDayList({dk,listIdx:linkedIdx})}>
+                  <span style={{fontSize:10}}>🛒</span>
+                  <span style={{fontSize:8,fontWeight:700,color:SUC,maxWidth:55,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{linkedList.date}</span>
                 </div>
               ):(
-                <div style={{display:"flex",alignItems:"center",gap:3,border:`1px dashed ${BDR}`,borderRadius:20,padding:"3px 8px",cursor:"pointer",flexShrink:0}} onClick={()=>setShowListPicker(dk)}>
-                  <span style={{fontSize:11,color:TXT3}}>🛒</span>
-                  <span style={{fontSize:9,fontWeight:600,color:TXT3}}>+liste</span>
+                <div style={{display:"flex",alignItems:"center",gap:2,border:`1px dashed rgba(232,212,184,.8)`,borderRadius:16,padding:"2px 7px",cursor:"pointer",flexShrink:0,opacity:.7}} onClick={()=>setShowListPicker(dk)}>
+                  <span style={{fontSize:10,color:TXT3}}>🛒</span>
+                  <span style={{fontSize:8,fontWeight:600,color:TXT3}}>lier</span>
                 </div>
               )}
             </div>
-            {/* Créneaux */}
-            <div style={{display:"flex",gap:6}}>
-              {MEAL_SLOTS.map(slot=>{
+
+            {/* Créneaux — seulement si le jour a du contenu OU pour ajouter */}
+            <div style={{display:"flex",gap:0,padding:hasAny?"6px 8px":"0 8px 0"}}>
+              {MEAL_SLOTS.map((slot,si)=>{
                 const recipeIds=getSlotIds(calendar,dk,slot);
                 const recipes=recipeIds.map(id=>(db.recipes||[]).find(r=>String(r.id)===String(id))).filter(Boolean);
                 return(
-                  <div key={slot} style={{flex:1,borderRadius:10,border:`1.5px ${recipes.length?"solid":"dashed"} ${recipes.length?CARAMEL2:BDR}`,background:recipes.length?"rgba(200,132,90,.06)":CREAM,padding:"7px 8px",minHeight:54,display:"flex",flexDirection:"column"}}>
-                    <div style={{fontSize:9,fontWeight:700,color:TXT3,marginBottom:4}}>{MEAL_LABELS[slot]}</div>
+                  <div key={slot} style={{
+                    flex:1,
+                    borderLeft:si>0?`1px solid ${BDR}`:"none",
+                    paddingLeft:si>0?8:0,
+                    paddingRight:si<MEAL_SLOTS.length-1?8:0,
+                    paddingTop:6,paddingBottom:6,
+                    minHeight:recipes.length?0:36,
+                    display:"flex",flexDirection:"column"
+                  }}>
+                    {/* Label créneau */}
+                    <div style={{fontSize:9,fontWeight:700,color:recipes.length?CARAMEL2:TXT3,marginBottom:recipes.length?5:4,letterSpacing:.3}}>
+                      {MEAL_LABELS[slot]}
+                    </div>
+                    {/* Recettes */}
                     {recipes.map(recipe=>(
-                      <div key={recipe.id} style={{display:"flex",alignItems:"center",gap:4,marginBottom:4,background:"rgba(255,255,255,.7)",borderRadius:7,padding:"4px 6px",cursor:"pointer"}} onClick={()=>setShowActions({dk,slot,recipe,recipeId:recipe.id})}>
-                        <EmojiImg emoji={guessRecipeEmoji(recipe.name)} size={14} style={{flexShrink:0}}/>
-                        <div style={{fontSize:10,fontWeight:700,color:TXT,lineHeight:1.2,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{recipe.name}</div>
-                        <span style={{fontSize:10,color:TXT3,flexShrink:0,cursor:"pointer"}} onClick={e=>{e.stopPropagation();removeMealFromSlot(dk,slot,recipe.id);}}>✕</span>
+                      <div key={recipe.id} style={{display:"flex",alignItems:"center",gap:5,marginBottom:3,background:"rgba(255,255,255,.85)",borderRadius:8,padding:"4px 7px",cursor:"pointer",border:`1px solid rgba(200,132,90,.15)`}} onClick={()=>setShowActions({dk,slot,recipe,recipeId:recipe.id})}>
+                        <EmojiImg emoji={guessRecipeEmoji(recipe.name)} size={13} style={{flexShrink:0}}/>
+                        <div style={{fontSize:10,fontWeight:700,color:TXT,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{recipe.name}</div>
+                        <span style={{fontSize:10,color:TXT3,cursor:"pointer",flexShrink:0,opacity:.6}} onClick={e=>{e.stopPropagation();removeMealFromSlot(dk,slot,recipe.id);}}>✕</span>
                       </div>
                     ))}
-                    <div style={{marginTop:2,fontSize:10,color:CARAMEL2,cursor:"pointer",textAlign:"center",padding:"3px 0",borderRadius:6,border:`1px dashed ${CARAMEL2}`,background:"rgba(200,132,90,.04)"}} onClick={()=>setShowPicker({dk,slot,mode:"list"})}>+ Ajouter</div>
+                    {/* Bouton ajouter */}
+                    <div style={{
+                      fontSize:10,color:recipes.length?CARAMEL2:TXT3,cursor:"pointer",
+                      textAlign:"center",padding:"3px 0",borderRadius:6,
+                      border:`1px dashed ${recipes.length?CARAMEL2:"rgba(200,132,90,.25)"}`,
+                      background:recipes.length?"rgba(200,132,90,.03)":"transparent",
+                      marginTop:"auto",opacity:recipes.length?1:.6
+                    }} onClick={()=>setShowPicker({dk,slot,mode:"list"})}>+ Ajouter</div>
                   </div>
                 );
               })}
@@ -5911,7 +5933,13 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
           </div>
         );
       })}
-      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:10,color:TXT3}}>Plusieurs recettes possibles par créneau — appuyez sur + pour en ajouter</div>
+
+      {/* CTA global — visible seulement si repas planifiés */}
+      {(midiCount+soirCount)>0&&(
+        <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:12,padding:"12px",marginTop:4,marginBottom:8}} onClick={generateShoppingList}>
+          🛒 Générer la liste de courses ({midiCount+soirCount} repas planifiés)
+        </button>
+      )}
 
       {/* ── PICKER LISTE DU JOUR ── */}
       {showListPicker&&(
