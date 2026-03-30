@@ -1065,6 +1065,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   const [showSaveModal,setShowSaveModal]=useState(false);
   const [saveName,setSaveName]=useState("");
   const [showQtyPanel,setShowQtyPanel]=useState(false);
+  const [activeRecipeFilter,setActiveRecipeFilter]=useState(null); // nom recette filtrée
   const showPriceVisible=localStorage.getItem("ws_prices_visible")!=="false";
   // Vocal
   const [vocalActive,setVocalActive]=useState(false);
@@ -1253,6 +1254,11 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   // ─── helpers widget ───────────────────────────────────
 
   const unc=db.items.filter(i=>!i.checked),chk=db.items.filter(i=>i.checked);
+  // Recettes affiliées à la liste (sources ≠ manuel/vocal/historique/pantry/recette)
+  const recipeSourcesSet=new Set(
+    db.items.flatMap(item=>(item.quantities||[]).map(q=>q.source)).filter(s=>s&&s!=="manuel"&&s!=="vocal"&&s!=="historique"&&s!=="pantry"&&s!=="base"&&s!=="recette"&&typeof s==="string"&&s.length>0)
+  );
+  const recipeSources=[...recipeSourcesSet];
   const total=db.items.length,cc=chk.length,pct=total?Math.round(cc/total*100):0;
   const allChecked=total>0&&total===cc;
   // Groupement normalisé : toutes les catégories granulaires ramenées aux 16 standards
@@ -1291,6 +1297,22 @@ function PageListe({db,setDb,showToast,goToPlanning}){
               const nd={...db,items:db.editSession.backup||[],shoppingHistory:newHist,editSession:null};
               setDb(nd);saveDB(nd);showToast("💾 Liste modifiée et sauvegardée !");
             }}>💾 Enregistrer</button>
+        </div>
+      )}
+
+      {/* ── CHIPS RECETTES AFFILIÉES ── */}
+      {recipeSources.length>0&&(
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+          {recipeSources.map(src=>{
+            const isActive=activeRecipeFilter===src;
+            return(
+              <div key={src} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",background:isActive?CARAMEL:"rgba(255,255,255,.8)",color:isActive?"white":TXT2,border:`1.5px solid ${isActive?CARAMEL:BDR}`,transition:"all .15s"}}
+                onClick={()=>setActiveRecipeFilter(isActive?null:src)}>
+                <EmojiImg emoji={guessRecipeEmoji(src)} size={13}/>
+                <span style={{maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{src}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1448,10 +1470,10 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             <>
               {Object.entries(catsSorted).map(([c,items])=>(
                 <div key={c}><SecTitle count={items.length}>{c}</SecTitle>
-                  {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active}/>)}
+                  {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active} activeRecipeFilter={activeRecipeFilter}/>)}
                 </div>
               ))}
-              {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active}/>)}</div>}
+              {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active} activeRecipeFilter={activeRecipeFilter}/>)}</div>}
             </>
           ):listView==="grille"?(
             /* Vue grille 2 colonnes */
@@ -1547,7 +1569,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   );
 }
 
-function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,onNameChange,onQtyChange,editMode}){
+function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,onNameChange,onQtyChange,editMode,activeRecipeFilter}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   const [showEdit,setShowEdit]=useState(false);
   const [editName,setEditName]=useState(item.name);
@@ -1555,6 +1577,7 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
   const [editUnit,setEditUnit]=useState(item.quantities?.[0]?.unit??"");
   const [editCat,setEditCat]=useState(item.category||getCat(item.name));
   const catEmoji=getProductEmoji(item.name);
+  const isHighlighted=activeRecipeFilter&&(item.quantities||[]).some(q=>q.source===activeRecipeFilter);
 
   function openEdit(){
     setEditName(item.name);
@@ -1569,13 +1592,13 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
   }
 
   return(
-    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:editMode?1:item.checked?.5:1,background:editMode?SURF:item.checked?CREAM2:SURF}}>
+    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:editMode?1:item.checked?.5:1,background:isHighlighted?"rgba(120,60,15,.09)":editMode?SURF:item.checked?CREAM2:SURF,borderColor:isHighlighted?"rgba(120,60,15,.4)":undefined}}>
       {/* Ligne principale - clic zone entière pour cocher */}
       <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>!showEdit&&!editMode&&onToggle(item.id)}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
-            <div style={{fontSize:13,fontWeight:700,color:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+            <div style={{fontSize:13,fontWeight:700,color:isHighlighted?"rgba(100,45,8,.85)":TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
             {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}} onClick={e=>e.stopPropagation()}>
@@ -5732,6 +5755,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [dayListAddName,setDayListAddName]=useState("");
   // Wizard → sauvegarder comme liste du jour
   const [wizardSaveDk,setWizardSaveDk]=useState(null);
+  // Modal génération liste
+  const [showGenModal,setShowGenModal]=useState(false);
+  const [genListName,setGenListName]=useState("");
+  const [genUpcoming,setGenUpcoming]=useState([]);
 
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
@@ -5821,7 +5848,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
     }catch(_e){showToast("❌ Erreur IA");}
     setCalAILoading(false);
   }
-  function generateShoppingList(){
+  function buildUpcoming(){
     const todayD=new Date();todayD.setHours(0,0,0,0);
     const upcoming=[];
     Object.entries(calendar).forEach(([dk,slots])=>{
@@ -5835,11 +5862,26 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
         });
       });
     });
+    return upcoming.sort((a,b)=>a.dk.localeCompare(b.dk)||MEAL_SLOTS.indexOf(a.slot)-MEAL_SLOTS.indexOf(b.slot));
+  }
+  function generateShoppingList(){
+    const upcoming=buildUpcoming();
     if(!upcoming.length){showToast("⚠️ Aucun repas planifié à venir");return;}
-    upcoming.sort((a,b)=>a.dk.localeCompare(b.dk)||MEAL_SLOTS.indexOf(a.slot)-MEAL_SLOTS.indexOf(b.slot));
-    // Récupérer le premier dk pour proposer de lier la liste
-    setWizardSaveDk(upcoming[0].dk);
-    setWizardQueue(upcoming);setWizardStep(0);setWizardItems([...db.items]);setShowWizard(true);
+    setGenUpcoming(upcoming);
+    setGenListName(new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}));
+    setShowGenModal(true);
+  }
+  // Ajouter les ingrédients des repas à venir dans une cible (items array)
+  function buildItemsFromUpcoming(upcoming,baseItems){
+    let ni=[...baseItems];
+    upcoming.forEach(({recipe})=>{
+      const base=recipe.persons||1;
+      (recipe.ingredients||[]).forEach(ing=>{
+        const qN=ing.qty?roundQ(parseFloat(ing.qty)):1;
+        ni=mergeItem(ni,ing.name,qN,ing.unit||"",recipe.name,getCat(ing.name));
+      });
+    });
+    return ni;
   }
   function finishWizardStep(recipe,vp,haveIdxs,items){
     const base=recipe.persons||1,scale=vp/base;
@@ -5890,10 +5932,12 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   // ── Résumé semaine : calcul remplissage midi/soir ─────────
   const weekFill=weekDates.map(d=>{
     const dk=dateKey(d);
+    const lidx=calendar[dk]?.listIdx;
     return{
       dk,
       midi:getSlotIds(calendar,dk,"midi").length>0,
       soir:getSlotIds(calendar,dk,"soir").length>0,
+      hasLinked:lidx!=null&&(db.shoppingHistory||[])[lidx]!=null,
     };
   });
   const midiCount=weekFill.filter(d=>d.midi).length;
@@ -5934,7 +5978,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               const isToday=day.dk===todayKey;
               return(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                  <div style={{fontSize:9,fontWeight:isToday?900:600,color:isToday?CARAMEL:TXT3}}>{DAY_NAMES[i][0]}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:1,position:"relative"}}>
+                    <span style={{fontSize:9,fontWeight:isToday?900:600,color:isToday?CARAMEL:TXT3}}>{DAY_NAMES[i][0]}</span>
+                    {day.hasLinked&&<span style={{fontSize:7,lineHeight:1,opacity:.8}}>🛒</span>}
+                  </div>
                   <div style={{width:"100%",height:9,borderRadius:3,background:day.midi?CARAMEL:"rgba(0,0,0,.07)",outline:isToday&&!day.midi?`1.5px solid ${CARAMEL2}`:"none"}}/>
                   <div style={{width:"100%",height:9,borderRadius:3,background:day.soir?"rgba(80,45,15,.5)":"rgba(0,0,0,.07)",outline:isToday&&!day.soir?`1.5px solid ${CARAMEL2}`:"none"}}/>
                 </div>
@@ -5952,7 +5999,13 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
           </div>
         </div>
 
-        {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:8,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Aujourd'hui</button>}
+        {/* CTA génération — sous le résumé */}
+        {(midiCount+soirCount)>0&&(
+          <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:12,padding:"10px",marginTop:8}} onClick={generateShoppingList}>
+            🛒 Générer la liste · {midiCount+soirCount} repas
+          </button>
+        )}
+        {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:6,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Aujourd'hui</button>}
       </div>
 
       {/* Alerte anti-gaspi */}
@@ -6066,12 +6119,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
         );
       })}
 
-      {/* CTA global — visible seulement si repas planifiés */}
-      {(midiCount+soirCount)>0&&(
-        <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:12,padding:"12px",marginTop:4,marginBottom:8}} onClick={generateShoppingList}>
-          🛒 Générer la liste de courses ({midiCount+soirCount} repas planifiés)
-        </button>
-      )}
+
 
       {/* ── PICKER LISTE DU JOUR ── */}
       {showListPicker&&(
@@ -6298,6 +6346,79 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setShowActions(null)}>Fermer</button>
           </div>
         </Modal>
+      )}
+
+      {/* ── MODAL GÉNÉRATION LISTE (bottom sheet) ── */}
+      {showGenModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={()=>setShowGenModal(false)}>
+          <div style={{background:SURF,borderRadius:"20px 20px 0 0",padding:"20px 18px 36px",boxShadow:"0 -8px 40px rgba(42,20,8,.18)"}} onClick={e=>e.stopPropagation()}>
+            {/* Handle */}
+            <div style={{width:36,height:4,background:BDR,borderRadius:2,margin:"0 auto 18px"}}/>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:900,color:TXT,marginBottom:4}}>🛒 Que faire avec ces repas ?</div>
+            <div style={{fontSize:12,color:TXT3,marginBottom:18}}>{genUpcoming.length} repas planifiés à venir</div>
+
+            {/* Option 1 : Ajouter à la liste en cours */}
+            <div style={{...card,cursor:"pointer",marginBottom:10,padding:"14px 16px",background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.25)`}}
+              onClick={()=>{
+                const ni=buildItemsFromUpcoming(genUpcoming,db.items);
+                const nd={...db,items:ni};setDb(nd);saveDB(nd);
+                setShowGenModal(false);
+                showToast("✅ Articles ajoutés à la liste en cours !");
+              }}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:22,flexShrink:0}}>📥</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:CARAMEL}}>Ajouter à la liste en cours</div>
+                  <div style={{fontSize:11,color:TXT3,marginTop:2}}>
+                    {db.editSession?.active?"Mode modification actif — s'ajoute à la modification":
+                     `Fusionne avec vos ${db.items.length} article${db.items.length>1?"s":""} actuels`}
+                  </div>
+                </div>
+                <span style={{color:CARAMEL2,fontSize:18}}>›</span>
+              </div>
+            </div>
+
+            {/* Option 2 : Créer une nouvelle liste sauvegardée */}
+            <div style={{...card,cursor:"pointer",padding:"14px 16px"}}
+              onClick={()=>{/* handled below via form */}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:genListName!==null?10:0}}>
+                <span style={{fontSize:22,flexShrink:0}}>💾</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:TXT}}>Créer une nouvelle liste</div>
+                  <div style={{fontSize:11,color:TXT3,marginTop:2}}>Sauvegarde comme liste nommée</div>
+                </div>
+              </div>
+              {/* Champ nom */}
+              <div style={{display:"flex",gap:8}}>
+                <input style={{...inp,flex:1,fontSize:13,padding:"9px 12px"}}
+                  placeholder="Nom de la liste…"
+                  value={genListName}
+                  onChange={e=>setGenListName(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&genListName.trim()&&(()=>{
+                    const ni=buildItemsFromUpcoming(genUpcoming,[]);
+                    const newEntry={date:genListName.trim(),items:ni,count:ni.length};
+                    const newHist=[newEntry,...(db.shoppingHistory||[])].slice(0,20);
+                    const nd={...db,shoppingHistory:newHist};setDb(nd);saveDB(nd);
+                    setShowGenModal(false);showToast("💾 Liste \""+genListName.trim()+"\" créée !");
+                  })()}
+                  onClick={e=>e.stopPropagation()}
+                />
+                <button style={{...btn("acc"),padding:"9px 16px",flexShrink:0}}
+                  disabled={!genListName.trim()}
+                  onClick={e=>{
+                    e.stopPropagation();
+                    const ni=buildItemsFromUpcoming(genUpcoming,[]);
+                    const newEntry={date:genListName.trim(),items:ni,count:ni.length};
+                    const newHist=[newEntry,...(db.shoppingHistory||[])].slice(0,20);
+                    const nd={...db,shoppingHistory:newHist};setDb(nd);saveDB(nd);
+                    setShowGenModal(false);showToast("💾 Liste \""+genListName.trim()+"\" créée !");
+                  }}>
+                  Créer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Wizard Ajouter à la liste */}
