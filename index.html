@@ -1270,28 +1270,24 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   return(
     <div style={{padding:14,paddingBottom:90}}>
 
-      {/* ── BANNIÈRE MODE MODIFICATION ── */}
+      {/* ── BANNIÈRE MODE MODIFICATION — fond sombre contrasté ── */}
       {db.editSession?.active&&(
-        <div style={{background:`linear-gradient(135deg,rgba(200,132,58,.15),rgba(200,132,58,.08))`,border:`2px solid ${CARAMEL2}`,borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:18,flexShrink:0}}>✏️</span>
+        <div style={{background:"linear-gradient(135deg,#2a1408,#4a2010)",borderRadius:12,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 16px rgba(42,20,8,.35)"}}>
+          <span style={{fontSize:20,flexShrink:0}}>✏️</span>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:12,fontWeight:800,color:CARAMEL}}>Mode modification</div>
-            <div style={{fontSize:10,color:TXT3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{db.editSession.listDate}</div>
+            <div style={{fontSize:12,fontWeight:800,color:"white",letterSpacing:.2}}>Modification en cours</div>
+            <div style={{fontSize:10,color:"rgba(255,220,180,.7)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{db.editSession.listDate}</div>
           </div>
-          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px",flexShrink:0,color:DNG}}
+          <button style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:8,padding:"5px 10px",cursor:"pointer",color:"rgba(255,200,160,.9)",fontSize:11,fontWeight:700,flexShrink:0}}
             onClick={()=>{
-              // Annuler : restaurer le backup
               const nd={...db,items:db.editSession.backup||[],editSession:null};
               setDb(nd);saveDB(nd);showToast("↩️ Modification annulée — liste restaurée");
             }}>Annuler</button>
-          <button style={{...btn("acc"),fontSize:11,padding:"5px 10px",flexShrink:0}}
+          <button style={{background:"white",border:"none",borderRadius:8,padding:"5px 10px",cursor:"pointer",color:CARAMEL,fontSize:11,fontWeight:800,flexShrink:0}}
             onClick={()=>{
-              // Enregistrer : mettre à jour la liste dans shoppingHistory
               const idx=db.editSession.listIdx;
               const newHist=[...(db.shoppingHistory||[])];
-              if(newHist[idx]){
-                newHist[idx]={...newHist[idx],items:JSON.parse(JSON.stringify(db.items)),count:db.items.length};
-              }
+              if(newHist[idx]){newHist[idx]={...newHist[idx],items:JSON.parse(JSON.stringify(db.items)),count:db.items.length};}
               const nd={...db,items:db.editSession.backup||[],shoppingHistory:newHist,editSession:null};
               setDb(nd);saveDB(nd);showToast("💾 Liste modifiée et sauvegardée !");
             }}>💾 Enregistrer</button>
@@ -1300,8 +1296,15 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
       {/* ═══ TOGGLE VUE LISTE / GRILLE ═══════════════════ */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:TXT}}>
-          🛒 {total>0?`${unc.length} article${unc.length>1?"s":""}`:""}{pct>0?` · ${pct}%`:""}
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:TXT}}>
+            🛒 {total>0?`${unc.length} article${unc.length>1?"s":""}`:""}{pct>0?` · ${pct}%`:""}
+          </div>
+          {!db.editSession?.active&&(
+            <button style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,display:"flex",alignItems:"center",gap:4}} onClick={()=>setShowSavedLists(true)}>
+              📋
+            </button>
+          )}
         </div>
         <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:3}}>
           <div onClick={()=>{setListView("liste");localStorage.setItem("ws_list_view","liste");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="liste"?SURF:"transparent",boxShadow:listView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>☰</div>
@@ -1494,7 +1497,6 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
           <div style={{display:"flex",gap:8,marginTop:10}}>
             <button style={{...btn("out"),flex:2,fontSize:12,justifyContent:"center"}} onClick={saveHist}>💾 Sauvegarder les courses</button>
-            {!db.editSession?.active&&<button style={{...btn("gh"),fontSize:12,justifyContent:"center",padding:"10px 14px"}} onClick={()=>setShowSavedLists(true)}>📋 Listes</button>}
             <button style={{...btn("gh"),flex:1,fontSize:11,justifyContent:"center",color:DNG,border:`1px solid rgba(212,96,74,.25)`}} onClick={()=>setConfirmClear(true)}>🗑️ Vider</button>
           </div>
 
@@ -1701,7 +1703,6 @@ function PageSavedLists({db,setDb,showToast,onClose}){
   const [tab,setTab]=useState("all"); // all | fav | shared
   const [editMode,setEditMode]=useState(false);
   const [pendingEdit,setPendingEdit]=useState(null); // idx en attente de confirmation
-  const [confirmEdit,setConfirmEdit]=useState(null); // idx confirmé → modal
   const [openSess,setOpenSess]=useState(new Set());
   const [selected,setSelected]=useState({});
   const [qtys,setQtys]=useState({});
@@ -1821,11 +1822,11 @@ function PageSavedLists({db,setDb,showToast,onClose}){
             {editMode?"✕ Terminer":"✏️ Modifier"}
           </button>
         </div>
-        {/* Onglets */}
-        <div style={{display:"flex",gap:4}}>
+        {/* Onglets — style identique à PageRecettes */}
+        <div style={{display:"flex",background:"rgba(255,255,255,.15)",borderRadius:12,padding:3,gap:2,marginTop:10}}>
           {TAB_LABELS.map(t=>(
-            <div key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,textAlign:"center",padding:"6px 4px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:tab===t.id?"rgba(255,255,255,.25)":"rgba(255,255,255,.1)",color:"white",transition:"background .15s"}}>
-              {t.label}{t.count>0&&tab!==t.id?<span style={{fontSize:9,opacity:.7,marginLeft:3}}>({t.count})</span>:null}
+            <div key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:tab===t.id?"white":"transparent",color:tab===t.id?CARAMEL:"rgba(255,255,255,.8)",cursor:"pointer",transition:"all .15s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {t.label}{t.count>0?<span style={{fontSize:9,opacity:.65,marginLeft:3}}>({t.count})</span>:null}
             </div>
           ))}
         </div>
@@ -1871,7 +1872,7 @@ function PageSavedLists({db,setDb,showToast,onClose}){
             return(
               <div key={si} style={{...card,padding:0,overflow:"hidden",marginBottom:8,border:isPending?`1.5px solid ${CARAMEL2}`:undefined}}>
                 {/* En-tête session */}
-                <div style={{display:"flex",alignItems:"center",gap:8,padding:"11px 12px",cursor:"pointer"}} onClick={()=>!editMode&&toggleSess(si)}>
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"11px 12px",cursor:"pointer"}} onClick={()=>editMode?setPendingEdit(isPending?null:si):toggleSess(si)}>
 
                   {/* Case à cocher mode modification */}
                   {editMode&&(
@@ -1891,9 +1892,9 @@ function PageSavedLists({db,setDb,showToast,onClose}){
 
                   {/* Bouton Valider (mode modif, liste cochée) */}
                   {editMode&&isPending&&(
-                    <button style={{...btn("acc"),fontSize:11,padding:"4px 10px",flexShrink:0,animation:"pulse .8s infinite"}}
-                      onClick={e=>{e.stopPropagation();setConfirmEdit(si);}}>
-                      Modifier →
+                    <button style={{...btn("acc"),fontSize:11,padding:"4px 10px",flexShrink:0}}
+                      onClick={e=>{e.stopPropagation();startEditSession(si);}}>
+                      ✏️ Modifier
                     </button>
                   )}
 
@@ -1909,8 +1910,8 @@ function PageSavedLists({db,setDb,showToast,onClose}){
                       {sessSel.size===items.length?"Aucun":"Tout"}
                     </button>
                   )}
-                  <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5,flexShrink:0}}
-                    onClick={e=>{e.stopPropagation();setConfirmDel(si);}}>🗑️</button>
+                  {!editMode&&<button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5,flexShrink:0}}
+                    onClick={e=>{e.stopPropagation();setConfirmDel(si);}}>🗑️</button>}
                   <span style={{color:TXT3,fontSize:14,display:"inline-block",transform:isOpen?"rotate(180deg)":"none",transition:"transform .2s",flexShrink:0,cursor:"pointer"}}
                     onClick={e=>{e.stopPropagation();toggleSess(si);}}>▾</span>
                 </div>
@@ -1968,21 +1969,7 @@ function PageSavedLists({db,setDb,showToast,onClose}){
       </Modal>
 
       {/* Modal confirmation modification */}
-      <Modal open={confirmEdit!==null} onClose={()=>setConfirmEdit(null)}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:8,color:TXT}}>✏️ Modifier cette liste ?</div>
-        <div style={{fontSize:13,color:TXT2,marginBottom:6}}>
-          <strong style={{color:CARAMEL}}>"{hist[confirmEdit]?.date}"</strong> sera chargée dans la liste de courses.
-        </div>
-        {db.items.length>0&&(
-          <div style={{background:"rgba(200,132,58,.08)",border:`1px solid rgba(200,132,58,.25)`,borderRadius:10,padding:"9px 12px",marginBottom:14,fontSize:12,color:TXT2}}>
-            ⚠️ Vos <strong>{db.items.length} article{db.items.length>1?"s":""}</strong> en cours seront mis de côté et restaurés après la modification.
-          </div>
-        )}
-        <div style={{display:"flex",gap:8}}>
-          <button style={{...btn("gh"),flex:1}} onClick={()=>setConfirmEdit(null)}>Annuler</button>
-          <button style={{...btn("acc"),flex:2}} onClick={()=>startEditSession(confirmEdit)}>✏️ Commencer la modification</button>
-        </div>
-      </Modal>
+      <
     </FullPage>
   );
 }
