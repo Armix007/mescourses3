@@ -162,7 +162,7 @@ const UNITS=["","g","kg","ml","cl","L","càs","càc","pincée","sachet","boîte"
 const UL={"":"pcs","g":"g","kg":"kg","ml":"ml","cl":"cl","L":"L","càs":"càs","càc":"càc","pincée":"pincée","sachet":"sachet","boîte":"boîte","bouteille":"bouteille","paquet":"paquet","tranche":"tranche","botte":"botte"};
 const RECIPE_DIFFICULTY=[{id:"",label:"Toutes"},{id:"easy",label:"😊 Facile"},{id:"medium",label:"👨‍🍳 Intermédiaire"},{id:"hard",label:"🎓 Expert"}];
 const RECIPE_MEAL_TYPE=[{id:"",label:"Tous"},{id:"breakfast",label:"🌅 Petit-déj"},{id:"starter",label:"🥗 Entrée"},{id:"main",label:"🍽️ Plat"},{id:"dessert",label:"🍰 Dessert"},{id:"snack",label:"🫐 Snack"}];
-const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[],priceDB:{},budget:{monthly:0,sessions:[]},folders:[],likedRecipes:[],pantry:[],calendar:{}};
+const EMPTY_DB={items:[],productHistory:{},recipes:[],shoppingHistory:[],priceDB:{},budget:{monthly:0,sessions:[]},folders:[],likedRecipes:[],pantry:[],calendar:{},editSession:null};
 // Signaux anti-gaspi
 const SIGNALS=[{id:"red",label:"🔴 À utiliser vite",color:"#d4604a",bg:"rgba(212,96,74,.1)"},{id:"yellow",label:"🟡 Cette semaine",color:"#c8843a",bg:"rgba(200,132,58,.1)"},{id:"green",label:"🟢 Bien stocké",color:"#5a8a3a",bg:"rgba(90,138,58,.1)"}];
 function getSignal(id){return SIGNALS.find(s=>s.id===id)||SIGNALS[2];}
@@ -1270,6 +1270,34 @@ function PageListe({db,setDb,showToast,goToPlanning}){
   return(
     <div style={{padding:14,paddingBottom:90}}>
 
+      {/* ── BANNIÈRE MODE MODIFICATION ── */}
+      {db.editSession?.active&&(
+        <div style={{background:`linear-gradient(135deg,rgba(200,132,58,.15),rgba(200,132,58,.08))`,border:`2px solid ${CARAMEL2}`,borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18,flexShrink:0}}>✏️</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:800,color:CARAMEL}}>Mode modification</div>
+            <div style={{fontSize:10,color:TXT3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{db.editSession.listDate}</div>
+          </div>
+          <button style={{...btn("gh"),fontSize:11,padding:"5px 10px",flexShrink:0,color:DNG}}
+            onClick={()=>{
+              // Annuler : restaurer le backup
+              const nd={...db,items:db.editSession.backup||[],editSession:null};
+              setDb(nd);saveDB(nd);showToast("↩️ Modification annulée — liste restaurée");
+            }}>Annuler</button>
+          <button style={{...btn("acc"),fontSize:11,padding:"5px 10px",flexShrink:0}}
+            onClick={()=>{
+              // Enregistrer : mettre à jour la liste dans shoppingHistory
+              const idx=db.editSession.listIdx;
+              const newHist=[...(db.shoppingHistory||[])];
+              if(newHist[idx]){
+                newHist[idx]={...newHist[idx],items:JSON.parse(JSON.stringify(db.items)),count:db.items.length};
+              }
+              const nd={...db,items:db.editSession.backup||[],shoppingHistory:newHist,editSession:null};
+              setDb(nd);saveDB(nd);showToast("💾 Liste modifiée et sauvegardée !");
+            }}>💾 Enregistrer</button>
+        </div>
+      )}
+
       {/* ═══ TOGGLE VUE LISTE / GRILLE ═══════════════════ */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:TXT}}>
@@ -1466,7 +1494,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
           <div style={{display:"flex",gap:8,marginTop:10}}>
             <button style={{...btn("out"),flex:2,fontSize:12,justifyContent:"center"}} onClick={saveHist}>💾 Sauvegarder les courses</button>
-            <button style={{...btn("gh"),fontSize:12,justifyContent:"center",padding:"10px 14px"}} onClick={()=>setShowSavedLists(true)}>📋 Listes</button>
+            {!db.editSession?.active&&<button style={{...btn("gh"),fontSize:12,justifyContent:"center",padding:"10px 14px"}} onClick={()=>setShowSavedLists(true)}>📋 Listes</button>}
             <button style={{...btn("gh"),flex:1,fontSize:11,justifyContent:"center",color:DNG,border:`1px solid rgba(212,96,74,.25)`}} onClick={()=>setConfirmClear(true)}>🗑️ Vider</button>
           </div>
 
@@ -1670,10 +1698,28 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onA
 
 function PageSavedLists({db,setDb,showToast,onClose}){
   const hist=db.shoppingHistory||[];
+  const [tab,setTab]=useState("all"); // all | fav | shared
+  const [editMode,setEditMode]=useState(false);
+  const [pendingEdit,setPendingEdit]=useState(null); // idx en attente de confirmation
+  const [confirmEdit,setConfirmEdit]=useState(null); // idx confirmé → modal
   const [openSess,setOpenSess]=useState(new Set());
   const [selected,setSelected]=useState({});
   const [qtys,setQtys]=useState({});
-  const [confirmDel,setConfirmDel]=useState(null); // index à supprimer
+  const [confirmDel,setConfirmDel]=useState(null);
+
+  // Filtrage par onglet
+  const filtered=hist.map((s,i)=>({...s,_idx:i})).filter(s=>{
+    if(tab==="fav") return s.favorite;
+    if(tab==="shared") return s.shared;
+    return true;
+  });
+
+  function toggleFav(idx,e){
+    e.stopPropagation();
+    const newHist=hist.map((s,i)=>i===idx?{...s,favorite:!s.favorite}:s);
+    const nd={...db,shoppingHistory:newHist};setDb(nd);saveDB(nd);
+    showToast(hist[idx].favorite?"💔 Retiré des favoris":"⭐ Ajouté aux favoris");
+  }
 
   function toggleSess(i){const s=new Set(openSess);s.has(i)?s.delete(i):s.add(i);setOpenSess(s);}
 
@@ -1740,69 +1786,152 @@ function PageSavedLists({db,setDb,showToast,onClose}){
     onClose();
   }
 
+  // Activer le mode modification sur une liste
+  function startEditSession(idx){
+    const sess=hist[idx];
+    // Backup des items courants + chargement des items de la liste
+    const editSession={
+      active:true,
+      listIdx:idx,
+      listDate:sess.date,
+      backup:JSON.parse(JSON.stringify(db.items))
+    };
+    const newItems=JSON.parse(JSON.stringify(sess.items||[]));
+    const nd={...db,items:newItems,editSession};
+    setDb(nd);saveDB(nd);
+    setConfirmEdit(null);setPendingEdit(null);setEditMode(false);
+    showToast("✏️ Mode modification activé — "+sess.date);
+    onClose();
+  }
+
   const total=countSelected();
+  const TAB_LABELS=[{id:"all",label:"Toutes",count:hist.length},{id:"fav",label:"⭐ Favoris",count:hist.filter(s=>s.favorite).length},{id:"shared",label:"🔗 Partagées",count:hist.filter(s=>s.shared).length}];
 
   return(
-    <FullPage open={true} onClose={onClose}>
+    <FullPage open={true} onClose={()=>{setEditMode(false);setPendingEdit(null);onClose();}}>
       {/* Header */}
-      <div style={{background:"rgba(184,112,58,.92)",backdropFilter:"blur(10px)",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-        <button style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontSize:18}} onClick={onClose}>←</button>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:700,color:"white"}}>📋 Listes sauvegardées</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.75)",marginTop:1}}>{hist.length} liste{hist.length>1?"s":""}</div>
-        </div>
-        {total>0&&(
-          <button style={{...btn("acc"),background:"white",color:CARAMEL,fontSize:12,padding:"8px 14px"}} onClick={addSelected}>
-            🛒 Ajouter {total}
+      <div style={{background:"rgba(184,112,58,.92)",backdropFilter:"blur(10px)",padding:"12px 14px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+          <button style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,width:34,height:34,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontSize:16,flexShrink:0}} onClick={()=>{setEditMode(false);setPendingEdit(null);onClose();}}>←</button>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:700,color:"white"}}>📋 Listes sauvegardées</div>
+          </div>
+          <button style={{background:editMode?"white":"rgba(255,255,255,.2)",border:"none",borderRadius:10,padding:"6px 12px",cursor:"pointer",color:editMode?CARAMEL:"white",fontSize:12,fontWeight:700,flexShrink:0}}
+            onClick={()=>{setEditMode(e=>!e);setPendingEdit(null);}}>
+            {editMode?"✕ Terminer":"✏️ Modifier"}
           </button>
-        )}
+        </div>
+        {/* Onglets */}
+        <div style={{display:"flex",gap:4}}>
+          {TAB_LABELS.map(t=>(
+            <div key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,textAlign:"center",padding:"6px 4px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:tab===t.id?"rgba(255,255,255,.25)":"rgba(255,255,255,.1)",color:"white",transition:"background .15s"}}>
+              {t.label}{t.count>0&&tab!==t.id?<span style={{fontSize:9,opacity:.7,marginLeft:3}}>({t.count})</span>:null}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Contenu */}
-      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 100px"}}>
-        {hist.length===0?(
+      <div style={{flex:1,overflowY:"auto",padding:"12px 14px 100px"}}>
+
+        {/* Bandeau mode modification en cours (si une autre session active) */}
+        {db.editSession?.active&&(
+          <div style={{background:"rgba(200,132,58,.12)",border:`1.5px solid ${CARAMEL2}`,borderRadius:10,padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:16}}>✏️</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:CARAMEL}}>Modification en cours</div>
+              <div style={{fontSize:10,color:TXT3}}>{db.editSession.listDate}</div>
+            </div>
+          </div>
+        )}
+
+        {tab==="shared"?(
           <div style={{textAlign:"center",padding:"60px 20px"}}>
-            <div style={{fontSize:48,marginBottom:12}}>📭</div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT,marginBottom:6}}>Aucune liste sauvegardée</div>
-            <div style={{fontSize:13,color:TXT3}}>Sauvegardez votre première liste de courses pour la retrouver ici.</div>
+            <div style={{fontSize:44,marginBottom:12}}>🔗</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:17,color:TXT,marginBottom:6}}>Listes partagées</div>
+            <div style={{fontSize:13,color:TXT3}}>Cette fonctionnalité arrive bientôt.</div>
+          </div>
+        ):filtered.length===0?(
+          <div style={{textAlign:"center",padding:"60px 20px"}}>
+            <div style={{fontSize:48,marginBottom:12}}>{tab==="fav"?"⭐":"📭"}</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT,marginBottom:6}}>
+              {tab==="fav"?"Aucun favori":"Aucune liste sauvegardée"}
+            </div>
+            <div style={{fontSize:13,color:TXT3}}>
+              {tab==="fav"?"Marquez des listes ⭐ pour les retrouver ici.":"Sauvegardez votre première liste de courses pour la retrouver ici."}
+            </div>
           </div>
         ):(
-          hist.map((sess,si)=>{
+          filtered.map((sess)=>{
+            const si=sess._idx;
             const isOpen=openSess.has(si);
             const sessSel=selected[si]||new Set();
             const items=sess.items||[];
+            const isPending=pendingEdit===si;
             return(
-              <div key={si} style={{...card,padding:0,overflow:"hidden",marginBottom:10}}>
+              <div key={si} style={{...card,padding:0,overflow:"hidden",marginBottom:8,border:isPending?`1.5px solid ${CARAMEL2}`:undefined}}>
                 {/* En-tête session */}
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"13px 14px",cursor:"pointer"}} onClick={()=>toggleSess(si)}>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:700,fontSize:14,color:TXT,fontFamily:"'Fraunces',serif"}}>{sess.date}</div>
-                    <div style={{fontSize:11,color:TXT3,marginTop:2}}>{items.length} article{items.length>1?"s":""} · {sessSel.size} sélectionné{sessSel.size>1?"s":""}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"11px 12px",cursor:"pointer"}} onClick={()=>!editMode&&toggleSess(si)}>
+
+                  {/* Case à cocher mode modification */}
+                  {editMode&&(
+                    <div style={{width:22,height:22,borderRadius:6,border:isPending?`2px solid ${CARAMEL2}`:`2px solid ${BDR}`,background:isPending?`rgba(200,132,58,.12)`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",transition:"all .15s"}}
+                      onClick={e=>{e.stopPropagation();setPendingEdit(isPending?null:si);}}>
+                      {isPending&&<span style={{color:CARAMEL2,fontSize:13,fontWeight:800}}>✓</span>}
+                    </div>
+                  )}
+
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{fontWeight:700,fontSize:13,color:TXT,fontFamily:"'Fraunces',serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sess.date}</div>
+                      {sess.favorite&&<span style={{fontSize:11,flexShrink:0}}>⭐</span>}
+                    </div>
+                    <div style={{fontSize:10,color:TXT3,marginTop:1}}>{items.length} article{items.length>1?"s":""}{!editMode&&sessSel.size>0?` · ${sessSel.size} sélectionné${sessSel.size>1?"s":""}`:""}</div>
                   </div>
-                  <button style={{...btn("gh"),fontSize:11,padding:"5px 10px"}} onClick={e=>{e.stopPropagation();toggleAll(si);}}>
-                    {sessSel.size===items.length?"Aucun":"Tout"}
-                  </button>
-                  <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:16,padding:"2px 4px",opacity:.5}} onClick={e=>{e.stopPropagation();setConfirmDel(si);}}>🗑️</button>
-                  <span style={{color:TXT3,fontSize:16,display:"inline-block",transform:isOpen?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</span>
+
+                  {/* Bouton Valider (mode modif, liste cochée) */}
+                  {editMode&&isPending&&(
+                    <button style={{...btn("acc"),fontSize:11,padding:"4px 10px",flexShrink:0,animation:"pulse .8s infinite"}}
+                      onClick={e=>{e.stopPropagation();setConfirmEdit(si);}}>
+                      Modifier →
+                    </button>
+                  )}
+
+                  {/* Actions normales */}
+                  {!editMode&&(
+                    <button style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"2px 4px",opacity:.5,color:TXT3,flexShrink:0}}
+                      onClick={e=>{e.stopPropagation();toggleFav(si,e);}}>
+                      {sess.favorite?"⭐":"☆"}
+                    </button>
+                  )}
+                  {!editMode&&(
+                    <button style={{...btn("gh"),fontSize:10,padding:"4px 8px",flexShrink:0}} onClick={e=>{e.stopPropagation();toggleAll(si);}}>
+                      {sessSel.size===items.length?"Aucun":"Tout"}
+                    </button>
+                  )}
+                  <button style={{background:"none",border:"none",color:TXT3,cursor:"pointer",fontSize:14,padding:"2px 4px",opacity:.5,flexShrink:0}}
+                    onClick={e=>{e.stopPropagation();setConfirmDel(si);}}>🗑️</button>
+                  <span style={{color:TXT3,fontSize:14,display:"inline-block",transform:isOpen?"rotate(180deg)":"none",transition:"transform .2s",flexShrink:0,cursor:"pointer"}}
+                    onClick={e=>{e.stopPropagation();toggleSess(si);}}>▾</span>
                 </div>
 
-                {/* Articles de la session */}
-                {isOpen&&(
-                  <div style={{borderTop:`1px solid ${BDR}`,padding:"8px 14px 12px"}}>
+                {/* Articles */}
+                {isOpen&&!editMode&&(
+                  <div style={{borderTop:`1px solid ${BDR}`,padding:"8px 12px 10px"}}>
                     {items.map((item,ii)=>{
                       const isSel=sessSel.has(item.name);
                       const qData=qtys[si]?.[item.name]||{qty:(item.quantities?.[0]?.qty||1),unit:(item.quantities?.[0]?.unit||"")};
                       return(
-                        <div key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 4px",borderBottom:ii<items.length-1?`1px solid ${BDR}`:"none",background:isSel?"rgba(200,132,90,.06)":"transparent",borderRadius:6,cursor:"pointer",transition:"background .1s"}} onClick={()=>toggleItem(si,item.name)}>
+                        <div key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 4px",borderBottom:ii<items.length-1?`1px solid ${BDR}`:"none",background:isSel?"rgba(200,132,90,.06)":"transparent",borderRadius:6,cursor:"pointer"}} onClick={()=>toggleItem(si,item.name)}>
                           <div style={{width:18,height:18,borderRadius:5,border:isSel?"none":`1.5px solid ${BDR}`,background:isSel?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
                             {isSel&&<span style={{color:"white",fontSize:9,fontWeight:800}}>✓</span>}
                           </div>
                           <span style={{fontSize:13,fontWeight:600,color:TXT,flex:1}}>{(item.category||getCat(item.name)).split(" ")[0]} {item.name}</span>
                           {isSel&&(
                             <div style={{display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>
-                              <input type="number" style={{...inp,width:52,padding:"3px 6px",fontSize:11}} value={qData.qty}
+                              <input type="number" style={{...inp,width:50,padding:"3px 5px",fontSize:11}} value={qData.qty}
                                 onChange={e=>setQtys(prev=>({...prev,[si]:{...(prev[si]||{}),[item.name]:{...qData,qty:parseFloat(e.target.value)||1}}}))}/>
-                              <select style={{...sel,width:66,padding:"3px 5px",fontSize:10}} value={qData.unit}
+                              <select style={{...sel,width:64,padding:"3px 4px",fontSize:10}} value={qData.unit}
                                 onChange={e=>setQtys(prev=>({...prev,[si]:{...(prev[si]||{}),[item.name]:{...qData,unit:e.target.value}}}))}>
                                 {UNITS.map(u=><option key={u} value={u}>{UL[u]||"pcs"}</option>)}
                               </select>
@@ -1819,11 +1948,11 @@ function PageSavedLists({db,setDb,showToast,onClose}){
         )}
       </div>
 
-      {/* Bouton fixe bas */}
-      {total>0&&(
-        <div style={{position:"sticky",bottom:0,left:0,right:0,background:"rgba(253,248,240,.95)",backdropFilter:"blur(8px)",borderTop:`1px solid ${BDR}`,padding:"12px 16px",flexShrink:0}}>
-          <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:15,padding:"14px"}} onClick={addSelected}>
-            🛒 Ajouter {total} article{total>1?"s":""} à la liste en cours
+      {/* Bouton fixe bas — ajouter sélection */}
+      {total>0&&!editMode&&(
+        <div style={{borderTop:`1px solid ${BDR}`,padding:"12px 14px",background:"rgba(253,248,240,.95)",backdropFilter:"blur(8px)",flexShrink:0}}>
+          <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:14,padding:"13px"}} onClick={addSelected}>
+            🛒 Ajouter {total} article{total>1?"s":""} à la liste
           </button>
         </div>
       )}
@@ -1837,9 +1966,27 @@ function PageSavedLists({db,setDb,showToast,onClose}){
           <button style={{...btn("dng"),flex:1}} onClick={()=>deleteSess(confirmDel)}>Supprimer</button>
         </div>
       </Modal>
+
+      {/* Modal confirmation modification */}
+      <Modal open={confirmEdit!==null} onClose={()=>setConfirmEdit(null)}>
+        <div style={{fontFamily:"'Fraunces',serif",fontSize:18,marginBottom:8,color:TXT}}>✏️ Modifier cette liste ?</div>
+        <div style={{fontSize:13,color:TXT2,marginBottom:6}}>
+          <strong style={{color:CARAMEL}}>"{hist[confirmEdit]?.date}"</strong> sera chargée dans la liste de courses.
+        </div>
+        {db.items.length>0&&(
+          <div style={{background:"rgba(200,132,58,.08)",border:`1px solid rgba(200,132,58,.25)`,borderRadius:10,padding:"9px 12px",marginBottom:14,fontSize:12,color:TXT2}}>
+            ⚠️ Vos <strong>{db.items.length} article{db.items.length>1?"s":""}</strong> en cours seront mis de côté et restaurés après la modification.
+          </div>
+        )}
+        <div style={{display:"flex",gap:8}}>
+          <button style={{...btn("gh"),flex:1}} onClick={()=>setConfirmEdit(null)}>Annuler</button>
+          <button style={{...btn("acc"),flex:2}} onClick={()=>startEditSession(confirmEdit)}>✏️ Commencer la modification</button>
+        </div>
+      </Modal>
     </FullPage>
   );
 }
+
 
 function EqtyModal({open,item,qi,onClose,onConf,onDel}){
   const [val,setVal]=useState("");const [unit,setUnit]=useState("");
@@ -6450,7 +6597,8 @@ function App(){
         folders:data.folders||[],
         likedRecipes:data.likedRecipes||[],
         pantry:data.pantry||[],
-        calendar:data.calendar||{}
+        calendar:data.calendar||{},
+        editSession:data.editSession||null
       });
     });
     return()=>unsub();
@@ -6478,7 +6626,8 @@ function App(){
         folders:newDb.folders||[],
         likedRecipes:newDb.likedRecipes||[],
         pantry:newDb.pantry||[],
-        calendar:newDb.calendar||{}
+        calendar:newDb.calendar||{},
+        editSession:newDb.editSession||null
       }).catch(e=>console.error("Sync error:",e));
     }
   }
