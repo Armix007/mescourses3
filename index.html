@@ -1302,14 +1302,22 @@ function PageListe({db,setDb,showToast,goToPlanning}){
 
       {/* ── CHIPS RECETTES AFFILIÉES ── */}
       {recipeSources.length>0&&(
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
           {recipeSources.map(src=>{
             const isActive=activeRecipeFilter===src;
+            const recipeObj=(db.recipes||[]).find(r=>r.name===src);
+            const hasPhoto=recipeObj?.photo;
             return(
-              <div key={src} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",background:isActive?CARAMEL:"rgba(255,255,255,.8)",color:isActive?"white":TXT2,border:`1.5px solid ${isActive?CARAMEL:BDR}`,transition:"all .15s"}}
+              <div key={src} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 10px 4px 4px",borderRadius:20,fontSize:11,fontWeight:700,cursor:"pointer",background:isActive?"white":"rgba(80,40,10,.75)",color:isActive?TXT:"rgba(255,235,200,.9)",border:`1.5px solid ${isActive?CARAMEL:"transparent"}`,boxShadow:isActive?"0 1px 6px rgba(0,0,0,.12)":"none",transition:"all .15s"}}
                 onClick={()=>setActiveRecipeFilter(isActive?null:src)}>
-                <EmojiImg emoji={guessRecipeEmoji(src)} size={13}/>
-                <span style={{maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{src}</span>
+                {/* Photo ou emoji */}
+                <div style={{width:22,height:22,borderRadius:11,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.15)"}}>
+                  {hasPhoto
+                    ?<img src={recipeObj.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    :<EmojiImg emoji={guessRecipeEmoji(src)} size={13}/>
+                  }
+                </div>
+                <span style={{maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{src}</span>
               </div>
             );
           })}
@@ -1323,7 +1331,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             🛒 {total>0?`${unc.length} article${unc.length>1?"s":""}`:""}{pct>0?` · ${pct}%`:""}
           </div>
           {!db.editSession?.active&&(
-            <button style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,display:"flex",alignItems:"center",gap:4}} onClick={()=>setShowSavedLists(true)}>
+            <button style={{background:"white",border:`1px solid ${BDR}`,borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,display:"flex",alignItems:"center",gap:4,boxShadow:"0 1px 4px rgba(0,0,0,.07)"}} onClick={()=>setShowSavedLists(true)}>
               📋 Mes listes
             </button>
           )}
@@ -1592,13 +1600,13 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
   }
 
   return(
-    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:editMode?1:item.checked?.5:1,background:isHighlighted?"rgba(120,60,15,.09)":editMode?SURF:item.checked?CREAM2:SURF,borderColor:isHighlighted?"rgba(120,60,15,.4)":undefined}}>
+    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:editMode?1:item.checked?.5:1,background:activeRecipeFilter&&!isHighlighted?"rgba(0,0,0,.04)":editMode?SURF:item.checked?CREAM2:SURF,opacity:activeRecipeFilter&&!isHighlighted?(editMode?1:item.checked?.35:.55):editMode?1:item.checked?.5:1}}>
       {/* Ligne principale - clic zone entière pour cocher */}
       <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>!showEdit&&!editMode&&onToggle(item.id)}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
-            <div style={{fontSize:13,fontWeight:700,color:isHighlighted?"rgba(100,45,8,.85)":TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
+            <div style={{fontSize:13,fontWeight:700,color:activeRecipeFilter&&!isHighlighted?TXT3:TXT,textDecoration:item.checked?"line-through":"none"}}>{item.name}</div>
             {bestPrice&&<span style={{fontSize:10,color:TXT3,fontWeight:600}}>{priceFreshness(bestPrice.updatedAt)} {bestPrice.price?.toFixed(2)}€ · {bestPrice.shop}</span>}
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}} onClick={e=>e.stopPropagation()}>
@@ -5755,10 +5763,14 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const [dayListAddName,setDayListAddName]=useState("");
   // Wizard → sauvegarder comme liste du jour
   const [wizardSaveDk,setWizardSaveDk]=useState(null);
-  // Modal génération liste
+  // Modal génération liste (via bouton)
   const [showGenModal,setShowGenModal]=useState(false);
   const [genListName,setGenListName]=useState("");
   const [genUpcoming,setGenUpcoming]=useState([]);
+  // Modal choix final après wizard
+  const [showWizardFinal,setShowWizardFinal]=useState(false);
+  const [wizardFinalItems,setWizardFinalItems]=useState([]);
+  const [wizardFinalListName,setWizardFinalListName]=useState("");
 
   const calendar=db.calendar||{};
   const pantry=db.pantry||[];
@@ -6441,27 +6453,108 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             onNext={(vp,haveIdxs)=>{
               const newItems=finishWizardStep(recipe,vp,haveIdxs,wizardItems);
               if(isLast){
-                const nd={...db,items:newItems};setDb(nd);saveDB(nd);
+                // Stocker les items finaux et ouvrir la modal de choix
+                setWizardFinalItems(newItems);
+                setWizardFinalListName(new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}));
                 setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
-                // Proposer de sauvegarder comme liste du jour
-                if(wizardSaveDk&&newItems.length){
-                  saveWizardResultAsDayList(newItems,wizardSaveDk);
-                }
-                goToListe();showToast("✅ Liste générée ! Bon shopping 🛒");
+                setShowWizardFinal(true);
               } else {setWizardItems(newItems);setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));}
             }}
             onPrev={wizardStep>0?()=>setWizardStep(s=>s-1):null}
             onSkip={()=>{
               if(isLast){
-                const nd={...db,items:wizardItems};setDb(nd);saveDB(nd);
+                // Idem : stocker et ouvrir la modal de choix
+                setWizardFinalItems(wizardItems);
+                setWizardFinalListName(new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}));
                 setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);
-                goToListe();showToast("✅ Liste générée !");
+                setShowWizardFinal(true);
               } else {setWizardStep(s=>Math.min(s+1,wizardQueue.length-1));}
             }}
             onCancel={()=>{setShowWizard(false);setWizardStep(0);setWizardQueue([]);setWizardItems([]);showToast("❌ Wizard annulé");}}
           />
         );
       })()}
+
+      {/* ── MODAL CENTRÉE CHOIX FINAL WIZARD ── */}
+      {showWizardFinal&&(
+        <div style={{position:"fixed",inset:0,zIndex:400,background:"rgba(42,20,8,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}
+          onClick={()=>setShowWizardFinal(false)}>
+          <div style={{background:SURF,borderRadius:20,padding:"22px 18px",width:"100%",maxWidth:440,boxShadow:"0 16px 48px rgba(42,20,8,.3)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:19,fontWeight:900,color:TXT,marginBottom:4}}>🛒 Que faire avec ces articles ?</div>
+            <div style={{fontSize:12,color:TXT3,marginBottom:20}}>{wizardFinalItems.length} article{wizardFinalItems.length>1?"s":""} sélectionné{wizardFinalItems.length>1?"s":""}</div>
+
+            {/* Option A : Ajouter à la liste en cours — B1 */}
+            <div style={{...card,cursor:"pointer",marginBottom:10,padding:"14px 16px",background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.3)`}}
+              onClick={()=>{
+                // B1 : merge dans db.items
+                let ni=[...db.items];
+                wizardFinalItems.forEach(item=>{
+                  const existing=ni.find(i=>i.name.toLowerCase()===item.name.toLowerCase()&&!i.checked);
+                  if(existing){
+                    (item.quantities||[]).forEach(q=>{
+                      const qs=existing.quantities.find(eq=>eq.unit===q.unit);
+                      if(qs)qs.qty=roundQ(+qs.qty+ +q.qty);
+                      else existing.quantities.push({...q});
+                    });
+                  } else {ni.push({...item,id:Date.now()+Math.random()});}
+                });
+                const nd={...db,items:ni};setDb(nd);saveDB(nd);
+                setShowWizardFinal(false);
+                goToListe();showToast("✅ Articles ajoutés à votre liste !");
+              }}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <span style={{fontSize:24}}>📥</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:CARAMEL}}>Ajouter à la liste en cours</div>
+                  <div style={{fontSize:11,color:TXT3,marginTop:2}}>
+                    {db.editSession?.active
+                      ?"Mode modification actif — fusionne avec la liste modifiée"
+                      :`Fusionne avec vos ${db.items.length} article${db.items.length>1?"s":""} actuels`}
+                  </div>
+                </div>
+                <span style={{color:CARAMEL2,fontSize:18}}>›</span>
+              </div>
+            </div>
+
+            {/* Option B : Créer une nouvelle liste sauvegardée — C1 */}
+            <div style={{...card,padding:"14px 16px",marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                <span style={{fontSize:24}}>💾</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:TXT}}>Créer une nouvelle liste</div>
+                  <div style={{fontSize:11,color:TXT3,marginTop:2}}>Sauvegarde sans toucher à votre liste en cours</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <input style={{...inp,flex:1,fontSize:13,padding:"9px 12px"}}
+                  placeholder="Nom de la liste…"
+                  value={wizardFinalListName}
+                  onChange={e=>setWizardFinalListName(e.target.value)}
+                  onClick={e=>e.stopPropagation()}
+                />
+                <button style={{...btn("acc"),padding:"9px 16px",flexShrink:0}}
+                  disabled={!wizardFinalListName.trim()}
+                  onClick={e=>{
+                    e.stopPropagation();
+                    // C1 : sauvegarde dans shoppingHistory, db.items inchangé
+                    const newEntry={date:wizardFinalListName.trim(),items:JSON.parse(JSON.stringify(wizardFinalItems)),count:wizardFinalItems.length};
+                    const newHist=[newEntry,...(db.shoppingHistory||[])].slice(0,20);
+                    const nd={...db,shoppingHistory:newHist};setDb(nd);saveDB(nd);
+                    setShowWizardFinal(false);
+                    showToast("💾 Liste \""+wizardFinalListName.trim()+"\" créée !");
+                  }}>
+                  Créer
+                </button>
+              </div>
+            </div>
+
+            <button style={{...btn("gh"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>setShowWizardFinal(false)}>
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
