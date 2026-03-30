@@ -879,7 +879,7 @@ function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty}){
 
   return(
     <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:item.checked?CARAMEL:BDR}`,borderRadius:10,boxShadow:"0 1px 4px rgba(160,90,40,.05)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
-      <div style={{padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
+      <div style={{padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer"}} onClick={()=>!showEdit&&!editMode&&onToggle(item.id)}>
         {/* Ligne haut : emoji | actions */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}}>
           <EmojiImg emoji={catEmoji} size={18}/>
@@ -1302,7 +1302,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           </div>
           {!db.editSession?.active&&(
             <button style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,display:"flex",alignItems:"center",gap:4}} onClick={()=>setShowSavedLists(true)}>
-              📋
+              📋 Mes listes
             </button>
           )}
         </div>
@@ -1448,10 +1448,10 @@ function PageListe({db,setDb,showToast,goToPlanning}){
             <>
               {Object.entries(catsSorted).map(([c,items])=>(
                 <div key={c}><SecTitle count={items.length}>{c}</SecTitle>
-                  {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem}/>)}
+                  {items.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active}/>)}
                 </div>
               ))}
-              {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem}/>)}</div>}
+              {chk.length>0&&<div><SecTitle>✓ Dans le panier ({chk.length})</SecTitle>{chk.map(item=><Item key={item.id} item={item} onToggle={toggle} onDel={del} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} priceDB={db.priceDB} showPrice={showPriceVisible} onCatChange={changeCat} onNameChange={editItem} editMode={!!db.editSession?.active}/>)}</div>}
             </>
           ):listView==="grille"?(
             /* Vue grille 2 colonnes */
@@ -1542,12 +1542,12 @@ function PageListe({db,setDb,showToast,goToPlanning}){
           <button style={{...btn("acc"),flex:2}} onClick={confirmSaveHist}>Confirmer</button>
         </div>
       </Modal>
-      {showSavedLists&&<PageSavedLists db={db} setDb={setDb} showToast={showToast} onClose={()=>setShowSavedLists(false)}/>}
+      {showSavedLists&&<PageSavedLists db={db} setDb={setDb} showToast={showToast} onClose={()=>setShowSavedLists(false)} onEditStart={()=>setShowSavedLists(false)}/>}
     </div>
   );
 }
 
-function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,onNameChange,onQtyChange}){
+function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,onNameChange,onQtyChange,editMode}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   const [showEdit,setShowEdit]=useState(false);
   const [editName,setEditName]=useState(item.name);
@@ -1569,9 +1569,9 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
   }
 
   return(
-    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:item.checked?.5:1,background:item.checked?CREAM2:SURF}}>
+    <div style={{...card,padding:0,marginBottom:6,overflow:"hidden",opacity:editMode?1:item.checked?.5:1,background:editMode?SURF:item.checked?CREAM2:SURF}}>
       {/* Ligne principale - clic zone entière pour cocher */}
-      <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 13px",cursor:"pointer"}} onClick={()=>!showEdit&&!editMode&&onToggle(item.id)}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             <EmojiImg emoji={catEmoji} size={18} style={{flexShrink:0}}/>
@@ -1698,7 +1698,7 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onA
   );
 }
 
-function PageSavedLists({db,setDb,showToast,onClose}){
+function PageSavedLists({db,setDb,showToast,onClose,onEditStart}){
   const hist=db.shoppingHistory||[];
   const [tab,setTab]=useState("all"); // all | fav | shared
   const [editMode,setEditMode]=useState(false);
@@ -1800,9 +1800,9 @@ function PageSavedLists({db,setDb,showToast,onClose}){
     const newItems=JSON.parse(JSON.stringify(sess.items||[]));
     const nd={...db,items:newItems,editSession};
     setDb(nd);saveDB(nd);
-    setConfirmEdit(null);setPendingEdit(null);setEditMode(false);
+    setPendingEdit(null);setEditMode(false);
     showToast("✏️ Mode modification activé — "+sess.date);
-    onClose();
+    onEditStart?onEditStart():onClose();
   }
 
   const total=countSelected();
@@ -1823,7 +1823,7 @@ function PageSavedLists({db,setDb,showToast,onClose}){
           </button>
         </div>
         {/* Onglets — style identique à PageRecettes */}
-        <div style={{display:"flex",background:"rgba(255,255,255,.15)",borderRadius:12,padding:3,gap:2,marginTop:10}}>
+        <div style={{display:"flex",background:"rgba(255,255,255,.15)",borderRadius:12,padding:3,gap:2,marginTop:10,border:"1px solid rgba(255,255,255,.4)"}}>
           {TAB_LABELS.map(t=>(
             <div key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:tab===t.id?"white":"transparent",color:tab===t.id?CARAMEL:"rgba(255,255,255,.8)",cursor:"pointer",transition:"all .15s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
               {t.label}{t.count>0?<span style={{fontSize:9,opacity:.65,marginLeft:3}}>({t.count})</span>:null}
