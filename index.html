@@ -5879,9 +5879,9 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   function generateShoppingList(){
     const upcoming=buildUpcoming();
     if(!upcoming.length){showToast("⚠️ Aucun repas planifié à venir");return;}
-    setGenUpcoming(upcoming);
-    setGenListName(new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}));
-    setShowGenModal(true);
+    // Lancer le wizard étape par étape d'abord
+    setWizardSaveDk(upcoming[0].dk);
+    setWizardQueue(upcoming);setWizardStep(0);setWizardItems([...db.items]);setShowWizard(true);
   }
   // Ajouter les ingrédients des repas à venir dans une cible (items array)
   function buildItemsFromUpcoming(upcoming,baseItems){
