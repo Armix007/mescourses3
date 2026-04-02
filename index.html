@@ -858,8 +858,9 @@ function HistorySession({session,onReloadAll,onReloadSelected,onDeleteItem}){
 // ═══════════════════════════════════════════════════════════════
 // ITEM MINI (vue grille 3 colonnes ultra-compact)
 // ═══════════════════════════════════════════════════════════════
-function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty}){
+function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty,activeRecipeFilter}){
   const catEmoji=getProductEmoji(item.name);
+  const isHighlighted=activeRecipeFilter&&(item.quantities||[]).some(q=>q.source===activeRecipeFilter);
   const shortName=item.name.length>12?item.name.slice(0,11)+"…":item.name;
   const [showEdit,setShowEdit]=useState(false);
   const [editName,setEditName]=useState(item.name);
@@ -878,7 +879,7 @@ function ItemMini({item,onToggle,onDel,onNameChange,onEqty,onAqty}){
   }
 
   return(
-    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:item.checked?CARAMEL:BDR}`,borderRadius:10,boxShadow:"0 1px 4px rgba(160,90,40,.05)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
+    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:item.checked?CARAMEL:BDR}`,borderRadius:10,boxShadow:"0 1px 4px rgba(160,90,40,.05)",opacity:activeRecipeFilter&&!isHighlighted?.4:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
       <div style={{padding:"7px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer"}} onClick={()=>!showEdit&&!editMode&&onToggle(item.id)}>
         {/* Ligne haut : emoji | actions */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}}>
@@ -1490,7 +1491,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <div key={c}>
                   <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
-                    {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
+                    {items.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} activeRecipeFilter={activeRecipeFilter}/>)}
                   </div>
                 </div>
               ))}
@@ -1498,7 +1499,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <>
                   <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:4}}>
-                    {chk.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
+                    {chk.map(item=><ItemCard key={item.id} item={item} onToggle={toggle} onDel={del} priceDB={db.priceDB} showPrice={showPriceVisible} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} activeRecipeFilter={activeRecipeFilter}/>)}
                   </div>
                 </>
               )}
@@ -1510,7 +1511,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <div key={c}>
                   <SecTitle count={items.length}>{c}</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
+                    {items.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} activeRecipeFilter={activeRecipeFilter}/>)}
                   </div>
                 </div>
               ))}
@@ -1518,7 +1519,7 @@ function PageListe({db,setDb,showToast,goToPlanning}){
                 <>
                   <SecTitle>✓ Dans le panier ({chk.length})</SecTitle>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:4}}>
-                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})}/>)}
+                    {chk.map(item=><ItemMini key={item.id} item={item} onToggle={toggle} onDel={del} onNameChange={editItem} onEqty={(id,qi)=>setEqty({itemId:id,qi})} onAqty={id=>setEqty({itemId:id,qi:null})} activeRecipeFilter={activeRecipeFilter}/>)}
                   </div>
                 </>
               )}
@@ -1665,9 +1666,10 @@ function Item({item,onToggle,onDel,onEqty,onAqty,priceDB,showPrice,onCatChange,o
 }
 
 // ─── ITEM CARD (vue grille 2 colonnes) ───────────────────────
-function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onAqty}){
+function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onAqty,activeRecipeFilter}){
   const bestPrice=showPrice?getBestPrice(priceDB,item.name):null;
   const catEmoji=getProductEmoji(item.name);
+  const isHighlighted=activeRecipeFilter&&(item.quantities||[]).some(q=>q.source===activeRecipeFilter);
   const [showEdit,setShowEdit]=useState(false);
   const [editName,setEditName]=useState(item.name);
   const [editQty,setEditQty]=useState(item.quantities?.[0]?.qty??1);
@@ -1685,7 +1687,7 @@ function ItemCard({item,onToggle,onDel,priceDB,showPrice,onNameChange,onEqty,onA
   }
 
   return(
-    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:BDR}`,borderRadius:14,boxShadow:"0 2px 8px rgba(160,90,40,.06)",opacity:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
+    <div style={{background:item.checked?CREAM2:SURF,border:`1px solid ${showEdit?CARAMEL2:BDR}`,borderRadius:14,boxShadow:"0 2px 8px rgba(160,90,40,.06)",opacity:activeRecipeFilter&&!isHighlighted?.4:item.checked?.55:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
       {/* Carte principale - clic zone entière pour cocher */}
       <div style={{padding:"10px 11px",display:"flex",flexDirection:"column",gap:6,cursor:"pointer"}} onClick={()=>!showEdit&&onToggle(item.id)}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1735,6 +1737,7 @@ function PageSavedLists({db,setDb,showToast,onClose,onEditStart}){
   const [editMode,setEditMode]=useState(false);
   const [pendingEdit,setPendingEdit]=useState(null); // idx en attente de confirmation
   const [openSess,setOpenSess]=useState(new Set());
+  const [activeRecipeFilterPSL,setActiveRecipeFilterPSL]=useState({});
   const [selected,setSelected]=useState({});
   const [qtys,setQtys]=useState({});
   const [confirmDel,setConfirmDel]=useState(null);
@@ -1808,7 +1811,9 @@ function PageSavedLists({db,setDb,showToast,onClose,onEditStart}){
         const item=(sess.items||[]).find(it=>it.name===name);
         const catV=item?.category||getCat(name);
         const qEntry=qtys[si]?.[name]||{qty:1,unit:""};
-        ni=mergeItem(ni,name,qEntry.qty,qEntry.unit,"historique",catV);
+        // Conserver la source d'origine (recette) si disponible
+        const origSource=(item?.quantities||[]).find(q=>q.source&&q.source!=="manuel"&&q.source!=="vocal"&&q.source!=="historique")?.source||"historique";
+        ni=mergeItem(ni,name,qEntry.qty,qEntry.unit,origSource,catV);
         if(!ph[name])ph[name]={count:0,category:catV,lastUnit:qEntry.unit};
         ph[name].count++;added++;
       });
@@ -1950,11 +1955,37 @@ function PageSavedLists({db,setDb,showToast,onClose,onEditStart}){
                 {/* Articles */}
                 {isOpen&&!editMode&&(
                   <div style={{borderTop:`1px solid ${BDR}`,padding:"8px 12px 10px"}}>
+                    {/* Chips recettes affiliées à cette liste */}
+                    {(()=>{
+                      const srcSet=new Set(items.flatMap(it=>(it.quantities||[]).map(q=>q.source)).filter(s=>s&&s!=="manuel"&&s!=="vocal"&&s!=="historique"&&s!=="pantry"&&s!=="base"&&s!=="recette"&&typeof s==="string"));
+                      const srcs=[...srcSet];
+                      if(!srcs.length)return null;
+                      const activeSrc=activeRecipeFilterPSL[si]||null;
+                      return(
+                        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+                          {srcs.map(src=>{
+                            const isActive=activeSrc===src;
+                            const recipeObj=(db.recipes||[]).find(r=>r.name===src);
+                            return(
+                              <div key={src} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 9px 3px 4px",borderRadius:20,fontSize:10,fontWeight:700,cursor:"pointer",background:isActive?"white":"rgba(80,40,10,.75)",color:isActive?TXT:"rgba(255,235,200,.9)",border:`1.5px solid ${isActive?CARAMEL:"transparent"}`,boxShadow:isActive?"0 1px 4px rgba(0,0,0,.1)":"none",transition:"all .15s"}}
+                                onClick={()=>setActiveRecipeFilterPSL(prev=>({...prev,[si]:isActive?null:src}))}>
+                                <div style={{width:18,height:18,borderRadius:9,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.15)"}}>
+                                  {recipeObj?.photo?<img src={recipeObj.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<EmojiImg emoji={guessRecipeEmoji(src)} size={11}/>}
+                                </div>
+                                <span style={{maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{src}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     {items.map((item,ii)=>{
                       const isSel=sessSel.has(item.name);
                       const qData=qtys[si]?.[item.name]||{qty:(item.quantities?.[0]?.qty||1),unit:(item.quantities?.[0]?.unit||"")};
+                      const activeSrcPSL=activeRecipeFilterPSL[si]||null;
+                      const itemHighlighted=activeSrcPSL&&(item.quantities||[]).some(q=>q.source===activeSrcPSL);
                       return(
-                        <div key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 4px",borderBottom:ii<items.length-1?`1px solid ${BDR}`:"none",background:isSel?"rgba(200,132,90,.06)":"transparent",borderRadius:6,cursor:"pointer"}} onClick={()=>toggleItem(si,item.name)}>
+                        <div key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 4px",borderBottom:ii<items.length-1?`1px solid ${BDR}`:"none",background:isSel?"rgba(200,132,90,.06)":"transparent",borderRadius:6,cursor:"pointer",opacity:activeSrcPSL&&!itemHighlighted?.45:1,transition:"opacity .15s"}} onClick={()=>toggleItem(si,item.name)}>
                           <div style={{width:18,height:18,borderRadius:5,border:isSel?"none":`1.5px solid ${BDR}`,background:isSel?CARAMEL:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
                             {isSel&&<span style={{color:"white",fontSize:9,fontWeight:800}}>✓</span>}
                           </div>
@@ -6487,17 +6518,12 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             {/* Option A : Ajouter à la liste en cours — B1 */}
             <div style={{...card,cursor:"pointer",marginBottom:10,padding:"14px 16px",background:"rgba(184,112,58,.06)",border:`1.5px solid rgba(184,112,58,.3)`}}
               onClick={()=>{
-                // B1 : merge dans db.items
+                // B1 : merge dans db.items en conservant les sources recette
                 let ni=[...db.items];
                 wizardFinalItems.forEach(item=>{
-                  const existing=ni.find(i=>i.name.toLowerCase()===item.name.toLowerCase()&&!i.checked);
-                  if(existing){
-                    (item.quantities||[]).forEach(q=>{
-                      const qs=existing.quantities.find(eq=>eq.unit===q.unit);
-                      if(qs)qs.qty=roundQ(+qs.qty+ +q.qty);
-                      else existing.quantities.push({...q});
-                    });
-                  } else {ni.push({...item,id:Date.now()+Math.random()});}
+                  (item.quantities||[{qty:1,unit:"",source:"recette"}]).forEach(q=>{
+                    ni=mergeItem(ni,item.name,q.qty,q.unit,q.source||"recette",item.category||getCat(item.name));
+                  });
                 });
                 const nd={...db,items:ni};setDb(nd);saveDB(nd);
                 setShowWizardFinal(false);
