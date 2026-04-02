@@ -7059,11 +7059,11 @@ function App(){
       {/* BOTTOM NAV — 4 onglets */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:20,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
-          {id:"amis",      icon:"👥", label:"Amis"},
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
           {id:"calendrier",icon:"📅", label:"Planning"},
           {id:"maison",    icon:"🏠", label:"Maison"},
+          {id:"amis",      icon:"👥", label:"Amis"},
         ].map(t=>(
           <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
             <EmojiImg emoji={t.icon} size={22} style={{lineHeight:1}}/>
