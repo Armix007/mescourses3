@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>🍽️ Wiselifood</title>
+<title>Wiselifood</title>
 <meta name="description" content="Votre assistant de courses intelligent">
 <meta name="theme-color" content="#b86a3a">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,7 +15,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
-  background: linear-gradient(180deg,#b86a3a 0%,#c8785a 10%,#d4916a 20%,#dea878 30%,#e8c090 40%,#f0d4a8 50%,#f7e8c8 62%,#faf2e0 74%,#fdf8f2 86%,#ffffff 100%) fixed;
+  background:#f2ebe2;
   font-family:'Plus Jakarta Sans',sans-serif;
   color:#2a1f0e;
   overscroll-behavior:none;
@@ -1275,7 +1275,7 @@ function PageListe({db,setDb,showToast,goToPlanning,goToRecettes}){
   );
 
   return(
-    <div style={{padding:14,paddingBottom:90}}>
+    <div style={{padding:"12px 12px 90px"}}>
 
       {/* ── BANNIÈRE MODE MODIFICATION — fond sombre contrasté ── */}
       {db.editSession?.active&&(
@@ -1332,17 +1332,39 @@ function PageListe({db,setDb,showToast,goToPlanning,goToRecettes}){
         </div>
       )}
 
-      {/* ═══ TOGGLE VUE LISTE / GRILLE ═══════════════════ */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:700,color:TXT}}>
-            🛒 {total>0?`${unc.length} article${unc.length>1?"s":""}`:""}{pct>0?` · ${pct}%`:""}
+      {/* ══ HERO HEADER LISTE ══ */}
+      <div style={{background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)",padding:"14px 14px 16px",marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#fff",letterSpacing:"-.2px"}}>Ma liste</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:"1.5px",fontWeight:600,textTransform:"uppercase",marginTop:1}}>Wise · Life · Food</div>
           </div>
           {!db.editSession?.active&&(
-            <button style={{background:"white",border:`1px solid ${BDR}`,borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:12,color:TXT2,fontWeight:600,display:"flex",alignItems:"center",gap:4,boxShadow:"0 1px 4px rgba(0,0,0,.07)"}} onClick={()=>setShowSavedLists(true)}>
+            <button style={{background:"rgba(255,255,255,.9)",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:11,color:"#7a3d1a",fontWeight:700,display:"flex",alignItems:"center",gap:4}} onClick={()=>setShowSavedLists(true)}>
               📋 Mes listes
             </button>
           )}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"6px 10px",flex:1,textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{unc.length}</div>
+            <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>ARTICLES</div>
+          </div>
+          <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"6px 10px",flex:1,textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{pct>0?pct+"%":"—"}</div>
+            <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>COMPLÉTÉ</div>
+          </div>
+          <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"6px 10px",flex:1,textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{chk.length}</div>
+            <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>COCHÉS</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ TOGGLE VUE LISTE / GRILLE ═══════════════════ */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,padding:"0 2px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:"#a07040",letterSpacing:".06em",textTransform:"uppercase"}}>
+          {total>0?`${unc.length} article${unc.length>1?"s":""} à faire`:"Liste vide"}
         </div>
         <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:3}}>
           <div onClick={()=>{setListView("liste");localStorage.setItem("ws_list_view","liste");}} style={{padding:"5px 11px",borderRadius:7,background:listView==="liste"?SURF:"transparent",boxShadow:listView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:15,transition:"all .2s"}}>☰</div>
@@ -1428,8 +1450,6 @@ function PageListe({db,setDb,showToast,goToPlanning,goToRecettes}){
             </div>
           )}
         </div>
-
-      </div>
 
       {/* Validation vocale en attente */}
       {vocalPending.length>0&&(
@@ -1582,6 +1602,7 @@ function PageListe({db,setDb,showToast,goToPlanning,goToRecettes}){
       </Modal>
       {showSavedLists&&<PageSavedLists db={db} setDb={setDb} showToast={showToast} onClose={()=>setShowSavedLists(false)} onEditStart={()=>setShowSavedLists(false)} goToRecettes={goToRecettes}/>}
     </div>
+  </div>
   );
 }
 
@@ -2378,27 +2399,32 @@ function PageRecettes({db,setDb,showToast,openRecipeName,onOpenRecipeDone}){
   const [favTab,setFavTab]=useState(false); // true = favoris, false = toutes
 
   return(
-    <div style={{padding:14,paddingBottom:90}}>
+    <div style={{padding:"0 0 90px"}}>
 
-      {/* ─── HEADER ─── */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:22,color:TXT,fontWeight:900}}>Mes recettes</div>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+      {/* ─── HERO HEADER RECETTES ─── */}
+      <div style={{background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)",padding:"14px 14px 0",marginBottom:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#fff",letterSpacing:"-.2px"}}>Mes recettes</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:"1.5px",fontWeight:600,textTransform:"uppercase",marginTop:1}}>Wise · Life · Food</div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <div style={{display:"flex",background:"rgba(0,0,0,.06)",borderRadius:10,padding:3,gap:2}}>
             <div onClick={()=>{setRecipeView("liste");localStorage.setItem("ws_recipe_view","liste");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="liste"?SURF:"transparent",boxShadow:recipeView==="liste"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>☰</div>
             <div onClick={()=>{setRecipeView("grille");localStorage.setItem("ws_recipe_view","grille");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="grille"?SURF:"transparent",boxShadow:recipeView==="grille"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:14,transition:"all .2s"}}>⊞</div>
             <div onClick={()=>{setRecipeView("grande");localStorage.setItem("ws_recipe_view","grande");}} style={{padding:"5px 10px",borderRadius:7,background:recipeView==="grande"?SURF:"transparent",boxShadow:recipeView==="grande"?"0 2px 8px rgba(0,0,0,.09)":"none",cursor:"pointer",fontSize:13,transition:"all .2s"}}>▬</div>
           </div>
           <button style={{...btn("acc"),fontSize:12,padding:"8px 13px"}} onClick={()=>{setEditIdx(-1);setShowEdit(true);}}>+ Créer</button>
+          </div>
+        </div>
+        {/* Searchbar dans le hero */}
+        <div style={{position:"relative",marginTop:10,marginBottom:0}}>
+          <input style={{...inp,paddingLeft:34,background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",fontSize:13}} placeholder="Nom, ingrédient, cuisine…" value={search} onChange={e=>setSearch(e.target.value)}/>
+          <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,pointerEvents:"none",opacity:.6}}>🔍</span>
+          {search&&<span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:13,cursor:"pointer",color:"rgba(255,255,255,.6)"}} onClick={()=>setSearch("")}>✕</span>}
         </div>
       </div>
-
-      {/* ─── RECHERCHE ─── */}
-      <div style={{position:"relative",marginBottom:10}}>
-        <input style={{...inp,paddingLeft:34}} placeholder="Nom, ingrédient, cuisine…" value={search} onChange={e=>setSearch(e.target.value)}/>
-        <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,pointerEvents:"none"}}>🔍</span>
-        {search&&<span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:14,cursor:"pointer",color:TXT3}} onClick={()=>setSearch("")}>✕</span>}
-      </div>
+      <div style={{padding:"0 12px"}}>
 
       {/* ─── RÉSULTATS RECHERCHE : mes recettes en premier, MealDB ensuite ─── */}
       {search.trim().length>=2&&(
@@ -2521,14 +2547,14 @@ function PageRecettes({db,setDb,showToast,openRecipeName,onOpenRecipeDone}){
             </div>
           )}
 
-          {/* Tabs Toutes / Favoris / Thèmes */}
-          <div style={{display:"flex",background:"rgba(255,255,255,.6)",borderRadius:12,padding:3,marginBottom:10,border:"1px solid rgba(255,255,255,.5)"}}>
+          {/* Tabs Toutes / Favoris / Thèmes — dans le hero */}
+          <div style={{display:"flex",background:"rgba(255,255,255,.15)",borderRadius:12,padding:3,marginBottom:0,border:"1px solid rgba(255,255,255,.3)"}}>
             {[
               {id:"recettes",label:"🍽️ Toutes"},
               {id:"likes",label:`❤️ Favoris${likedIds.size>0?" ("+likedIds.size+")":""}`},
               {id:"dossiers",label:`🏷️ Thèmes${folders.length>0?" ("+folders.length+")":""}` },
             ].map(t=>(
-              <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:tab===t.id?"white":CREAM2,color:tab===t.id?CARAMEL:TXT2,cursor:"pointer",transition:"all .15s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
+              <div key={t.id} style={{flex:1,padding:"7px 4px",textAlign:"center",fontSize:11,fontWeight:700,borderRadius:9,background:tab===t.id?"white":"transparent",color:tab===t.id?CARAMEL:"rgba(255,255,255,.7)",cursor:"pointer",transition:"all .15s",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,.08)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} onClick={()=>{setTab(t.id);setActiveFolder(null);}}>
                 {t.label}
               </div>
             ))}
@@ -2620,6 +2646,7 @@ function PageRecettes({db,setDb,showToast,openRecipeName,onOpenRecipeDone}){
       {showMealDB&&<MealDBSearch onImport={importRecipe} onClose={()=>setShowMealDB(false)} showToast={showToast} initialMeal={typeof showMealDB==="object"?showMealDB:null}/>}
       {showAI&&<AIRecipeGen onImport={importRecipe} onClose={()=>setShowAI(false)} showToast={showToast} items={db.items} db={db}/>}
       {showFolders&&<FolderManager db={db} setDb={d=>{setDb(d);saveDB(d);}} showToast={showToast} onClose={()=>setShowFolders(false)}/>}
+      </div>
     </div>
   );
 }
@@ -6008,25 +6035,25 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
   const soirCount=weekFill.filter(d=>d.soir).length;
 
   return(
-    <div style={{padding:"10px 14px",paddingBottom:90}}>
+    <div style={{padding:"0 0 90px"}}>
 
-      {/* ══ HEADER COMPACT ══════════════════════════════════ */}
-      <div style={{marginBottom:12}}>
+      {/* ══ HERO HEADER PLANNING ══ */}
+      <div style={{background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)",padding:"14px 14px 14px",marginBottom:10}}>
 
         {/* Ligne 1 : titre + navigation semaine */}
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-          <button style={{background:"rgba(255,255,255,.7)",border:`1px solid ${BDR}`,borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:TXT2,flexShrink:0}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <button style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.2)",borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"#fff",flexShrink:0}} onClick={()=>setWeekOffset(w=>w-1)}>‹</button>
           <div style={{flex:1,textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:TXT,lineHeight:1.1}}>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:17,fontWeight:900,color:"#fff",lineHeight:1.1}}>
               {weekOffset===0?"Cette semaine":weekOffset===1?"Semaine prochaine":weekOffset===-1?"Semaine dernière":`Sem. ${weekDates[0].getDate()}/${weekDates[0].getMonth()+1}`}
             </div>
-            <div style={{fontSize:10,color:TXT3,marginTop:1}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.55)",marginTop:1}}>{weekDates[0].getDate()}/{weekDates[0].getMonth()+1} — {weekDates[6].getDate()}/{weekDates[6].getMonth()+1}/{weekDates[6].getFullYear()}</div>
           </div>
-          <button style={{background:"rgba(255,255,255,.7)",border:`1px solid ${BDR}`,borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:TXT2,flexShrink:0}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
+          <button style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.2)",borderRadius:10,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"#fff",flexShrink:0}} onClick={()=>setWeekOffset(w=>w+1)}>›</button>
         </div>
 
         {/* Ligne 2 : grille résumé midi/soir */}
-        <div style={{background:"rgba(255,255,255,.7)",borderRadius:12,border:`1px solid ${BDR}`,padding:"8px 10px"}}>
+        <div style={{background:"rgba(255,255,255,.1)",borderRadius:12,border:"1px solid rgba(255,255,255,.2)",padding:"8px 10px"}}>
           <div style={{display:"flex",gap:3,alignItems:"flex-end"}}>
             {/* Labels gauche */}
             <div style={{display:"flex",flexDirection:"column",gap:3,width:18,flexShrink:0,paddingTop:16}}>
@@ -6043,7 +6070,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
               return(
                 <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
                   <div style={{display:"flex",alignItems:"center",gap:1,position:"relative"}}>
-                    <span style={{fontSize:9,fontWeight:isToday?900:600,color:isToday?CARAMEL:TXT3}}>{DAY_NAMES[i][0]}</span>
+                    <span style={{fontSize:9,fontWeight:isToday?900:600,color:isToday?"#e8c89a":"rgba(255,255,255,.6)"}}>{DAY_NAMES[i][0]}</span>
                     {day.hasLinked&&<span style={{fontSize:7,lineHeight:1,opacity:.8}}>🛒</span>}
                   </div>
                   <div style={{width:"100%",height:9,borderRadius:3,background:day.midi?CARAMEL:"rgba(0,0,0,.07)",outline:isToday&&!day.midi?`1.5px solid ${CARAMEL2}`:"none"}}/>
@@ -6054,10 +6081,10 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
             {/* Compteurs droite */}
             <div style={{display:"flex",flexDirection:"column",gap:3,width:20,flexShrink:0,paddingTop:16}}>
               <div style={{height:9,display:"flex",alignItems:"center",paddingLeft:2}}>
-                <span style={{fontSize:8,fontWeight:800,color:midiCount===7?SUC:midiCount>0?CARAMEL:TXT3}}>{midiCount}/7</span>
+                <span style={{fontSize:8,fontWeight:800,color:midiCount===7?"#5a8a3a":midiCount>0?"#e8c89a":"rgba(255,255,255,.4)"}}>{midiCount}/7</span>
               </div>
               <div style={{height:9,display:"flex",alignItems:"center",paddingLeft:2}}>
-                <span style={{fontSize:8,fontWeight:800,color:soirCount===7?SUC:soirCount>0?CARAMEL:TXT3}}>{soirCount}/7</span>
+                <span style={{fontSize:8,fontWeight:800,color:soirCount===7?"#5a8a3a":soirCount>0?"#e8c89a":"rgba(255,255,255,.4)"}}>{soirCount}/7</span>
               </div>
             </div>
           </div>
@@ -6065,13 +6092,14 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
 
         {/* CTA génération — sous le résumé */}
         {(midiCount+soirCount)>0&&(
-          <button style={{...btn("acc"),width:"100%",justifyContent:"center",fontSize:12,padding:"10px",marginTop:8}} onClick={generateShoppingList}>
+          <button style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:10,width:"100%",display:"flex",justifyContent:"center",fontSize:12,color:"#fff",fontWeight:800,padding:"10px",cursor:"pointer",marginTop:8}} onClick={generateShoppingList}>
             🛒 Générer la liste · {midiCount+soirCount} repas
           </button>
         )}
-        {weekOffset!==0&&<button style={{...btn("out"),width:"100%",justifyContent:"center",fontSize:11,marginTop:6,padding:"5px"}} onClick={()=>setWeekOffset(0)}>Aujourd'hui</button>}
+        {weekOffset!==0&&<button style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:8,width:"100%",display:"flex",justifyContent:"center",fontSize:11,color:"#fff",padding:"5px",cursor:"pointer",marginTop:6}} onClick={()=>setWeekOffset(0)}>Aujourd'hui</button>}
       </div>
 
+      <div style={{padding:"0 12px"}}>
       {/* Alerte anti-gaspi */}
       {redItems.length>0&&suggestions.length>0&&(
         <div style={{background:"rgba(212,96,74,.07)",border:"1px solid rgba(212,96,74,.2)",borderRadius:10,padding:"8px 12px",marginBottom:10}}>
@@ -6602,6 +6630,7 @@ function PageCalendrier({db,setDb,showToast,goToRecettes,goToListe}){
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -6910,7 +6939,7 @@ function App(){
   return(
     <div style={{minHeight:"100vh",maxWidth:480,margin:"0 auto",fontFamily:"'Plus Jakarta Sans',sans-serif",color:TXT,position:"relative",overflowX:"hidden"}}>
       {/* HEADER */}
-      <div style={{padding:"10px 14px 0",position:"relative"}}>
+      <div style={{padding:"10px 14px 14px",position:"relative",background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)"}}>
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 60%)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",padding:"0"}}>
           {/* GAUCHE: Logo */}
@@ -6931,16 +6960,32 @@ function App(){
         {/* NAV TABS — bottom, 4 onglets */}
       </div>
       {/* PAGE CONTENT */}
-      <div style={{background:"rgba(255,255,255,.04)",minHeight:"calc(100vh - 120px)"}}>
+      <div style={{background:"#f2ebe2",minHeight:"calc(100vh - 120px)"}}>
         {page==="liste"&&<PageListe db={db} setDb={setDbSync} showToast={showToast} goToPlanning={()=>setPage("calendrier")} goToRecettes={(recipeName)=>{setOpenRecipeName(recipeName||null);setPage("recettes");}}/>}
         {page==="recettes"&&<PageRecettes db={db} setDb={setDbSync} showToast={showToast} openRecipeName={openRecipeName} onOpenRecipeDone={()=>setOpenRecipeName(null)}/>}
         {page==="prix"&&<PagePrix db={db} setDb={setDbSync} showToast={showToast}/>}
         {page==="amis"&&(
-          <div style={{padding:20,paddingBottom:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
-            <div style={{fontSize:56,marginBottom:16}}>👥</div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:TXT,marginBottom:8}}>Amis & Foyer</div>
-            <div style={{fontSize:14,color:TXT3,textAlign:"center",lineHeight:1.6,maxWidth:280}}>Partagez vos listes et plannings avec vos proches.</div>
-            <div style={{marginTop:20,fontSize:12,color:TXT3,background:"rgba(0,0,0,.05)",borderRadius:12,padding:"8px 16px",fontWeight:600}}>Bientôt disponible</div>
+          <div style={{paddingBottom:90}}>
+            {/* ══ HERO AMIS ══ */}
+            <div style={{background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)",padding:"14px 14px 20px"}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#fff",letterSpacing:"-.2px",marginBottom:2}}>Amis & Foyer</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:"1.5px",fontWeight:600,textTransform:"uppercase"}}>Wise · Life · Food</div>
+            </div>
+            <div style={{padding:"20px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+              <div style={{width:64,height:64,borderRadius:20,background:"linear-gradient(135deg,#2e1e0e,#3d2810)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>👥</div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:900,color:"#1a0e06",marginBottom:6}}>Vos proches, votre foyer</div>
+                <div style={{fontSize:13,color:"#a07040",lineHeight:1.6,maxWidth:240}}>Partagez vos listes et plannings avec les personnes de confiance.</div>
+              </div>
+              <div style={{background:"#2e1e0e",borderRadius:10,padding:"6px 16px",fontSize:10,fontWeight:700,color:"rgba(255,210,150,.8)"}}>Bientôt disponible</div>
+              <div style={{width:"100%",background:"#fff",borderRadius:14,padding:"14px",marginTop:4}}>
+                <div style={{fontSize:9,fontWeight:800,color:"#a07040",letterSpacing:".06em",textTransform:"uppercase",marginBottom:8}}>Votre lien d'invitation</div>
+                <div style={{display:"flex",gap:6}}>
+                  <div style={{flex:1,background:"#f2ebe2",borderRadius:8,padding:"8px 10px",fontSize:10,color:"#a07040",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>wiselifood.app/?invite=…</div>
+                  <div style={{background:"#7a3d1a",borderRadius:8,padding:"8px 12px",fontSize:10,fontWeight:700,color:"#fff",cursor:"pointer"}}>Copier</div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {page==="placard"&&<PagePlacard db={db} setDb={setDbSync} showToast={showToast} goToRecettes={(recipeName)=>{setOpenRecipeName(recipeName||null);setPage("recettes");}} goToListe={()=>setPage("liste")}/>}
@@ -6948,7 +6993,50 @@ function App(){
         {page==="historique"&&<PageHistorique db={db} setDb={setDbSync} showToast={showToast} goToListe={()=>setPage("liste")}/>}
         {page==="parametres"&&<PageParametres db={db} setDb={setDbSync} showToast={showToast} pseudo={pseudo} setPseudo={setPseudo} docId={docId} setShowApiKeyGlobal={setShowApiKeyGlobal} onLogout={()=>{["ws_docid","ws_r1","ws_foyerid","ws_pwd_saved"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}/>}
         {page==="maison"&&(
-          <div style={{padding:14,paddingBottom:90}}>
+          <div style={{paddingBottom:90}}>
+            {/* ══ HERO MAISON ══ */}
+            <div style={{background:"linear-gradient(160deg,#7a3d1a 0%,#b8703a 60%,#c4622a 100%)",padding:"14px 14px 16px"}}>
+              {(()=>{
+                const sessions=db.budget?.sessions||[];
+                const monthly=db.budget?.monthly||0;
+                const spent=sessions.reduce((s,x)=>s+(x.total||0),0);
+                const pct=monthly>0?Math.min(100,Math.round(spent/monthly*100)):0;
+                const remaining=monthly>0?monthly-spent:null;
+                return(
+                  <div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                      <div>
+                        <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#fff",letterSpacing:"-.2px"}}>Maison</div>
+                        <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:"1.5px",fontWeight:600,textTransform:"uppercase",marginTop:1}}>Wise · Life · Food</div>
+                      </div>
+                      <button style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:12,color:"#fff",fontWeight:700}} onClick={()=>setShowSettings(true)}>⚙️</button>
+                    </div>
+                    {monthly>0&&(
+                      <div style={{display:"flex",gap:6,marginBottom:10}}>
+                        <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"7px 10px",flex:1,textAlign:"center"}}>
+                          <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{spent.toFixed(0)}€</div>
+                          <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>DÉPENSÉ</div>
+                        </div>
+                        <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"7px 10px",flex:1,textAlign:"center"}}>
+                          <div style={{fontSize:15,fontWeight:900,color:remaining>=0?"#9fdd8f":"#ff8a7a"}}>{remaining!=null?Math.abs(remaining).toFixed(0)+"€":"—"}</div>
+                          <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>{remaining>=0?"RESTANT":"DÉPASSÉ"}</div>
+                        </div>
+                        <div style={{background:"rgba(255,255,255,.12)",borderRadius:8,padding:"7px 10px",flex:1,textAlign:"center"}}>
+                          <div style={{fontSize:15,fontWeight:900,color:"#fff"}}>{pct}%</div>
+                          <div style={{fontSize:8,color:"rgba(255,255,255,.55)",fontWeight:600,letterSpacing:".04em"}}>BUDGET</div>
+                        </div>
+                      </div>
+                    )}
+                    {monthly>0&&(
+                      <div style={{height:5,background:"rgba(255,255,255,.15)",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{width:`${pct}%`,height:"100%",borderRadius:3,background:pct>90?"#ff8a7a":pct>70?"#ffc875":"#9fdd8f",transition:"width .4s"}}/>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Contenu */}
             {(()=>{
               const sessions=db.budget?.sessions||[];
               const monthly=db.budget?.monthly||0;
@@ -6956,7 +7044,7 @@ function App(){
               const pct=monthly>0?Math.min(100,Math.round(spent/monthly*100)):0;
               const remaining=monthly>0?monthly-spent:null;
               return(
-                <div>
+                <div style={{padding:"12px 12px 0"}}>
                   <div style={{...card,marginBottom:14}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                       <div style={{fontFamily:"'Fraunces',serif",fontSize:16,color:TXT,fontWeight:700}}>Budget du mois</div>
@@ -7001,7 +7089,6 @@ function App(){
           </div>
         )}
       </div>
-      
       {showSettings&&(
         <Modal open onClose={()=>setShowSettings(false)}>
           <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:TXT,marginBottom:16}}>Parametres</div>
@@ -7057,7 +7144,7 @@ function App(){
       )}
 
       {/* BOTTOM NAV — 4 onglets */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:20,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#1c1208",borderTop:"none",display:"flex",padding:"8px 4px 14px",zIndex:20,boxShadow:"0 -2px 20px rgba(0,0,0,.4)"}}>
         {[
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
@@ -7065,10 +7152,10 @@ function App(){
           {id:"maison",    icon:"🏠", label:"Maison"},
           {id:"amis",      icon:"👥", label:"Amis"},
         ].map(t=>(
-          <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
+          <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:"transparent",transition:"background .2s"}}>
             <EmojiImg emoji={t.icon} size={22} style={{lineHeight:1}}/>
-            <span style={{fontSize:9,fontWeight:700,color:page===t.id?CARAMEL:TXT3,letterSpacing:.2}}>{t.label}</span>
-            {page===t.id&&<div style={{width:4,height:4,borderRadius:"50%",background:CARAMEL}}/>}
+            <span style={{fontSize:9,fontWeight:700,color:page===t.id?"rgba(200,132,58,1)":"rgba(255,255,255,.45)",letterSpacing:.2}}>{t.label}</span>
+            {page===t.id&&<div style={{width:4,height:4,borderRadius:"50%",background:"rgba(200,132,58,1)",marginTop:1}}/>}
           </div>
         ))}
       </div>
