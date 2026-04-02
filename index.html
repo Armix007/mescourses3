@@ -1322,7 +1322,7 @@ function PageListe({db,setDb,showToast,goToPlanning,goToRecettes}){
                 {/* Bouton voir recette */}
                 {recipeObj&&(
                   <span style={{fontSize:10,opacity:.7,paddingLeft:3,borderLeft:"1px solid rgba(255,255,255,.2)",marginLeft:2,cursor:"pointer",flexShrink:0}}
-                    onClick={e=>{e.stopPropagation();if(confirm("Ouvrir \""+src+"\" dans l'onglet Recettes ?")){goToRecettes&&goToRecettes();}}}>
+                    onClick={e=>{e.stopPropagation();if(confirm("Ouvrir \""+src+"\" dans l'onglet Recettes ?")){goToRecettes&&goToRecettes(src);}}}>
                     ›
                   </span>
                 )}
@@ -1982,7 +1982,7 @@ function PageSavedLists({db,setDb,showToast,onClose,onEditStart,goToRecettes}){
                                 <span style={{maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{src}</span>
                                 {recipeObj&&(
                                   <span style={{fontSize:10,opacity:.7,paddingLeft:3,borderLeft:"1px solid rgba(255,255,255,.2)",marginLeft:2,cursor:"pointer",flexShrink:0}}
-                                    onClick={e=>{e.stopPropagation();if(confirm("Ouvrir \""+src+"\" dans l'onglet Recettes ?")){onClose();goToRecettes&&goToRecettes();}}}>
+                                    onClick={e=>{e.stopPropagation();if(confirm("Ouvrir \""+src+"\" dans l'onglet Recettes ?")){onClose();goToRecettes&&goToRecettes(src);}}}>
                                     ›
                                   </span>
                                 )}
@@ -2115,7 +2115,7 @@ function estimateRecipeCost(recipe,priceDB,vp){
   return{total:Math.round(total*100)/100,matched,outOf:recipe.ingredients.length};
 }
 
-function PageRecettes({db,setDb,showToast}){
+function PageRecettes({db,setDb,showToast,openRecipeName,onOpenRecipeDone}){
   const [showEdit,setShowEdit]=useState(false);
   const [editIdx,setEditIdx]=useState(-1);
   const [viewIdx,setViewIdx]=useState(-1);
@@ -2138,6 +2138,14 @@ function PageRecettes({db,setDb,showToast}){
   const mdbTimer=useRef(null);
   const filterScrollRef=useRef(null);
   function scrollFilters(dir){if(filterScrollRef.current) filterScrollRef.current.scrollBy({left:dir*120,behavior:"smooth"});}
+
+  // Ouvrir une recette par nom (depuis chips)
+  useEffect(()=>{
+    if(!openRecipeName)return;
+    const idx=(db.recipes||[]).findIndex(r=>r.name===openRecipeName);
+    if(idx>=0){setViewIdx(idx);}
+    onOpenRecipeDone&&onOpenRecipeDone();
+  },[openRecipeName]);
 
   useEffect(()=>{
     if(!search.trim()||search.length<2){setMealdbResults([]);return;}
@@ -6802,6 +6810,7 @@ function App(){
   const [docId,setDocId]=useState(()=>localStorage.getItem("ws_docid")||null);
   const [fbReady,setFbReady]=useState(true); // toujours démarrer, Firebase se sync en arrière-plan
   const [showApiKeyGlobal,setShowApiKeyGlobal]=useState(false);
+  const [openRecipeName,setOpenRecipeName]=useState(null); // nom recette à ouvrir
   const ttRef=useRef(null);
   const localRef=useRef(false);
 
@@ -6923,11 +6932,19 @@ function App(){
       </div>
       {/* PAGE CONTENT */}
       <div style={{background:"rgba(255,255,255,.04)",minHeight:"calc(100vh - 120px)"}}>
-        {page==="liste"&&<PageListe db={db} setDb={setDbSync} showToast={showToast} goToPlanning={()=>setPage("calendrier")} goToRecettes={()=>setPage("recettes")}/>}
-        {page==="recettes"&&<PageRecettes db={db} setDb={setDbSync} showToast={showToast}/>}
+        {page==="liste"&&<PageListe db={db} setDb={setDbSync} showToast={showToast} goToPlanning={()=>setPage("calendrier")} goToRecettes={(recipeName)=>{setOpenRecipeName(recipeName||null);setPage("recettes");}}/>}
+        {page==="recettes"&&<PageRecettes db={db} setDb={setDbSync} showToast={showToast} openRecipeName={openRecipeName} onOpenRecipeDone={()=>setOpenRecipeName(null)}/>}
         {page==="prix"&&<PagePrix db={db} setDb={setDbSync} showToast={showToast}/>}
-        {page==="placard"&&<PagePlacard db={db} setDb={setDbSync} showToast={showToast} goToRecettes={()=>setPage("recettes")} goToListe={()=>setPage("liste")}/>}
-        {page==="calendrier"&&<PageCalendrier db={db} setDb={setDbSync} showToast={showToast} goToRecettes={()=>setPage("recettes")} goToListe={()=>setPage("liste")}/>}
+        {page==="amis"&&(
+          <div style={{padding:20,paddingBottom:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
+            <div style={{fontSize:56,marginBottom:16}}>👥</div>
+            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:TXT,marginBottom:8}}>Amis & Foyer</div>
+            <div style={{fontSize:14,color:TXT3,textAlign:"center",lineHeight:1.6,maxWidth:280}}>Partagez vos listes et plannings avec vos proches.</div>
+            <div style={{marginTop:20,fontSize:12,color:TXT3,background:"rgba(0,0,0,.05)",borderRadius:12,padding:"8px 16px",fontWeight:600}}>Bientôt disponible</div>
+          </div>
+        )}
+        {page==="placard"&&<PagePlacard db={db} setDb={setDbSync} showToast={showToast} goToRecettes={(recipeName)=>{setOpenRecipeName(recipeName||null);setPage("recettes");}} goToListe={()=>setPage("liste")}/>}
+        {page==="calendrier"&&<PageCalendrier db={db} setDb={setDbSync} showToast={showToast} goToRecettes={(recipeName)=>{setOpenRecipeName(recipeName||null);setPage("recettes");}} goToListe={()=>setPage("liste")}/>}
         {page==="historique"&&<PageHistorique db={db} setDb={setDbSync} showToast={showToast} goToListe={()=>setPage("liste")}/>}
         {page==="parametres"&&<PageParametres db={db} setDb={setDbSync} showToast={showToast} pseudo={pseudo} setPseudo={setPseudo} docId={docId} setShowApiKeyGlobal={setShowApiKeyGlobal} onLogout={()=>{["ws_docid","ws_r1","ws_foyerid","ws_pwd_saved"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}/>}
         {page==="maison"&&(
@@ -7042,10 +7059,10 @@ function App(){
       {/* BOTTOM NAV — 4 onglets */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:`1px solid ${BDR}`,display:"flex",padding:"8px 4px 12px",zIndex:20,boxShadow:"0 -4px 20px rgba(42,31,14,.06)"}}>
         {[
+          {id:"amis",      icon:"👥", label:"Amis"},
           {id:"liste",     icon:"🛒", label:"Liste"},
           {id:"recettes",  icon:"🍽️", label:"Recettes"},
           {id:"calendrier",icon:"📅", label:"Planning"},
-          {id:"placard",   icon:"📦", label:"Placard"},
           {id:"maison",    icon:"🏠", label:"Maison"},
         ].map(t=>(
           <div key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 2px",borderRadius:12,background:page===t.id?"rgba(184,112,58,.1)":"transparent",transition:"background .2s"}}>
